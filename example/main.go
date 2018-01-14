@@ -26,7 +26,7 @@ func main() {
 }
 
 func write() {
-	bm := booking.NewBookingModel().(*booking.BookingModel)
+	bm := booking.NewBookingModel()
 
 	db.Start(cfg)
 	db.DbUser = db.NewUser("dev", "dev@gitdb.io")

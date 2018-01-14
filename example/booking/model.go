@@ -10,7 +10,7 @@ type BookingModel struct {
 	BookingDefinition
 }
 
-func NewBookingModel() db.ModelInterface {
+func NewBookingModel() *BookingModel {
 	bm := &BookingModel{}
 
 	bm.GetSchema().SetDef(bm)

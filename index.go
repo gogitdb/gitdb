@@ -10,7 +10,7 @@ import (
 
 func updateIndexes(m ModelInterface) {
 
-	indexPath := filepath.Join(dbPath, "Index", m.GetSchema().Name())
+	indexPath := filepath.Join(indexDir(), m.GetSchema().Name())
 
 	if _, err := os.Stat(indexPath); err != nil {
 		os.MkdirAll(indexPath, 0755)
@@ -47,4 +47,8 @@ func readIndex(indexFile string) map[string]interface{} {
 	}
 
 	return rMap
+}
+
+func indexDir() string {
+	return filepath.Join(dbPath, internalDir, "Index")
 }

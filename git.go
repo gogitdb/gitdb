@@ -7,6 +7,7 @@ import (
 	"time"
 	"vogue/log"
 	"vogue/utils"
+	"io/ioutil"
 )
 
 func gitInit() {
@@ -14,6 +15,10 @@ func gitInit() {
 	if err != nil {
 		panic(err)
 	}
+
+	//create .gitignore file
+	gitIgnore := indexDir()
+	ioutil.WriteFile(filepath.Join(absDbPath, ".gitignore"), []byte(gitIgnore), 0744)
 
 	cmd := exec.Command("git", "-C", absDbPath, "init")
 	log.PutInfo(utils.CmdToString(cmd))

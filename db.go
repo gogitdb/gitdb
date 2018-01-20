@@ -231,7 +231,7 @@ func Search(dataDir string, searchIndex string, searchValues []string, searchMod
 
 	var records []ModelInterface
 	log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
-	indexFile := filepath.Join(dbPath, query.DataDir, query.Index+".index")
+	indexFile := filepath.Join(indexDir(), query.DataDir, query.Index+".json")
 	events <- newReadEvent("...", indexFile)
 
 	index := readIndex(indexFile)

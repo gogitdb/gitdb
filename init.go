@@ -17,9 +17,10 @@ var dbOnline string
 var dbOffline string
 
 var events chan *dbEvent
-var DbUser *User
+var User *User
 var absDbPath string
 var factory func(string) ModelInterface
+var internalDir string
 
 func Start(cfg *Config) {
 	dbPath = cfg.DbPath
@@ -28,6 +29,8 @@ func Start(cfg *Config) {
 	dbOffline = cfg.OfflineRemote
 	sshKey = cfg.SshKey
 	factory = cfg.Factory
+
+	internalDir = ".gitdb" //todo rename
 
 	boot()
 	go sync()

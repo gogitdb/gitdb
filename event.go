@@ -55,7 +55,7 @@ func sync() {
 		case e := <-events:
 			switch e.Type {
 			case w, d:
-				gitCommit(e.Description, DbUser)
+				gitCommit(e.Description, User)
 			}
 		}
 	}

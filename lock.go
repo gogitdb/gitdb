@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"vogue/log"
+	//"vogue/log"
 )
 
 func Lock(m ModelInterface) error {
@@ -30,7 +30,7 @@ func Lock(m ModelInterface) error {
 		//when locking a model, lockfile should not exist
 		if _, err := os.Stat(lockFile); err == nil {
 			if derr := deleteLockFiles(lockFilesWritten); derr != nil {
-				log.PutError(derr.Error())
+				//log.PutError(derr.Error())
 			}
 			return errors.New("Lock file already exist: " + lockFile)
 		}
@@ -38,7 +38,7 @@ func Lock(m ModelInterface) error {
 		err := ioutil.WriteFile(lockFile, []byte(""), 0644)
 		if err != nil {
 			if derr := deleteLockFiles(lockFilesWritten); derr != nil {
-				log.PutError(derr.Error())
+				//log.PutError(derr.Error())
 			}
 			return errors.New("Failed to write lock " + lockFile + ": " + err.Error())
 		}
@@ -64,7 +64,7 @@ func UnLock(m ModelInterface) error {
 		lockFile := filepath.Join(fullPath, file)
 
 		if _, err := os.Stat(lockFile); err == nil {
-			log.PutInfo("Removing " + lockFile)
+			//log.PutInfo("Removing " + lockFile)
 			err := os.Remove(lockFile)
 			if err != nil {
 				return errors.New("Could not delete lock file: " + lockFile)

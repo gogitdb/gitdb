@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -12,7 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"vogue/log"
+	//"vogue/log"
 )
 
 type SearchMode string
@@ -56,7 +55,7 @@ func Insert(m ModelInterface) error {
 	dataFileName := m.GetSchema().Block() + ".block"
 	dataFilePath := filepath.Join(fullPath, dataFileName)
 	commitMsg := "Inserting " + m.Id() + " into " + dataFileName
-	log.PutInfo(commitMsg)
+	//log.PutInfo(commitMsg)
 	events <- newWriteBeforeEvent("...", dataFileName)
 	if _, err := os.Stat(dataFilePath); err == nil {
 		//block file exist, read it, check for duplicates and append new data
@@ -72,7 +71,7 @@ func Insert(m ModelInterface) error {
 			if record.Id() == m.Id() {
 				recordExists = true
 				//overwrite existing record
-				log.PutInfo("Overwriting record - " + m.Id())
+				//log.PutInfo("Overwriting record - " + m.Id())
 				recordBytes = append(recordBytes, tmpRecordBytes...)
 				recordBytes = append(recordBytes, []byte("\n")...)
 			} else {
@@ -114,7 +113,7 @@ func readBlock(blockFile string, m ModelInterface) ([]ModelInterface, error) {
 
 	f, err := os.Open(blockFile)
 	if err != nil {
-		log.PutError(err.Error())
+		//log.PutError(err.Error())
 		return result, err
 	}
 
@@ -133,7 +132,7 @@ func readBlock(blockFile string, m ModelInterface) ([]ModelInterface, error) {
 
 				jsonErr = json.Unmarshal([]byte(line), concreteModel)
 				if jsonErr != nil {
-					log.PutError(jsonErr.Error())
+					//log.PutError(jsonErr.Error())
 					return result, jsonErr
 				}
 
@@ -198,7 +197,7 @@ func Fetch(dataDir string) ([]ModelInterface, error) {
 
 	fullPath := filepath.Join(dbPath, dataDir)
 	events <- newReadEvent("...", fullPath)
-	log.PutInfo("Fetching records from - " + fullPath)
+	//log.PutInfo("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
 	if err != nil {
 		return records, err
@@ -216,7 +215,7 @@ func Fetch(dataDir string) ([]ModelInterface, error) {
 		}
 	}
 
-	log.PutInfo(fmt.Sprintf("%d records found in %s", len(records), fullPath))
+	//log.PutInfo(fmt.Sprintf("%d records found in %s", len(records), fullPath))
 	return records, nil
 }
 
@@ -230,7 +229,7 @@ func Search(dataDir string, searchIndex string, searchValues []string, searchMod
 	}
 
 	var records []ModelInterface
-	log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
+	//log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
 	indexFile := filepath.Join(indexDir(), query.DataDir, query.Index+".json")
 	events <- newReadEvent("...", indexFile)
 
@@ -292,7 +291,7 @@ func Search(dataDir string, searchIndex string, searchValues []string, searchMod
 		}
 	}
 
-	log.PutInfo(fmt.Sprintf("Found %d results in %s namespace by %s for '%s'", len(records), query.DataDir, query.Index, strings.Join(query.Values, ",")))
+	//log.PutInfo(fmt.Sprintf("Found %d results in %s namespace by %s for '%s'", len(records), query.DataDir, query.Index, strings.Join(query.Values, ",")))
 	return records, nil
 }
 

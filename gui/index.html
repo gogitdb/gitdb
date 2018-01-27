@@ -1,0 +1,31 @@
+<html>
+    <head></head>
+    <body>
+
+        <h1>{{.Title}}</h1>
+
+        <h2>Data Sets</h2>
+        <table border="1">
+            <tr>
+                <th>Name</th>
+                <th>No. of blocks</th>
+                <th>No. of records</th>
+                <th>Size</th>
+                <th>Created</th>
+                <th>Last Modified</th>
+            </tr>
+            {{range $key, $value := .Datasets}} 
+            <tr>
+                <td>{{ $value }}</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+            {{end}}
+        </table>
+
+
+    </body>
+</html>

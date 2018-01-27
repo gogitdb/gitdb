@@ -21,15 +21,19 @@ func init() {
 }
 
 func main() {
-	write()
-	delete()
+	//write()
+	//delete()
+
+	db.Start(cfg)
+	db.User = db.NewUser("dev", "dev@gitdb.io")
+	db.StartGUI()
 }
 
 func write() {
 	bm := booking.NewBookingModel()
 
 	db.Start(cfg)
-	db.DbUser = db.NewUser("dev", "dev@gitdb.io")
+	db.User = db.NewUser("dev", "dev@gitdb.io")
 
 	//populate model
 	bm.Type = booking.Room
@@ -51,7 +55,7 @@ func write() {
 
 func read() {
 	db.Start(cfg)
-	db.DbUser = db.NewUser("dev", "dev@gitdb.io")
+	db.User = db.NewUser("dev", "dev@gitdb.io")
 
 	r, err := db.Get("Booking/201801/room_201801111512")
 	if err != nil {
@@ -63,7 +67,7 @@ func read() {
 
 func delete() {
 	db.Start(cfg)
-	db.DbUser = db.NewUser("dev", "dev@gitdb.io")
+	db.User = db.NewUser("dev", "dev@gitdb.io")
 
 	r, err := db.Delete("Booking/201801/room_201801111823")
 	if err != nil {
@@ -75,4 +79,16 @@ func delete() {
 			fmt.Println("NOT Deleted")
 		}
 	}
+}
+
+func Make(modelName string) db.ModelInterface {
+	var m db.ModelInterface
+	switch modelName {
+	case "Booking":
+		m := &booking.BookingModel{}
+		m.GetSchema().SetDef(m)
+		break
+	}
+
+	return m
 }

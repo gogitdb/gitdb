@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"vogue/log"
+	//"vogue/log"
 )
 
 func updateIndexes(m ModelInterface) {
@@ -24,13 +24,13 @@ func updateIndexes(m ModelInterface) {
 
 		indexBytes, err := json.MarshalIndent(index, "", "\t")
 		if err != nil {
-			log.PutError("Failed to write to index [" + indexFile + "]: " + err.Error())
+			//log.PutError("Failed to write to index [" + indexFile + "]: " + err.Error())
 			return
 		}
 
 		err = ioutil.WriteFile(indexFile, indexBytes, 0744)
 		if err != nil {
-			log.PutError("Failed to write to index: " + indexFile)
+			//log.PutError("Failed to write to index: " + indexFile)
 		}
 	}
 }
@@ -43,7 +43,7 @@ func readIndex(indexFile string) map[string]interface{} {
 	}
 
 	if err != nil {
-		log.PutError(err.Error())
+		//log.PutError(err.Error())
 	}
 
 	return rMap

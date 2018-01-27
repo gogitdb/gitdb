@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"vogue/log"
+	//"vogue/log"
 )
 
 var dbPath string
@@ -17,7 +17,7 @@ var dbOnline string
 var dbOffline string
 
 var events chan *dbEvent
-var User *User
+var User *DbUser
 var absDbPath string
 var factory func(string) ModelInterface
 var internalDir string
@@ -37,10 +37,10 @@ func Start(cfg *Config) {
 }
 
 func boot() {
-	log.PutInfo("Booting up db")
+	//log.PutInfo("Booting up db")
 	if _, err := os.Stat(repoDir); err == nil {
 		isServer = true
-		log.PutInfo("application is running in server mode")
+		//log.PutInfo("application is running in server mode")
 	}
 
 	events = make(chan *dbEvent)
@@ -56,15 +56,15 @@ func boot() {
 	dotGitDir := filepath.Join(dbPath, ".git")
 
 	if _, err := os.Stat(dbPath); err != nil {
-		log.PutInfo("database not initialized")
+		//log.PutInfo("database not initialized")
 		err = os.Mkdir(dbPath, 0755)
 		if err != nil {
-			log.PutError("failed to create db directory - " + err.Error())
+			//log.PutError("failed to create db directory - " + err.Error())
 		}
 		gitInit()
 	} else if _, err := os.Stat(dotGitDir); err != nil {
 		panic(dbPath + " is not a git repository")
 	}
 
-	log.PutInfo("Db booted")
+	//log.PutInfo("Db booted")
 }

@@ -2,7 +2,7 @@ package db
 
 import (
 	"time"
-	"vogue/log"
+	//"vogue/log"
 )
 
 type eventType string
@@ -43,14 +43,14 @@ func sync() {
 		select {
 		case <-ticker.C:
 			if len(dbOnline) > 0 {
-				log.PutInfo("Syncing database...")
+				//log.PutInfo("Syncing database...")
 				err1 := gitPull()
 				err2 := gitPush()
 				if err1 != nil || err2 != nil {
-					log.PutError("Database sync failed")
+					//log.PutError("Database sync failed")
 				}
 			} else {
-				log.PutInfo("Syncing disabled: online remote is not set")
+				//log.PutInfo("Syncing disabled: online remote is not set")
 			}
 		case e := <-events:
 			switch e.Type {

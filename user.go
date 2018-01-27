@@ -1,20 +1,18 @@
 package db
 
-type User struct {
+type DbUser struct {
 	Name  string
 	Email string
 }
 
-func (u *User) AuthorName() string {
+func (u *DbUser) AuthorName() string {
 	return u.Name + " <" + u.Email + ">"
 }
 
-func (u *User) String() string{
+func (u *DbUser) String() string {
 	return u.AuthorName()
 }
 
-func NewUser(name string, email string) *User {
-	return &User{Name: name, Email: email}
+func NewUser(name string, email string) *DbUser {
+	return &DbUser{Name: name, Email: email}
 }
-
-

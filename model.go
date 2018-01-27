@@ -17,6 +17,7 @@ type ModelInterface interface {
 	GetUpdatedDate() time.Time
 	StampCreatedDate()
 	StampUpdatedDate()
+	ShouldEncrypt() bool
 }
 
 type Model struct {
@@ -55,4 +56,8 @@ func (m *Model) GetSchema() *Schema {
 	}
 
 	return m.schema
+}
+
+func (m *Model) ShouldEncrypt() bool {
+	return false
 }

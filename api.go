@@ -1,19 +1,19 @@
 package db
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
-	"encoding/json"
 )
 
 type DataSet struct {
-	Name string
+	Name   string
 	Blocks []Block
 }
 
 func (d *DataSet) Size() int64 {
-	size := 0.00
+	size := int64(0)
 	for _, block := range d.Blocks {
 		size += block.Size
 	}
@@ -26,8 +26,8 @@ func (d *DataSet) BlockCount() int {
 }
 
 type Block struct {
-	Name string
-	Size int64
+	Name    string
+	Size    int64
 	Records []Record
 }
 
@@ -36,7 +36,7 @@ func (b *Block) RecordCount() int {
 }
 
 type Record struct {
-	ID string
+	ID      string
 	Content string
 }
 
@@ -48,7 +48,7 @@ func listDatasets() []string {
 		return dataSets
 	}
 
-	for _, dir := range dirs{
+	for _, dir := range dirs {
 		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
 			dataSets = append(dataSets, dir.Name())
 		}
@@ -65,7 +65,7 @@ func blocksCount(dataSet string) int {
 	}
 
 	for _, block := range blocks {
-		if !block.IsDir() && strings.HasSuffix(block.Name(), ".block"){
+		if !block.IsDir() && strings.HasSuffix(block.Name(), ".block") {
 			count++
 		}
 	}
@@ -86,14 +86,14 @@ func recordsCount(dataSet string, block string) int {
 }
 
 func sizeDataset(dataSet string) int64 {
-	size := 0.00
+	size := int64(0)
 	blocks, err := ioutil.ReadDir(filepath.Join(dbPath, dataSet))
 	if err != nil {
 		return size
 	}
 
 	for _, block := range blocks {
-		if strings.HasSuffix(block.Name(), ".block"){
+		if strings.HasSuffix(block.Name(), ".block") {
 			size += block.Size()
 		}
 	}
@@ -119,4 +119,3 @@ func showBlock(dataSet string, block string) []string {
 
 	return blockContents
 }
-

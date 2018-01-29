@@ -39,7 +39,7 @@ func GetGUIEndpoints() []*Endpoint {
 
 type ViewModel struct {
 	Title    string
-	DataSets []string
+	DataSets []*DataSet
 }
 
 var html = `<html>
@@ -58,12 +58,12 @@ var html = `<html>
 			<th>Created</th>
 			<th>Last Modified</th>
 		</tr>
-		{{range $key, $value := .DataSets}} 
+		{{range $key, $value := .DataSets}}
 		<tr>
-			<td>{{ $value }}</td>
-			<td>-</td>
-			<td>-</td>
-			<td>-</td>
+			<td>{{ $value.Name }}</td>
+			<td>{{ $value.BlockCount }}</td>
+			<td>{{ $value.RecordCount }}</td>
+			<td>{{ $value.Size }}</td>
 			<td>-</td>
 			<td>-</td>
 		</tr>
@@ -77,7 +77,7 @@ var html = `<html>
 
 func handler(w http.ResponseWriter, r *http.Request) {
 
-	viewModel := &ViewModel{Title: "DB GUI", DataSets: listDatasets()}
+	viewModel := &ViewModel{Title: "DB GUI", DataSets: LoadDatasets()}
 	t, _ := template.New("tt").Parse(html)
 	t.Execute(w, viewModel)
 }

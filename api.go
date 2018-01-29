@@ -9,7 +9,7 @@ import (
 
 type DataSet struct {
 	Name   string
-	Blocks []Block
+	Blocks []*Block
 }
 
 func (d *DataSet) Size() int64 {
@@ -25,14 +25,33 @@ func (d *DataSet) BlockCount() int {
 	return len(d.Blocks)
 }
 
+func (d *DataSet) RecordCount() int {
+	count := 0
+	for _, block := range d.Blocks{
+		count += block.RecordCount()
+	}
+
+	return count
+}
+
 type Block struct {
 	Name    string
 	Size    int64
-	Records []Record
+	Records []*Record
 }
 
 func (b *Block) RecordCount() int {
 	return len(b.Records)
+}
+
+func (b *Block) Show() []string {
+	var blockContents []string
+	for _, record := range b.Records {
+		blockContents = append(blockContents, record.Content)
+
+	}
+
+	return blockContents
 }
 
 type Record struct {
@@ -40,7 +59,71 @@ type Record struct {
 	Content string
 }
 
-func listDatasets() []string {
+func LoadDatasets() []*DataSet {
+	var dataSets []*DataSet
+	for _, name := range getDatasets() {
+			dataset := &DataSet{
+				Name : name,
+			}
+
+		dataset.Blocks = blocks(name)
+		dataSets = append(dataSets, dataset)
+	}
+
+	return dataSets
+}
+
+func blocks(dataSet string) []*Block {
+	var blocks []*Block
+	blks, err := ioutil.ReadDir(filepath.Join(dbPath, dataSet))
+	if err != nil {
+		return blocks
+	}
+
+	for _, block := range blks {
+		if !block.IsDir() && strings.HasSuffix(block.Name(), ".json") {
+			blockName := strings.TrimSuffix(block.Name(), ".json")
+			b := &Block{
+				Name: blockName,
+				Size: block.Size(),
+			}
+
+			b.Records = records(dataSet, blockName)
+			blocks = append(blocks, b)
+		}
+	}
+
+	return blocks
+}
+
+func records(dataSet string, block string) []*Record {
+
+	var records []*Record
+	model := factory(dataSet)
+	blockFile := filepath.Join(dbPath, dataSet, block+".json")
+	recs, err := readBlock(blockFile, model)
+	if err != nil {
+		return records
+	}
+
+	for _, rec := range recs {
+		content, err := json.MarshalIndent(rec, "", "\t")
+		if err != nil {
+			content = []byte(err.Error())
+		}
+
+		r := &Record{
+			ID: rec.Id(),
+			Content: string(content),
+		}
+
+		records = append(records, r)
+	}
+
+	return records
+}
+
+func getDatasets() []string {
 	var dataSets []string
 	dirs, err := ioutil.ReadDir(dbPath)
 	if err != nil {
@@ -55,67 +138,4 @@ func listDatasets() []string {
 	}
 
 	return dataSets
-}
-
-func blocksCount(dataSet string) int {
-	count := 0
-	blocks, err := ioutil.ReadDir(filepath.Join(dbPath, dataSet))
-	if err != nil {
-		return count
-	}
-
-	for _, block := range blocks {
-		if !block.IsDir() && strings.HasSuffix(block.Name(), ".block") {
-			count++
-		}
-	}
-
-	return count
-}
-
-func recordsCount(dataSet string, block string) int {
-	count := 0
-	model := factory(dataSet)
-	blockFile := filepath.Join(dbPath, dataSet, block+".block")
-	records, err := readBlock(blockFile, model)
-	if err != nil {
-		return count
-	}
-
-	return len(records)
-}
-
-func sizeDataset(dataSet string) int64 {
-	size := int64(0)
-	blocks, err := ioutil.ReadDir(filepath.Join(dbPath, dataSet))
-	if err != nil {
-		return size
-	}
-
-	for _, block := range blocks {
-		if strings.HasSuffix(block.Name(), ".block") {
-			size += block.Size()
-		}
-	}
-
-	return size
-}
-
-func showBlock(dataSet string, block string) []string {
-	var blockContents []string
-	model := factory(dataSet)
-	blockFile := filepath.Join(dbPath, dataSet, block+".block")
-	records, err := readBlock(blockFile, model)
-	if err != nil {
-		return blockContents
-	}
-
-	for _, record := range records {
-		j, err := json.MarshalIndent(record, "", "\t")
-		if err == nil {
-			blockContents = append(blockContents, string(j))
-		}
-	}
-
-	return blockContents
 }

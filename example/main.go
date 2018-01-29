@@ -87,6 +87,7 @@ func Make(modelName string) db.ModelInterface {
 	case "Booking":
 		m := &booking.BookingModel{}
 		m.GetSchema().SetDef(m)
+		return m
 		break
 	}
 

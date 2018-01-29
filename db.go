@@ -1,10 +1,8 @@
 package db
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -39,7 +37,7 @@ func Insert(m ModelInterface) error {
 	}
 
 	m.SetId(m.GetSchema().RecordId())
-	recordBytes, err := json.Marshal(m)
+	newRecordBytes, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
@@ -50,9 +48,11 @@ func Insert(m ModelInterface) error {
 		os.MkdirAll(fullPath, 0755)
 	}
 
-	var blockFile *os.File
 
-	dataFileName := m.GetSchema().Block() + ".block"
+	dataBlock := map[string]string{}
+	recordExists := false
+
+	dataFileName := m.GetSchema().Block() + ".json"
 	dataFilePath := filepath.Join(fullPath, dataFileName)
 	commitMsg := "Inserting " + m.Id() + " into " + dataFileName
 	//log.PutInfo(commitMsg)
@@ -64,85 +64,74 @@ func Insert(m ModelInterface) error {
 			return err
 		}
 
-		tmpRecordBytes := recordBytes
-		recordBytes = []byte{}
-		recordExists := false
 		for _, record := range records {
+			println(record.Id())
 			if record.Id() == m.Id() {
 				recordExists = true
 				//overwrite existing record
 				//log.PutInfo("Overwriting record - " + m.Id())
-				recordBytes = append(recordBytes, tmpRecordBytes...)
-				recordBytes = append(recordBytes, []byte("\n")...)
+
+				dataBlock[record.Id()] = string(newRecordBytes)
+
 			} else {
-				data, err := json.Marshal(record)
+				recordBytes, err := json.Marshal(record)
 				if err != nil {
 					return err
 				}
 
-				recordBytes = append(recordBytes, data...)
-				recordBytes = append(recordBytes, []byte("\n")...)
+				dataBlock[record.Id()] = string(recordBytes)
 			}
-		}
-
-		if !recordExists {
-			recordBytes = append(recordBytes, tmpRecordBytes...)
-			recordBytes = append(recordBytes, []byte("\n")...)
 		}
 	}
 
-	writeErr := ioutil.WriteFile(dataFilePath, recordBytes, 0744)
+	if !recordExists {
+		dataBlock[m.Id()] = string(newRecordBytes)
+	}
+
+	blockBytes, err := json.MarshalIndent(dataBlock, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	writeErr := ioutil.WriteFile(dataFilePath, blockBytes, 0744)
 	if writeErr == nil {
 		events <- newWriteEvent(commitMsg, dataFileName)
 	}
 
-	recordBytes = append(recordBytes, []byte("\n")...) //append new line to each record
-
-	blockFile.Write(recordBytes)
-
-	defer blockFile.Close()
 	defer updateIndexes(m)
 
 	return err
-
 }
 
 func readBlock(blockFile string, m ModelInterface) ([]ModelInterface, error) {
 
 	var result []ModelInterface
+	var jsonErr error
 
-	f, err := os.Open(blockFile)
+	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
 		//log.PutError(err.Error())
 		return result, err
 	}
 
-	defer f.Close()
-	r := bufio.NewReader(f)
+	dataBlock := map[string]string{}
+	jsonErr = json.Unmarshal(data, &dataBlock)
+	if jsonErr != nil {
+		//log.PutError(jsonErr.Error())
+		return result, jsonErr
+	}
 
-	var jsonErr error
+	for _, v := range dataBlock {
 
-	for {
-		line, err := r.ReadString('\n')
-		if err == nil || err == io.EOF {
-			if len(line) > 0 && line[len(line)-1] == '\n' {
-				line = line[:len(line)-1]
+		concreteModel := factory(m.GetSchema().Name())
 
-				concreteModel := factory(m.GetSchema().Name())
-
-				jsonErr = json.Unmarshal([]byte(line), concreteModel)
-				if jsonErr != nil {
-					//log.PutError(jsonErr.Error())
-					return result, jsonErr
-				}
-
-				result = append(result, concreteModel.(ModelInterface))
-			}
+		jsonErr = json.Unmarshal([]byte(v), concreteModel)
+		if jsonErr != nil {
+			//log.PutError(jsonErr.Error())
+			return result, jsonErr
 		}
 
-		if err != nil {
-			break
-		}
+		result = append(result, concreteModel.(ModelInterface))
 	}
 
 	return result, err
@@ -170,7 +159,7 @@ func Get(id string) (ModelInterface, error) {
 		return m, err
 	}
 
-	dataFilePath := filepath.Join(dbPath, dataDir, block+".block")
+	dataFilePath := filepath.Join(dbPath, dataDir, block+".json")
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return m, errors.New(dataDir + " Not Found - " + id)
 	} else {
@@ -188,7 +177,7 @@ func Get(id string) (ModelInterface, error) {
 	}
 
 	events <- newReadEvent("...", id)
-	return m, nil
+	return m, errors.New("Record "+id+" not found in " + dataDir)
 }
 
 func Fetch(dataDir string) ([]ModelInterface, error) {
@@ -206,7 +195,7 @@ func Fetch(dataDir string) ([]ModelInterface, error) {
 	model := factory(dataDir)
 	for _, file := range files {
 		fileName := filepath.Join(fullPath, file.Name())
-		if filepath.Ext(fileName) == ".block" {
+		if filepath.Ext(fileName) == ".json" {
 			results, err := readBlock(fileName, model)
 			if err != nil {
 				return records, nil
@@ -276,7 +265,7 @@ func Search(dataDir string, searchIndex string, searchValues []string, searchMod
 
 	for _, block := range searchBlocks {
 
-		blockFile := OsPath(filepath.Join(dbPath, query.DataDir, block+".block"))
+		blockFile := OsPath(filepath.Join(dbPath, query.DataDir, block+".json"))
 
 		model := factory(query.DataDir)
 		blockRecords, err := readBlock(blockFile, model)
@@ -310,7 +299,7 @@ func del(id string, failIfNotFound bool) (bool, error) {
 		return false, err
 	}
 
-	dataFileName := filepath.Join(dbPath, dataDir, block+".block")
+	dataFileName := filepath.Join(dbPath, dataDir, block+".json")
 	if _, err := os.Stat(dataFileName); err != nil {
 		if failIfNotFound {
 			return false, errors.New("Could not delete [" + id + "]: record does not exist")
@@ -325,7 +314,7 @@ func del(id string, failIfNotFound bool) (bool, error) {
 	}
 
 	deleteRecordFound := false
-	var blockData []byte
+	blockData := map[string]string{}
 	for _, record := range records {
 		if record.Id() != id {
 			data, err := json.Marshal(record)
@@ -333,16 +322,21 @@ func del(id string, failIfNotFound bool) (bool, error) {
 				return false, err
 			}
 
-			blockData = append(blockData, data...)
-			blockData = append(blockData, []byte("\n")...)
+			blockData[record.Id()] = string(data)
 		} else {
 			deleteRecordFound = true
 		}
 	}
 
 	if deleteRecordFound {
+
+		out, err := json.MarshalIndent(blockData, "", "\t")
+		if err != nil {
+			return false, err
+		}
+
 		//write undeleted records back to block file
-		err = ioutil.WriteFile(dataFileName, blockData, 0744)
+		err = ioutil.WriteFile(dataFileName, out, 0744)
 		if err != nil {
 			return false, err
 		}

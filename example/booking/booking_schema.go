@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-type BookingDefinition struct {
-	db.BaseDef
+type BookingSchema struct {
+	db.BaseSchema
 	Type         RoomType
 	CheckInDate  time.Time
 	CheckOutDate time.Time
@@ -26,22 +26,22 @@ type BookingDefinition struct {
 //ID: Booking/201801/room_201801101100
 
 //Name of schema
-func (s *BookingDefinition) Name() string {
+func (s *BookingSchema) Name() string {
 	return "Booking"
 }
 
 //Block of schema
-func (s *BookingDefinition) Block() string {
+func (s *BookingSchema) Block() string {
 	return s.CreatedAt.Format("200601")
 }
 
 //Record of schema
-func (s *BookingDefinition) Record() string {
+func (s *BookingSchema) Record() string {
 	return string(s.Type) + "_" + s.CreatedAt.Format("200601021504")
 }
 
 //Indexes speed up searching
-func (s *BookingDefinition) Indexes() map[string]interface{} {
+func (s *BookingSchema) Indexes() map[string]interface{} {
 	indexes := make(map[string]interface{})
 
 	indexes["RoomId"] = s.RoomId

@@ -5,32 +5,28 @@ import (
 )
 
 type ModelInterface interface {
-	Id() string
 	SetId(string)
 	String() string
 	Validate() bool
 	IsLockable() bool
 	GetLockFileNames() []string
-	SetSchema(*Schema)
-	GetSchema() *Schema
+	GetID() *ID
 	GetCreatedDate() time.Time
 	GetUpdatedDate() time.Time
-	StampCreatedDate()
-	StampUpdatedDate()
+	stampCreatedDate()
+	stampUpdatedDate()
 	ShouldEncrypt() bool
+	Indexes() map[string]interface{}
+	Init(schema Schema)
 }
 
 type Model struct {
 	//extends..
-	schema *Schema
-}
-
-func (m *Model) Id() string {
-	return m.GetSchema().Id()
+	_Id *ID
 }
 
 func (m *Model) String() string {
-	return m.GetSchema().Id()
+	return m.GetID().String()
 }
 
 func (m *Model) Validate() bool {
@@ -45,17 +41,16 @@ func (m *Model) GetLockFileNames() []string {
 	return []string{}
 }
 
-func (m *Model) SetSchema(s *Schema) {
-	m.schema = s
-}
-
-func (m *Model) GetSchema() *Schema {
-	if m.schema == nil {
-		m.schema = &Schema{}
-		//m.schema.SetDef(m)
+func (m *Model) GetID() *ID {
+	if m._Id == nil {
+		m._Id = &ID{}
 	}
 
-	return m.schema
+	return m._Id
+}
+
+func (m *Model) Init(schema Schema) {
+	m.GetID().Init(schema)
 }
 
 func (m *Model) ShouldEncrypt() bool {

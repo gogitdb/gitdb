@@ -7,13 +7,13 @@ import (
 type BookingModel struct {
 	//extends..
 	db.Model
-	BookingDefinition
+	BookingSchema
 }
 
 func NewBookingModel() *BookingModel {
 	bm := &BookingModel{}
 
-	bm.GetSchema().SetDef(bm)
+	bm.Init(bm)
 	return bm
 }
 
@@ -40,10 +40,7 @@ func (b *BookingModel) Validate() bool {
 
 	//TODO move this to a better place
 	//timestamp the data
-	if b.GetCreatedDate().IsZero() {
-		b.StampCreatedDate()
-	}
-	b.StampUpdatedDate()
+
 
 	return true
 }

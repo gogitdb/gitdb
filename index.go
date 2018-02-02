@@ -10,17 +10,17 @@ import (
 
 func updateIndexes(m ModelInterface) {
 
-	indexPath := filepath.Join(indexDir(), m.GetSchema().Name())
+	indexPath := filepath.Join(indexDir(), m.GetID().name())
 
 	if _, err := os.Stat(indexPath); err != nil {
 		os.MkdirAll(indexPath, 0755)
 	}
 
-	for name, value := range m.GetSchema().Indexes() {
+	for name, value := range m.Indexes() {
 		indexFile := filepath.Join(indexPath, name+".json")
 		index := readIndex(indexFile)
 		//add new value to index
-		index[m.Id()] = value
+		index[m.GetID().RecordId()] = value
 
 		indexBytes, err := json.MarshalIndent(index, "", "\t")
 		if err != nil {

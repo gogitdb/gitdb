@@ -15,34 +15,37 @@ import (
 type SearchMode string
 
 const (
-	SEARCH_MODE_EXACT         SearchMode = "exact"
-	SEARCH_MODE_PARTIAL       SearchMode = "partial"
-	SEARCH_MODE_PARTIAL_LEFT  SearchMode = "partial_left"
-	SEARCH_MODE_PARTIAL_RIGHT SearchMode = "partial_right"
+	SEARCH_MODE_EQUALS SearchMode = "equals"
+	SEARCH_MODE_CONTAINS SearchMode = "contains"
+	SEARCH_MODE_STARTS_WITH SearchMode = "starts_with"
+	SEARCH_MODE_ENDS_WITH SearchMode = "ends_with"
 )
-
-var defaultSearchMode = SEARCH_MODE_EXACT
 
 type SearchQuery struct {
 	DataDir string
-	Index   string
+	Indexes []string
 	Values  []string
 	Mode    SearchMode
 }
 
 func Insert(m ModelInterface) error {
 
+	if m.GetCreatedDate().IsZero() {
+		m.stampCreatedDate()
+	}
+	m.stampUpdatedDate()
+
 	if !m.Validate() {
 		return errors.New("Model is not valid")
 	}
 
-	m.SetId(m.GetSchema().RecordId())
+	m.SetId(m.GetID().RecordId())
 	newRecordBytes, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
-	fullPath = filepath.Join(dbPath, m.GetSchema().Name())
+	fullPath = filepath.Join(dbPath, m.GetID().name())
 
 	if _, err := os.Stat(fullPath); err != nil {
 		os.MkdirAll(fullPath, 0755)
@@ -52,9 +55,9 @@ func Insert(m ModelInterface) error {
 	dataBlock := map[string]string{}
 	recordExists := false
 
-	dataFileName := m.GetSchema().Block() + ".json"
+	dataFileName := m.GetID().blockId() + ".json"
 	dataFilePath := filepath.Join(fullPath, dataFileName)
-	commitMsg := "Inserting " + m.Id() + " into " + dataFileName
+	commitMsg := "Inserting " + m.GetID().RecordId() + " into " + dataFileName
 	//log.PutInfo(commitMsg)
 	events <- newWriteBeforeEvent("...", dataFileName)
 	if _, err := os.Stat(dataFilePath); err == nil {
@@ -65,13 +68,13 @@ func Insert(m ModelInterface) error {
 		}
 
 		for _, record := range records {
-			println(record.Id())
-			if record.Id() == m.Id() {
+			println(record.GetID().RecordId())
+			if record.GetID().RecordId() == m.GetID().RecordId() {
 				recordExists = true
 				//overwrite existing record
 				//log.PutInfo("Overwriting record - " + m.Id())
 
-				dataBlock[record.Id()] = string(newRecordBytes)
+				dataBlock[record.GetID().RecordId()] = string(newRecordBytes)
 
 			} else {
 				recordBytes, err := json.Marshal(record)
@@ -79,13 +82,13 @@ func Insert(m ModelInterface) error {
 					return err
 				}
 
-				dataBlock[record.Id()] = string(recordBytes)
+				dataBlock[record.GetID().RecordId()] = string(recordBytes)
 			}
 		}
 	}
 
 	if !recordExists {
-		dataBlock[m.Id()] = string(newRecordBytes)
+		dataBlock[m.GetID().RecordId()] = string(newRecordBytes)
 	}
 
 	blockBytes, err := json.MarshalIndent(dataBlock, "", "\t")
@@ -96,6 +99,8 @@ func Insert(m ModelInterface) error {
 	writeErr := ioutil.WriteFile(dataFilePath, blockBytes, 0744)
 	if writeErr == nil {
 		events <- newWriteEvent(commitMsg, dataFileName)
+	}else{
+		return writeErr
 	}
 
 	defer updateIndexes(m)
@@ -123,7 +128,7 @@ func readBlock(blockFile string, m ModelInterface) ([]ModelInterface, error) {
 
 	for _, v := range dataBlock {
 
-		concreteModel := factory(m.GetSchema().Name())
+		concreteModel := factory(m.GetID().name())
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
 		if jsonErr != nil {
@@ -170,7 +175,7 @@ func Get(id string) (ModelInterface, error) {
 		}
 
 		for _, record := range records {
-			if record.Id() == id {
+			if record.GetID().RecordId() == id {
 				return record, nil
 			}
 		}
@@ -208,59 +213,66 @@ func Fetch(dataDir string) ([]ModelInterface, error) {
 	return records, nil
 }
 
-func Search(dataDir string, searchIndex string, searchValues []string, searchMode SearchMode) ([]ModelInterface, error) {
+func Search(dataDir string, searchIndexes []string, searchValues []string, searchMode SearchMode) ([]ModelInterface, error) {
 
 	query := &SearchQuery{
 		DataDir: dataDir,
-		Index:   searchIndex,
+		Indexes:   searchIndexes,
 		Values:  searchValues,
 		Mode:    searchMode,
 	}
 
 	var records []ModelInterface
-	//log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
-	indexFile := filepath.Join(indexDir(), query.DataDir, query.Index+".json")
-	events <- newReadEvent("...", indexFile)
-
-	index := readIndex(indexFile)
 	matchingRecords := make(map[string]string)
-	for k, v := range index {
-		addResult := false
-		dbValue := strings.ToLower(v.(string))
-		for _, value := range query.Values {
-			queryValue := strings.ToLower(value)
-			switch query.Mode {
-			case SEARCH_MODE_EXACT:
-				addResult = (dbValue == queryValue)
-				break
-			case SEARCH_MODE_PARTIAL:
-				addResult = strings.Contains(dbValue, queryValue)
-				break
-			case SEARCH_MODE_PARTIAL_LEFT:
-				addResult = strings.HasPrefix(dbValue, queryValue)
-				break
-			case SEARCH_MODE_PARTIAL_RIGHT:
-				addResult = strings.HasPrefix(dbValue, queryValue)
-				break
-			}
+	//log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
+	for _, index := range query.Indexes {
+		indexFile := filepath.Join(indexDir(), query.DataDir, index+".json")
+		if _, err := os.Stat(indexFile); err != nil {
+			return records, errors.New(index+" index does not exist")
+		}
 
-			if addResult {
-				matchingRecords[k] = v.(string)
-			} else if _, ok := matchingRecords[k]; ok {
-				delete(matchingRecords, k)
+		events <- newReadEvent("...", indexFile)
+
+		index := readIndex(indexFile)
+
+		for k, v := range index {
+			addResult := false
+			dbValue := strings.ToLower(v.(string))
+			for _, value := range query.Values {
+				queryValue := strings.ToLower(value)
+				switch query.Mode {
+				case SEARCH_MODE_EQUALS:
+					addResult = (dbValue == queryValue)
+					break
+				case SEARCH_MODE_CONTAINS:
+					addResult = strings.Contains(dbValue, queryValue)
+					break
+				case SEARCH_MODE_STARTS_WITH:
+					addResult = strings.HasPrefix(dbValue, queryValue)
+					break
+				case SEARCH_MODE_ENDS_WITH:
+					addResult = strings.HasSuffix(dbValue, queryValue)
+					break
+				}
+
+				if addResult {
+					matchingRecords[k] = v.(string)
+				} else if _, ok := matchingRecords[k]; ok {
+					delete(matchingRecords, k)
+				}
 			}
 		}
 	}
 
 	//filter out the blocks that we need to search
-	var searchBlocks []string
+	searchBlocks := map[string]string{}
 	for recordId := range matchingRecords {
 		_, block, _, err := parseId(recordId)
 		if err != nil {
 			return records, err
 		}
 
-		searchBlocks = append(searchBlocks, block)
+		searchBlocks[block] = block
 	}
 
 	for _, block := range searchBlocks {
@@ -274,7 +286,7 @@ func Search(dataDir string, searchIndex string, searchValues []string, searchMod
 		}
 
 		for _, record := range blockRecords {
-			if _, ok := matchingRecords[record.Id()]; ok {
+			if _, ok := matchingRecords[record.GetID().RecordId()]; ok {
 				records = append(records, record)
 			}
 		}
@@ -288,7 +300,7 @@ func Delete(id string) (bool, error) {
 	return del(id, false)
 }
 
-func DeleteOrFail(dataDir string, id string) (bool, error) {
+func DeleteOrFail(id string) (bool, error) {
 	return del(id, true)
 }
 
@@ -316,13 +328,13 @@ func del(id string, failIfNotFound bool) (bool, error) {
 	deleteRecordFound := false
 	blockData := map[string]string{}
 	for _, record := range records {
-		if record.Id() != id {
+		if record.GetID().RecordId() != id {
 			data, err := json.Marshal(record)
 			if err != nil {
 				return false, err
 			}
 
-			blockData[record.Id()] = string(data)
+			blockData[record.GetID().RecordId()] = string(data)
 		} else {
 			deleteRecordFound = true
 		}

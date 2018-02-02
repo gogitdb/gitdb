@@ -16,7 +16,7 @@ func gitInit() {
 	}
 
 	//create .gitignore file
-	gitIgnore := indexDir()
+	gitIgnore := filepath.Join(internalDir, "Index")
 	ioutil.WriteFile(filepath.Join(absDbPath, ".gitignore"), []byte(gitIgnore), 0744)
 
 	cmd := exec.Command("git", "-C", absDbPath, "init")

@@ -113,7 +113,7 @@ func records(dataSet string, block string) []*Record {
 		}
 
 		r := &Record{
-			ID: rec.Id(),
+			ID: rec.GetID().RecordId(),
 			Content: string(content),
 		}
 

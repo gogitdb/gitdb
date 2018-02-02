@@ -21,12 +21,14 @@ func init() {
 }
 
 func main() {
-	//write()
+	write()
 	//delete()
+	//search()
+	fetch()
 
-	db.Start(cfg)
-	db.User = db.NewUser("dev", "dev@gitdb.io")
-	db.StartGUI()
+	//db.Start(cfg)
+	//db.User = db.NewUser("dev", "dev@gitdb.io")
+	//db.StartGUI()
 }
 
 func write() {
@@ -46,7 +48,6 @@ func write() {
 	bm.Status = booking.CheckedIn
 	bm.UserId = "user_1"
 	bm.RoomId = "room_1"
-	bm.TimeStamp()
 
 	err := db.Insert(bm)
 	fmt.Println(err)
@@ -61,7 +62,7 @@ func read() {
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
-		fmt.Println("Found: " + r.Id())
+		fmt.Println(r.GetID())
 	}
 }
 
@@ -81,12 +82,40 @@ func delete() {
 	}
 }
 
+func search() {
+	db.Start(cfg)
+	db.User = db.NewUser("dev", "dev@gitdb.io")
+
+	rows, err := db.Search("Booking", []string{"CustomerId"}, []string{"customer_2"}, db.SEARCH_MODE_EQUALS)
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		for _, r := range rows {
+			fmt.Println(r)
+		}
+	}
+}
+
+func fetch() {
+	db.Start(cfg)
+	db.User = db.NewUser("dev", "dev@gitdb.io")
+
+	rows, err := db.Fetch("Booking")
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		for _, r := range rows {
+			fmt.Println(r)
+		}
+	}
+}
+
 func Make(modelName string) db.ModelInterface {
 	var m db.ModelInterface
 	switch modelName {
 	case "Booking":
 		m := &booking.BookingModel{}
-		m.GetSchema().SetDef(m)
+		m.Init(m)
 		return m
 		break
 	}

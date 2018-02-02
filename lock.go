@@ -46,7 +46,7 @@ func Lock(m ModelInterface) error {
 		lockFilesWritten = append(lockFilesWritten, lockFile)
 	}
 
-	commitMsg := "Created Lock Files for: " + m.GetSchema().Id()
+	commitMsg := "Created Lock Files for: " + m.GetID().Id()
 	events <- newWriteEvent(commitMsg, "lock-"+m.String())
 	return nil
 }
@@ -72,8 +72,8 @@ func UnLock(m ModelInterface) error {
 		}
 	}
 
-	commitMsg := "Removing Lock Files for: " + m.GetSchema().Id()
-	events <- newWriteEvent(commitMsg, "lock-"+m.GetSchema().Id())
+	commitMsg := "Removing Lock Files for: " + m.GetID().Id()
+	events <- newWriteEvent(commitMsg, "lock-"+m.GetID().Id())
 	return nil
 }
 

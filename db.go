@@ -28,7 +28,7 @@ type SearchQuery struct {
 	Mode    SearchMode
 }
 
-func Insert(m ModelInterface) error {
+func Insert(m ModelSchema) error {
 
 	if m.GetCreatedDate().IsZero() {
 		m.stampCreatedDate()
@@ -45,7 +45,7 @@ func Insert(m ModelInterface) error {
 		return err
 	}
 
-	fullPath = filepath.Join(dbPath, m.GetID().name())
+	fullPath = filepath.Join(dbPath, m.Name())
 
 	if _, err := os.Stat(fullPath); err != nil {
 		os.MkdirAll(fullPath, 0755)
@@ -108,9 +108,9 @@ func Insert(m ModelInterface) error {
 	return err
 }
 
-func readBlock(blockFile string, m ModelInterface) ([]ModelInterface, error) {
+func readBlock(blockFile string, m ModelSchema) ([]ModelSchema, error) {
 
-	var result []ModelInterface
+	var result []ModelSchema
 	var jsonErr error
 
 	data, err := ioutil.ReadFile(blockFile)
@@ -128,7 +128,7 @@ func readBlock(blockFile string, m ModelInterface) ([]ModelInterface, error) {
 
 	for _, v := range dataBlock {
 
-		concreteModel := factory(m.GetID().name())
+		concreteModel := factory(m.Name())
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
 		if jsonErr != nil {
@@ -136,7 +136,7 @@ func readBlock(blockFile string, m ModelInterface) ([]ModelInterface, error) {
 			return result, jsonErr
 		}
 
-		result = append(result, concreteModel.(ModelInterface))
+		result = append(result, concreteModel.(ModelSchema))
 	}
 
 	return result, err
@@ -155,9 +155,9 @@ func parseId(id string) (dataDir string, block string, record string, err error)
 	return dataDir, block, record, err
 }
 
-func Get(id string) (ModelInterface, error) {
+func Get(id string) (ModelSchema, error) {
 
-	var m ModelInterface
+	var m ModelSchema
 
 	dataDir, block, _, err := parseId(id)
 	if err != nil {
@@ -185,9 +185,9 @@ func Get(id string) (ModelInterface, error) {
 	return m, errors.New("Record "+id+" not found in " + dataDir)
 }
 
-func Fetch(dataDir string) ([]ModelInterface, error) {
+func Fetch(dataDir string) ([]ModelSchema, error) {
 
-	var records []ModelInterface
+	var records []ModelSchema
 
 	fullPath := filepath.Join(dbPath, dataDir)
 	events <- newReadEvent("...", fullPath)
@@ -213,7 +213,7 @@ func Fetch(dataDir string) ([]ModelInterface, error) {
 	return records, nil
 }
 
-func Search(dataDir string, searchIndexes []string, searchValues []string, searchMode SearchMode) ([]ModelInterface, error) {
+func Search(dataDir string, searchIndexes []string, searchValues []string, searchMode SearchMode) ([]ModelSchema, error) {
 
 	query := &SearchQuery{
 		DataDir: dataDir,
@@ -222,7 +222,7 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 		Mode:    searchMode,
 	}
 
-	var records []ModelInterface
+	var records []ModelSchema
 	matchingRecords := make(map[string]string)
 	//log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
 	for _, index := range query.Indexes {

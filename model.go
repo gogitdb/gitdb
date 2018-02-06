@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type ModelInterface interface {
+type Model interface {
 	SetId(string)
 	String() string
 	Validate() bool
@@ -16,32 +16,36 @@ type ModelInterface interface {
 	stampCreatedDate()
 	stampUpdatedDate()
 	ShouldEncrypt() bool
-	Indexes() map[string]interface{}
 	Init(schema Schema)
 }
 
-type Model struct {
+type ModelSchema interface {
+	Model
+	Schema
+}
+
+type BaseModel struct {
 	//extends..
 	_Id *ID
 }
 
-func (m *Model) String() string {
+func (m *BaseModel) String() string {
 	return m.GetID().String()
 }
 
-func (m *Model) Validate() bool {
+func (m *BaseModel) Validate() bool {
 	return true
 }
 
-func (m *Model) IsLockable() bool {
+func (m *BaseModel) IsLockable() bool {
 	return false
 }
 
-func (m *Model) GetLockFileNames() []string {
+func (m *BaseModel) GetLockFileNames() []string {
 	return []string{}
 }
 
-func (m *Model) GetID() *ID {
+func (m *BaseModel) GetID() *ID {
 	if m._Id == nil {
 		m._Id = &ID{}
 	}
@@ -49,10 +53,10 @@ func (m *Model) GetID() *ID {
 	return m._Id
 }
 
-func (m *Model) Init(schema Schema) {
+func (m *BaseModel) Init(schema Schema) {
 	m.GetID().Init(schema)
 }
 
-func (m *Model) ShouldEncrypt() bool {
+func (m *BaseModel) ShouldEncrypt() bool {
 	return false
 }

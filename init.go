@@ -19,7 +19,7 @@ var dbOffline string
 var events chan *dbEvent
 var User *DbUser
 var absDbPath string
-var factory func(string) ModelInterface
+var factory func(string) ModelSchema
 var internalDir string
 
 func Start(cfg *Config) {

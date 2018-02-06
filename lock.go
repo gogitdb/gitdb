@@ -9,7 +9,7 @@ import (
 	//"vogue/log"
 )
 
-func Lock(m ModelInterface) error {
+func Lock(m Model) error {
 
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
@@ -51,7 +51,7 @@ func Lock(m ModelInterface) error {
 	return nil
 }
 
-func UnLock(m ModelInterface) error {
+func UnLock(m Model) error {
 
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")

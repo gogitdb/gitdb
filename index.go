@@ -8,7 +8,7 @@ import (
 	//"vogue/log"
 )
 
-func updateIndexes(m ModelInterface) {
+func updateIndexes(m ModelSchema) {
 
 	indexPath := filepath.Join(indexDir(), m.GetID().name())
 

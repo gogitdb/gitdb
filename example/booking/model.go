@@ -6,7 +6,7 @@ import (
 
 type BookingModel struct {
 	//extends..
-	db.Model
+	db.BaseModel
 	BookingSchema
 }
 

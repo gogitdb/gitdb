@@ -6,5 +6,5 @@ type Config struct {
 	OnlineRemote   string
 	OfflineRemote  string
 	SshKey         string
-	Factory        func(string) ModelInterface
+	Factory        func(string) ModelSchema
 }

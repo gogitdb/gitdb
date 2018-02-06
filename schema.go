@@ -4,7 +4,7 @@ import "time"
 
 type StringExpression func() string
 type IndexFunction func() map[string]interface{}
-type ModelConstructor func() ModelInterface
+type ModelConstructor func() Model
 
 //ID interface for all schema structs
 type ID struct {

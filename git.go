@@ -25,13 +25,13 @@ func gitInit() {
 		panic(string(out))
 	}
 
-	cmd = exec.Command("git", "-C", absDbPath, "remote", "add", "online", dbOnline)
+	cmd = exec.Command("git", "-C", absDbPath, "remote", "add", "online", config.OnlineRemote)
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		panic(string(out))
 	}
 
-	cmd = exec.Command("git", "-C", absDbPath, "remote", "add", "offline", dbOffline)
+	cmd = exec.Command("git", "-C", absDbPath, "remote", "add", "offline", config.OnlineRemote)
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		panic(string(out))
@@ -39,7 +39,7 @@ func gitInit() {
 
 	//this function is only called once. I.e when a initializing the database for the
 	//very first time. In this case we must pull from the online repo
-	if len(dbOnline) > 0 {
+	if len(config.OnlineRemote) > 0 {
 		cmd = exec.Command("git", "-C", absDbPath, "pull", "online", "master")
 		//log.PutInfo(utils.CmdToString(cmd))
 		if out, err := cmd.CombinedOutput(); err != nil {

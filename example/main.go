@@ -17,6 +17,7 @@ func init() {
 		OfflineRemote:  "",
 		SshKey:         "",
 		Factory:        Make,
+		SyncInterval:   time.Minute * 5,
 	}
 }
 

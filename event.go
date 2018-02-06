@@ -37,12 +37,11 @@ func newDeleteEvent(description string, dataset string) *dbEvent {
 }
 
 func sync() {
-	//todo move duration to config
-	ticker := time.NewTicker(time.Minute * 5)
+	ticker := time.NewTicker(config.SyncInterval)
 	for {
 		select {
 		case <-ticker.C:
-			if len(dbOnline) > 0 {
+			if len(config.OnlineRemote) > 0 {
 				//log.PutInfo("Syncing database...")
 				err1 := gitPull()
 				err2 := gitPush()

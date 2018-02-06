@@ -8,13 +8,8 @@ import (
 )
 
 var dbPath string
-var repoDir string
-var sshKey string
 var fullPath string
 var isServer = false
-
-var dbOnline string
-var dbOffline string
 
 var events chan *dbEvent
 var User *DbUser
@@ -22,13 +17,11 @@ var absDbPath string
 var factory func(string) ModelSchema
 var internalDir string
 
+var config *Config
+
 func Start(cfg *Config) {
 	dbPath = cfg.DbPath
-	repoDir = cfg.OfflineRepoDir
-	dbOnline = cfg.OnlineRemote
-	dbOffline = cfg.OfflineRemote
-	sshKey = cfg.SshKey
-	factory = cfg.Factory
+	config = cfg
 
 	internalDir = ".gitdb" //todo rename
 
@@ -38,7 +31,7 @@ func Start(cfg *Config) {
 
 func boot() {
 	//log.PutInfo("Booting up db")
-	if _, err := os.Stat(repoDir); err == nil {
+	if _, err := os.Stat(config.OfflineRepoDir); err == nil {
 		isServer = true
 		//log.PutInfo("application is running in server mode")
 	}
@@ -50,7 +43,7 @@ func boot() {
 		panic(err)
 	}
 
-	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i '%s' -o 'StrictHostKeyChecking no'", sshKey))
+	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i '%s' -o 'StrictHostKeyChecking no'", config.SshKey))
 	// if .db directory does not exist and create it and attempt
 	// to do a git pull from remote
 	dotGitDir := filepath.Join(dbPath, ".git")

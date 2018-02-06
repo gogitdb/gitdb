@@ -16,10 +16,10 @@ import (
 type SearchMode string
 
 const (
-	SEARCH_MODE_EQUALS SearchMode = "equals"
-	SEARCH_MODE_CONTAINS SearchMode = "contains"
+	SEARCH_MODE_EQUALS      SearchMode = "equals"
+	SEARCH_MODE_CONTAINS    SearchMode = "contains"
 	SEARCH_MODE_STARTS_WITH SearchMode = "starts_with"
-	SEARCH_MODE_ENDS_WITH SearchMode = "ends_with"
+	SEARCH_MODE_ENDS_WITH   SearchMode = "ends_with"
 )
 
 type SearchQuery struct {
@@ -51,7 +51,6 @@ func Insert(m ModelSchema) error {
 	if _, err := os.Stat(fullPath); err != nil {
 		os.MkdirAll(fullPath, 0755)
 	}
-
 
 	dataBlock := map[string]string{}
 	recordExists := false
@@ -110,7 +109,7 @@ func Insert(m ModelSchema) error {
 	writeErr := ioutil.WriteFile(dataFilePath, blockBytes, 0744)
 	if writeErr == nil {
 		events <- newWriteEvent(commitMsg, dataFileName)
-	}else{
+	} else {
 		return writeErr
 	}
 
@@ -148,7 +147,7 @@ func readBlock(blockFile string, m ModelSchema) ([]ModelSchema, error) {
 
 	for _, v := range dataBlock {
 
-		concreteModel := factory(m.Name())
+		concreteModel := config.Factory(m.Name())
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
 		if jsonErr != nil {
@@ -187,22 +186,22 @@ func Get(id string) (ModelSchema, error) {
 	dataFilePath := filepath.Join(dbPath, dataDir, block+"."+string(m.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return m, errors.New(dataDir + " Not Found - " + id)
-	} else {
-		model := factory(dataDir)
-		records, err := readBlock(dataFilePath, model)
-		if err != nil {
-			return m, err
-		}
+	}
 
-		for _, record := range records {
-			if record.GetID().RecordId() == id {
-				return record, nil
-			}
+	model := config.Factory(dataDir)
+	records, err := readBlock(dataFilePath, model)
+	if err != nil {
+		return m, err
+	}
+
+	for _, record := range records {
+		if record.GetID().RecordId() == id {
+			return record, nil
 		}
 	}
 
 	events <- newReadEvent("...", id)
-	return m, errors.New("Record "+id+" not found in " + dataDir)
+	return m, errors.New("Record " + id + " not found in " + dataDir)
 }
 
 func Fetch(dataDir string) ([]ModelSchema, error) {
@@ -217,7 +216,7 @@ func Fetch(dataDir string) ([]ModelSchema, error) {
 		return records, err
 	}
 
-	model := factory(dataDir)
+	model := config.Factory(dataDir)
 	for _, file := range files {
 		fileName := filepath.Join(fullPath, file.Name())
 		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
@@ -237,7 +236,7 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 	query := &SearchQuery{
 		DataDir: dataDir,
-		Indexes:   searchIndexes,
+		Indexes: searchIndexes,
 		Values:  searchValues,
 		Mode:    searchMode,
 	}
@@ -248,7 +247,7 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 	for _, index := range query.Indexes {
 		indexFile := filepath.Join(indexDir(), query.DataDir, index+".json")
 		if _, err := os.Stat(indexFile); err != nil {
-			return records, errors.New(index+" index does not exist")
+			return records, errors.New(index + " index does not exist")
 		}
 
 		events <- newReadEvent("...", indexFile)
@@ -297,9 +296,9 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 	for _, block := range searchBlocks {
 
-		model := factory(query.DataDir)
+		model := config.Factory(query.DataDir)
 
-		blockFile := OsPath(filepath.Join(dbPath, query.DataDir, block+"."+ string(model.GetDataFormat())))
+		blockFile := OsPath(filepath.Join(dbPath, query.DataDir, block+"."+string(model.GetDataFormat())))
 		blockRecords, err := readBlock(blockFile, model)
 		if err != nil {
 			return records, err
@@ -331,7 +330,7 @@ func del(id string, failIfNotFound bool) (bool, error) {
 		return false, err
 	}
 
-	model := factory(dataDir)
+	model := config.Factory(dataDir)
 
 	dataFileName := filepath.Join(dbPath, dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFileName); err != nil {

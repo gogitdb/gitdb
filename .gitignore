@@ -4,4 +4,3 @@ example/example
 .vscode
 .idea
 vendor
-Gopkg.lock

@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	//"vogue/log"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type SearchMode string
@@ -55,7 +56,7 @@ func Insert(m ModelSchema) error {
 	dataBlock := map[string]string{}
 	recordExists := false
 
-	dataFileName := m.GetID().blockId() + ".json"
+	dataFileName := m.GetID().blockId() + "." + string(m.GetDataFormat())
 	dataFilePath := filepath.Join(fullPath, dataFileName)
 	commitMsg := "Inserting " + m.GetID().RecordId() + " into " + dataFileName
 	//log.PutInfo(commitMsg)
@@ -91,9 +92,19 @@ func Insert(m ModelSchema) error {
 		dataBlock[m.GetID().RecordId()] = string(newRecordBytes)
 	}
 
-	blockBytes, err := json.MarshalIndent(dataBlock, "", "\t")
-	if err != nil {
-		return err
+	var blockBytes []byte
+	var fmtErr error
+	switch m.GetDataFormat() {
+	case JSON:
+		blockBytes, fmtErr = json.MarshalIndent(dataBlock, "", "\t")
+		break
+	case BSON:
+		blockBytes, fmtErr = bson.Marshal(dataBlock)
+		break
+	}
+
+	if fmtErr != nil {
+		return fmtErr
 	}
 
 	writeErr := ioutil.WriteFile(dataFilePath, blockBytes, 0744)
@@ -120,10 +131,19 @@ func readBlock(blockFile string, m ModelSchema) ([]ModelSchema, error) {
 	}
 
 	dataBlock := map[string]string{}
-	jsonErr = json.Unmarshal(data, &dataBlock)
-	if jsonErr != nil {
-		//log.PutError(jsonErr.Error())
-		return result, jsonErr
+	var fmtErr error
+	switch m.GetDataFormat() {
+	case JSON:
+		fmtErr = json.Unmarshal(data, &dataBlock)
+		break
+	case BSON:
+		fmtErr = bson.Unmarshal(data, &dataBlock)
+		break
+	}
+
+	if fmtErr != nil {
+		//log.PutError(fmtErr.Error())
+		return result, fmtErr
 	}
 
 	for _, v := range dataBlock {
@@ -164,7 +184,7 @@ func Get(id string) (ModelSchema, error) {
 		return m, err
 	}
 
-	dataFilePath := filepath.Join(dbPath, dataDir, block+".json")
+	dataFilePath := filepath.Join(dbPath, dataDir, block+"."+string(m.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return m, errors.New(dataDir + " Not Found - " + id)
 	} else {
@@ -200,7 +220,7 @@ func Fetch(dataDir string) ([]ModelSchema, error) {
 	model := factory(dataDir)
 	for _, file := range files {
 		fileName := filepath.Join(fullPath, file.Name())
-		if filepath.Ext(fileName) == ".json" {
+		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
 			results, err := readBlock(fileName, model)
 			if err != nil {
 				return records, nil
@@ -277,9 +297,9 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 	for _, block := range searchBlocks {
 
-		blockFile := OsPath(filepath.Join(dbPath, query.DataDir, block+".json"))
-
 		model := factory(query.DataDir)
+
+		blockFile := OsPath(filepath.Join(dbPath, query.DataDir, block+"."+ string(model.GetDataFormat())))
 		blockRecords, err := readBlock(blockFile, model)
 		if err != nil {
 			return records, err
@@ -311,7 +331,9 @@ func del(id string, failIfNotFound bool) (bool, error) {
 		return false, err
 	}
 
-	dataFileName := filepath.Join(dbPath, dataDir, block+".json")
+	model := factory(dataDir)
+
+	dataFileName := filepath.Join(dbPath, dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFileName); err != nil {
 		if failIfNotFound {
 			return false, errors.New("Could not delete [" + id + "]: record does not exist")
@@ -319,7 +341,6 @@ func del(id string, failIfNotFound bool) (bool, error) {
 		return true, nil
 	}
 
-	model := factory(dataDir)
 	records, err := readBlock(dataFileName, model)
 	if err != nil {
 		return false, err

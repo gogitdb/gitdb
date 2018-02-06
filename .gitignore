@@ -3,3 +3,5 @@ example/example
 .DS_Store
 .vscode
 .idea
+vendor
+Gopkg.lock

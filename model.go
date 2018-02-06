@@ -4,6 +4,15 @@ import (
 	"time"
 )
 
+type DataFormat string
+
+const (
+	JSON DataFormat = "json"
+	BSON DataFormat = "bson"
+	CSV DataFormat = "csv"
+)
+
+
 type Model interface {
 	SetId(string)
 	String() string
@@ -17,6 +26,7 @@ type Model interface {
 	stampUpdatedDate()
 	ShouldEncrypt() bool
 	Init(schema Schema)
+	GetDataFormat() DataFormat
 }
 
 type ModelSchema interface {
@@ -59,4 +69,8 @@ func (m *BaseModel) Init(schema Schema) {
 
 func (m *BaseModel) ShouldEncrypt() bool {
 	return false
+}
+
+func (m *BaseModel) GetDataFormat() DataFormat {
+	return JSON
 }

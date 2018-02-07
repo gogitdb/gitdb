@@ -10,13 +10,13 @@ import (
 
 func updateIndexes(m ModelSchema) {
 
-	indexPath := filepath.Join(indexDir(), m.GetID().name())
+	indexPath := filepath.Join(indexDir(), m.GetID().Name())
 
 	if _, err := os.Stat(indexPath); err != nil {
 		os.MkdirAll(indexPath, 0755)
 	}
 
-	for name, value := range m.Indexes() {
+	for name, value := range m.GetID().Indexes() {
 		indexFile := filepath.Join(indexPath, name+".json")
 		index := readIndex(indexFile)
 		//add new value to index
@@ -50,5 +50,5 @@ func readIndex(indexFile string) map[string]interface{} {
 }
 
 func indexDir() string {
-	return filepath.Join(dbPath, internalDir, "Index")
+	return filepath.Join(config.DbPath, internalDir, "Index")
 }

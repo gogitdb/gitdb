@@ -97,5 +97,5 @@ func deleteLockFiles(files []string) error {
 }
 
 func lockDir() string {
-	return filepath.Join(dbPath, internalDir, "Lock")
+	return filepath.Join(config.DbPath, internalDir, "Lock")
 }

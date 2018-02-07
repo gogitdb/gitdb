@@ -1,20 +1,64 @@
 package booking
 
 import (
-	"gitdb"
+	"time"
+
+	db "github.com/fobilow/gitdb"
 )
 
 type BookingModel struct {
 	//extends..
 	db.BaseModel
-	BookingSchema
+	Type         RoomType
+	CheckInDate  time.Time
+	CheckOutDate time.Time
+	CheckedOutAt time.Time
+	Guests       int
+	CardsIssued  int
+	Status       Status
+	PaymentMode  PaymentMode
+	RoomPrice    float64
+	RoomId       string
+	CustomerId   string
+	UserId       string
+	NextOfKin    string
+	Purpose      string
 }
 
 func NewBookingModel() *BookingModel {
-	bm := &BookingModel{}
+	return &BookingModel{}
+}
 
-	bm.Init(bm)
-	return bm
+func (b *BookingModel) GetID() *db.ID {
+
+	//Name of schema
+	name := func() string {
+		return "Booking"
+	}
+
+	//Block of schema
+	block := func() string {
+		return b.CreatedAt.Format("200601")
+	}
+
+	//Record of schema
+	record := func() string {
+		return string(b.Type) + "_" + b.CreatedAt.Format("200601021504")
+	}
+
+	//Indexes speed up searching
+	indexes := func() map[string]interface{} {
+		indexes := make(map[string]interface{})
+
+		indexes["RoomId"] = b.RoomId
+		indexes["Guests"] = b.Guests
+		indexes["CustomerId"] = b.CustomerId
+		indexes["CreationDate"] = b.CreatedAt.Format("2006-01-02")
+
+		return indexes
+	}
+
+	return db.NewID(name, block, record, indexes)
 }
 
 func (b *BookingModel) GetLockFileNames() []string {
@@ -37,10 +81,10 @@ func (b *BookingModel) NumberOfNights() int {
 }
 
 func (b *BookingModel) Validate() bool {
+	//write validation logic here
+	return true
+}
 
-	//TODO move this to a better place
-	//timestamp the data
-
-
+func (b *BookingModel) ShouldEncrypt() bool {
 	return true
 }

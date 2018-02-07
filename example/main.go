@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"gitdb"
-	"gitdb/example/booking"
 	"time"
+
+	db "github.com/fobilow/gitdb"
+	"github.com/fobilow/gitdb/example/booking"
 )
 
 var cfg *db.Config
@@ -18,14 +19,20 @@ func init() {
 		SshKey:         "",
 		Factory:        Make,
 		SyncInterval:   time.Minute * 5,
+		EncryptionKey:  "hellobjkdkdjkdjdkjkdjooo",
 	}
+
+	db.Start(cfg)
+	db.User = db.NewUser("dev", "dev@gitdb.io")
+
 }
 
 func main() {
 	write()
 	//delete()
 	//search()
-	fetch()
+	// fetch()
+	read()
 
 	//db.Start(cfg)
 	//db.User = db.NewUser("dev", "dev@gitdb.io")
@@ -33,12 +40,8 @@ func main() {
 }
 
 func write() {
-	bm := booking.NewBookingModel()
-
-	db.Start(cfg)
-	db.User = db.NewUser("dev", "dev@gitdb.io")
-
 	//populate model
+	bm := booking.NewBookingModel()
 	bm.Type = booking.Room
 	bm.CheckInDate = time.Now()
 	bm.CheckOutDate = time.Now()
@@ -56,21 +59,21 @@ func write() {
 }
 
 func read() {
-	db.Start(cfg)
-	db.User = db.NewUser("dev", "dev@gitdb.io")
-
-	r, err := db.Get("Booking/201801/room_201801111512")
+	r, err := db.Get("Booking/201802/room_201802070030")
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
-		fmt.Println(r.GetID())
+		// fmt.Println(reflect.TypeOf(r))
+		_, ok := r.(*booking.BookingModel)
+		if ok {
+			//b, _ := json.Marshal(r)
+			//fmt.Println(string(b))
+		}
+
 	}
 }
 
 func delete() {
-	db.Start(cfg)
-	db.User = db.NewUser("dev", "dev@gitdb.io")
-
 	r, err := db.Delete("Booking/201801/room_201801111823")
 	if err != nil {
 		fmt.Println(err.Error())
@@ -84,9 +87,6 @@ func delete() {
 }
 
 func search() {
-	db.Start(cfg)
-	db.User = db.NewUser("dev", "dev@gitdb.io")
-
 	rows, err := db.Search("Booking", []string{"CustomerId"}, []string{"customer_2"}, db.SEARCH_MODE_EQUALS)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -98,9 +98,6 @@ func search() {
 }
 
 func fetch() {
-	db.Start(cfg)
-	db.User = db.NewUser("dev", "dev@gitdb.io")
-
 	rows, err := db.Fetch("Booking")
 	if err != nil {
 		fmt.Println(err.Error())
@@ -115,9 +112,7 @@ func Make(modelName string) db.ModelSchema {
 	var m db.ModelSchema
 	switch modelName {
 	case "Booking":
-		m := &booking.BookingModel{}
-		m.Init(m)
-		return m
+		return &booking.BookingModel{}
 		break
 	}
 

@@ -10,7 +10,7 @@ import (
 )
 
 func gitInit() {
-	absDbPath, err := filepath.Abs(dbPath)
+	absDbPath, err := filepath.Abs(config.DbPath)
 	if err != nil {
 		panic(err)
 	}

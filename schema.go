@@ -1,16 +1,23 @@
 package db
 
-import "time"
-
-type StringExpression func() string
+type StringFunc func() string
 type IndexFunction func() map[string]interface{}
 type ModelConstructor func() Model
 
 //ID interface for all schema structs
 type ID struct {
-	name     StringExpression
-	blockId  StringExpression
-	recordId StringExpression
+	name     StringFunc
+	blockId  StringFunc
+	recordId StringFunc
+	indexes  IndexFunction
+}
+
+func NewID(name StringFunc, block StringFunc, record StringFunc, indexes IndexFunction) *ID {
+	return &ID{name, block, record, indexes}
+}
+
+func (a *ID) Name() string {
+	return a.name()
 }
 
 func (a *ID) Id() string {
@@ -29,43 +36,6 @@ func (a *ID) String() string {
 	return a.RecordId()
 }
 
-func (a *ID) Init(def Schema) {
-	a.name = def.Name
-	a.blockId = def.Block
-	a.recordId = def.Record
-}
-
-//Schema interface for all schemas structs
-type Schema interface {
-	Name() string
-	Block() string
-	Record() string
-	Indexes() map[string]interface{}
-}
-
-//BaseSchema struct for all base schemas
-type BaseSchema struct {
-	ID        string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-func (m *BaseSchema) SetId(id string) {
-	m.ID = id
-}
-
-func (m *BaseSchema) GetCreatedDate() time.Time {
-	return m.CreatedAt
-}
-
-func (m *BaseSchema) GetUpdatedDate() time.Time {
-	return m.UpdatedAt
-}
-
-func (m *BaseSchema) stampCreatedDate() {
-	m.CreatedAt = time.Now()
-}
-
-func (m *BaseSchema) stampUpdatedDate() {
-	m.UpdatedAt = time.Now()
+func (a *ID) Indexes() map[string]interface{} {
+	return a.indexes()
 }

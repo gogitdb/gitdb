@@ -8,6 +8,7 @@ type Config struct {
 	OnlineRemote   string
 	OfflineRemote  string
 	SshKey         string
+	EncryptionKey  string
 	SyncInterval   time.Duration
 	Factory        func(string) ModelSchema
 }

@@ -46,7 +46,7 @@ func Insert(m ModelSchema) error {
 		return err
 	}
 
-	fullPath = filepath.Join(dbPath, m.Name())
+	fullPath = filepath.Join(config.DbPath, m.GetID().Name())
 
 	if _, err := os.Stat(fullPath); err != nil {
 		os.MkdirAll(fullPath, 0755)
@@ -91,14 +91,34 @@ func Insert(m ModelSchema) error {
 		dataBlock[m.GetID().RecordId()] = string(newRecordBytes)
 	}
 
+	writeErr := writeBlock(dataFilePath, dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	if writeErr == nil {
+		events <- newWriteEvent(commitMsg, dataFileName)
+	}
+
+	defer updateIndexes(m)
+
+	return err
+}
+
+func writeBlock(blockFile string, data map[string]string, format DataFormat, encryptData bool) error {
+
+	//encrypt data if need be
+	if encryptData {
+		for k, v := range data {
+			data[k] = encrypt(config.EncryptionKey, v)
+		}
+	}
+
+	//determine which format we need to write data in
 	var blockBytes []byte
 	var fmtErr error
-	switch m.GetDataFormat() {
+	switch format {
 	case JSON:
-		blockBytes, fmtErr = json.MarshalIndent(dataBlock, "", "\t")
+		blockBytes, fmtErr = json.MarshalIndent(data, "", "\t")
 		break
 	case BSON:
-		blockBytes, fmtErr = bson.Marshal(dataBlock)
+		blockBytes, fmtErr = bson.Marshal(data)
 		break
 	}
 
@@ -106,16 +126,7 @@ func Insert(m ModelSchema) error {
 		return fmtErr
 	}
 
-	writeErr := ioutil.WriteFile(dataFilePath, blockBytes, 0744)
-	if writeErr == nil {
-		events <- newWriteEvent(commitMsg, dataFileName)
-	} else {
-		return writeErr
-	}
-
-	defer updateIndexes(m)
-
-	return err
+	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 
 func readBlock(blockFile string, m ModelSchema) ([]ModelSchema, error) {
@@ -145,9 +156,18 @@ func readBlock(blockFile string, m ModelSchema) ([]ModelSchema, error) {
 		return result, fmtErr
 	}
 
+	encrypted := false
+	if m.ShouldEncrypt() {
+		encrypted = true
+	}
+
 	for _, v := range dataBlock {
 
-		concreteModel := config.Factory(m.Name())
+		concreteModel := config.Factory(m.GetID().Name())
+
+		if encrypted {
+			v = decrypt(config.EncryptionKey, v)
+		}
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
 		if jsonErr != nil {
@@ -183,12 +203,12 @@ func Get(id string) (ModelSchema, error) {
 		return m, err
 	}
 
-	dataFilePath := filepath.Join(dbPath, dataDir, block+"."+string(m.GetDataFormat()))
+	model := config.Factory(dataDir)
+	dataFilePath := filepath.Join(config.DbPath, dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return m, errors.New(dataDir + " Not Found - " + id)
 	}
 
-	model := config.Factory(dataDir)
 	records, err := readBlock(dataFilePath, model)
 	if err != nil {
 		return m, err
@@ -208,7 +228,7 @@ func Fetch(dataDir string) ([]ModelSchema, error) {
 
 	var records []ModelSchema
 
-	fullPath := filepath.Join(dbPath, dataDir)
+	fullPath := filepath.Join(config.DbPath, dataDir)
 	events <- newReadEvent("...", fullPath)
 	//log.PutInfo("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
@@ -298,7 +318,7 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 		model := config.Factory(query.DataDir)
 
-		blockFile := OsPath(filepath.Join(dbPath, query.DataDir, block+"."+string(model.GetDataFormat())))
+		blockFile := OsPath(filepath.Join(config.DbPath, query.DataDir, block+"."+string(model.GetDataFormat())))
 		blockRecords, err := readBlock(blockFile, model)
 		if err != nil {
 			return records, err
@@ -332,7 +352,7 @@ func del(id string, failIfNotFound bool) (bool, error) {
 
 	model := config.Factory(dataDir)
 
-	dataFileName := filepath.Join(dbPath, dataDir, block+"."+string(model.GetDataFormat()))
+	dataFileName := filepath.Join(config.DbPath, dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFileName); err != nil {
 		if failIfNotFound {
 			return false, errors.New("Could not delete [" + id + "]: record does not exist")

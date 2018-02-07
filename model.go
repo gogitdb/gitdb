@@ -9,9 +9,8 @@ type DataFormat string
 const (
 	JSON DataFormat = "json"
 	BSON DataFormat = "bson"
-	CSV DataFormat = "csv"
+	CSV  DataFormat = "csv"
 )
-
 
 type Model interface {
 	SetId(string)
@@ -25,22 +24,42 @@ type Model interface {
 	stampCreatedDate()
 	stampUpdatedDate()
 	ShouldEncrypt() bool
-	Init(schema Schema)
 	GetDataFormat() DataFormat
 }
 
 type ModelSchema interface {
 	Model
-	Schema
+	//Schema
 }
 
 type BaseModel struct {
-	//extends..
-	_Id *ID
+	ID        string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (m *BaseModel) SetId(id string) {
+	m.ID = id
+}
+
+func (m *BaseModel) GetCreatedDate() time.Time {
+	return m.CreatedAt
+}
+
+func (m *BaseModel) GetUpdatedDate() time.Time {
+	return m.UpdatedAt
+}
+
+func (m *BaseModel) stampCreatedDate() {
+	m.CreatedAt = time.Now()
+}
+
+func (m *BaseModel) stampUpdatedDate() {
+	m.UpdatedAt = time.Now()
 }
 
 func (m *BaseModel) String() string {
-	return m.GetID().String()
+	return "" //m.GetID().String()
 }
 
 func (m *BaseModel) Validate() bool {
@@ -53,18 +72,6 @@ func (m *BaseModel) IsLockable() bool {
 
 func (m *BaseModel) GetLockFileNames() []string {
 	return []string{}
-}
-
-func (m *BaseModel) GetID() *ID {
-	if m._Id == nil {
-		m._Id = &ID{}
-	}
-
-	return m._Id
-}
-
-func (m *BaseModel) Init(schema Schema) {
-	m.GetID().Init(schema)
 }
 
 func (m *BaseModel) ShouldEncrypt() bool {

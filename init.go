@@ -7,24 +7,19 @@ import (
 	//"vogue/log"
 )
 
-var dbPath string
 var fullPath string
 var isServer = false
 
 var events chan *dbEvent
 var User *DbUser
 var absDbPath string
-var factory func(string) ModelSchema
 var internalDir string
 
 var config *Config
 
 func Start(cfg *Config) {
-	dbPath = cfg.DbPath
 	config = cfg
-
 	internalDir = ".gitdb" //todo rename
-
 	boot()
 	go sync()
 }
@@ -38,7 +33,7 @@ func boot() {
 
 	events = make(chan *dbEvent)
 	var err error
-	absDbPath, err = filepath.Abs(dbPath)
+	absDbPath, err = filepath.Abs(config.DbPath)
 	if err != nil {
 		panic(err)
 	}
@@ -46,17 +41,17 @@ func boot() {
 	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i '%s' -o 'StrictHostKeyChecking no'", config.SshKey))
 	// if .db directory does not exist and create it and attempt
 	// to do a git pull from remote
-	dotGitDir := filepath.Join(dbPath, ".git")
+	dotGitDir := filepath.Join(config.DbPath, ".git")
 
-	if _, err := os.Stat(dbPath); err != nil {
+	if _, err := os.Stat(config.DbPath); err != nil {
 		//log.PutInfo("database not initialized")
-		err = os.Mkdir(dbPath, 0755)
+		err = os.Mkdir(config.DbPath, 0755)
 		if err != nil {
 			//log.PutError("failed to create db directory - " + err.Error())
 		}
 		gitInit()
 	} else if _, err := os.Stat(dotGitDir); err != nil {
-		panic(dbPath + " is not a git repository")
+		panic(config.DbPath + " is not a git repository")
 	}
 
 	//log.PutInfo("Db booted")

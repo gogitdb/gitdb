@@ -27,7 +27,7 @@ func (d *DataSet) BlockCount() int {
 
 func (d *DataSet) RecordCount() int {
 	count := 0
-	for _, block := range d.Blocks{
+	for _, block := range d.Blocks {
 		count += block.RecordCount()
 	}
 
@@ -62,9 +62,9 @@ type Record struct {
 func LoadDatasets() []*DataSet {
 	var dataSets []*DataSet
 	for _, name := range getDatasets() {
-			dataset := &DataSet{
-				Name : name,
-			}
+		dataset := &DataSet{
+			Name: name,
+		}
 
 		dataset.Blocks = blocks(name)
 		dataSets = append(dataSets, dataset)
@@ -75,7 +75,7 @@ func LoadDatasets() []*DataSet {
 
 func blocks(dataSet string) []*Block {
 	var blocks []*Block
-	blks, err := ioutil.ReadDir(filepath.Join(dbPath, dataSet))
+	blks, err := ioutil.ReadDir(filepath.Join(config.DbPath, dataSet))
 	if err != nil {
 		return blocks
 	}
@@ -99,8 +99,8 @@ func blocks(dataSet string) []*Block {
 func records(dataSet string, block string) []*Record {
 
 	var records []*Record
-	model := factory(dataSet)
-	blockFile := filepath.Join(dbPath, dataSet, block+".json")
+	model := config.Factory(dataSet)
+	blockFile := filepath.Join(config.DbPath, dataSet, block+".json")
 	recs, err := readBlock(blockFile, model)
 	if err != nil {
 		return records
@@ -113,7 +113,7 @@ func records(dataSet string, block string) []*Record {
 		}
 
 		r := &Record{
-			ID: rec.GetID().RecordId(),
+			ID:      rec.GetID().RecordId(),
 			Content: string(content),
 		}
 
@@ -125,7 +125,7 @@ func records(dataSet string, block string) []*Record {
 
 func getDatasets() []string {
 	var dataSets []string
-	dirs, err := ioutil.ReadDir(dbPath)
+	dirs, err := ioutil.ReadDir(config.DbPath)
 	if err != nil {
 		//todo log error or return error?
 		return dataSets

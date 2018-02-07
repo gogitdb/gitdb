@@ -175,7 +175,7 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 			return result, jsonErr
 		}
 
-		result = append(result, concreteModel.(ModelSchema))
+		result = append(result, concreteModel.(Model))
 	}
 
 	return result, err

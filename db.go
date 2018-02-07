@@ -29,7 +29,7 @@ type SearchQuery struct {
 	Mode    SearchMode
 }
 
-func Insert(m ModelSchema) error {
+func Insert(m Model) error {
 
 	if m.GetCreatedDate().IsZero() {
 		m.stampCreatedDate()
@@ -129,9 +129,9 @@ func writeBlock(blockFile string, data map[string]string, format DataFormat, enc
 	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 
-func readBlock(blockFile string, m ModelSchema) ([]ModelSchema, error) {
+func readBlock(blockFile string, m Model) ([]Model, error) {
 
-	var result []ModelSchema
+	var result []Model
 	var jsonErr error
 
 	data, err := ioutil.ReadFile(blockFile)
@@ -194,9 +194,9 @@ func parseId(id string) (dataDir string, block string, record string, err error)
 	return dataDir, block, record, err
 }
 
-func Get(id string) (ModelSchema, error) {
+func Get(id string) (Model, error) {
 
-	var m ModelSchema
+	var m Model
 
 	dataDir, block, _, err := parseId(id)
 	if err != nil {
@@ -224,9 +224,9 @@ func Get(id string) (ModelSchema, error) {
 	return m, errors.New("Record " + id + " not found in " + dataDir)
 }
 
-func Fetch(dataDir string) ([]ModelSchema, error) {
+func Fetch(dataDir string) ([]Model, error) {
 
-	var records []ModelSchema
+	var records []Model
 
 	fullPath := filepath.Join(config.DbPath, dataDir)
 	events <- newReadEvent("...", fullPath)
@@ -252,7 +252,7 @@ func Fetch(dataDir string) ([]ModelSchema, error) {
 	return records, nil
 }
 
-func Search(dataDir string, searchIndexes []string, searchValues []string, searchMode SearchMode) ([]ModelSchema, error) {
+func Search(dataDir string, searchIndexes []string, searchValues []string, searchMode SearchMode) ([]Model, error) {
 
 	query := &SearchQuery{
 		DataDir: dataDir,
@@ -261,7 +261,7 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 		Mode:    searchMode,
 	}
 
-	var records []ModelSchema
+	var records []Model
 	matchingRecords := make(map[string]string)
 	//log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
 	for _, index := range query.Indexes {

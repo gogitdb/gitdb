@@ -108,8 +108,8 @@ func fetch() {
 	}
 }
 
-func Make(modelName string) db.ModelSchema {
-	var m db.ModelSchema
+func Make(modelName string) db.Model {
+	var m db.Model
 	switch modelName {
 	case "Booking":
 		return &booking.BookingModel{}

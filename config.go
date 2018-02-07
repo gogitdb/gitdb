@@ -10,5 +10,5 @@ type Config struct {
 	SshKey         string
 	EncryptionKey  string
 	SyncInterval   time.Duration
-	Factory        func(string) ModelSchema
+	Factory        func(string) Model
 }

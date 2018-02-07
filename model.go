@@ -27,11 +27,6 @@ type Model interface {
 	GetDataFormat() DataFormat
 }
 
-type ModelSchema interface {
-	Model
-	//Schema
-}
-
 type BaseModel struct {
 	ID        string
 	CreatedAt time.Time

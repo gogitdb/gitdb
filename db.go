@@ -203,7 +203,7 @@ func Get(id string, result interface{}) error {
 
 	for _, record := range records {
 		if record.GetID().RecordId() == id {
-			return nil
+			return GetModel(record, result)
 		}
 	}
 
@@ -216,7 +216,7 @@ func Fetch(dataDir string) ([]Model, error) {
 	var records []Model
 
 	fullPath := filepath.Join(config.DbPath, dataDir)
-	events <- newReadEvent("...", fullPath)
+	//events <- newReadEvent("...", fullPath)
 	//log.PutInfo("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
 	if err != nil {
@@ -261,11 +261,11 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 		index := readIndex(indexFile)
 
-		for k, v := range index {
-			addResult := false
-			dbValue := strings.ToLower(v.(string))
-			for _, value := range query.Values {
-				queryValue := strings.ToLower(value)
+		for _, value := range query.Values {
+			queryValue := strings.ToLower(value)
+			for k, v := range index {
+				addResult := false
+				dbValue := strings.ToLower(v.(string))
 				switch query.Mode {
 				case SEARCH_MODE_EQUALS:
 					addResult = (dbValue == queryValue)
@@ -283,8 +283,6 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 				if addResult {
 					matchingRecords[k] = v.(string)
-				} else if _, ok := matchingRecords[k]; ok {
-					delete(matchingRecords, k)
 				}
 			}
 		}

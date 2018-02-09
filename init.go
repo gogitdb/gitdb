@@ -54,5 +54,21 @@ func boot() {
 		panic(config.DbPath + " is not a git repository")
 	}
 
+	//rebuild index if we have to
+	if _, err := os.Stat(indexDir()); err != nil {
+		//no index directory found so we need to re-index the whole db
+		dataSets := getDatasets()
+		for _, dataSet := range dataSets {
+			records, err := Fetch(dataSet)
+			if err != nil {
+				continue
+			}
+
+			for _, record := range records {
+				updateIndexes(record)
+			}
+		}
+	}
+
 	//log.PutInfo("Db booted")
 }

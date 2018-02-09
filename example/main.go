@@ -17,7 +17,7 @@ func init() {
 		OnlineRemote:   "",
 		OfflineRemote:  "",
 		SshKey:         "",
-		Factory:        Make,
+		Factory:        make,
 		SyncInterval:   time.Minute * 5,
 		EncryptionKey:  "hellobjkdkdjkdjdkjkdjooo",
 	}
@@ -28,10 +28,10 @@ func init() {
 }
 
 func main() {
-	write()
+	// write()
 	//delete()
 	//search()
-	// fetch()
+	fetch()
 	read()
 
 	//db.Start(cfg)
@@ -59,17 +59,12 @@ func write() {
 }
 
 func read() {
-	r, err := db.Get("Booking/201802/room_201802070030")
+	b := &booking.BookingModel{}
+	err := db.Get("Booking/201802/room_201802070030", b)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
-		// fmt.Println(reflect.TypeOf(r))
-		_, ok := r.(*booking.BookingModel)
-		if ok {
-			//b, _ := json.Marshal(r)
-			//fmt.Println(string(b))
-		}
-
+		fmt.Println(b.NextOfKin)
 	}
 }
 
@@ -103,17 +98,19 @@ func fetch() {
 		fmt.Println(err.Error())
 	} else {
 		for _, r := range rows {
-			fmt.Println(r)
+			b := &booking.BookingModel{}
+			db.GetModel(r, b)
+
+			fmt.Println(b.CustomerId)
 		}
 	}
 }
 
-func Make(modelName string) db.Model {
+func make(modelName string) db.Model {
 	var m db.Model
 	switch modelName {
 	case "Booking":
-		return &booking.BookingModel{}
-		break
+		m = &booking.BookingModel{}
 	}
 
 	return m

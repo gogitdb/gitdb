@@ -71,9 +71,6 @@ func Insert(m Model) error {
 			println(record.GetID().RecordId())
 			if record.GetID().RecordId() == m.GetID().RecordId() {
 				recordExists = true
-				//overwrite existing record
-				//log.PutInfo("Overwriting record - " + m.Id())
-
 				dataBlock[record.GetID().RecordId()] = string(newRecordBytes)
 
 			} else {
@@ -136,7 +133,6 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
-		//log.PutError(err.Error())
 		return result, err
 	}
 
@@ -152,26 +148,19 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 	}
 
 	if fmtErr != nil {
-		//log.PutError(fmtErr.Error())
 		return result, fmtErr
-	}
-
-	encrypted := false
-	if m.ShouldEncrypt() {
-		encrypted = true
 	}
 
 	for _, v := range dataBlock {
 
 		concreteModel := config.Factory(m.GetID().Name())
 
-		if encrypted {
+		if m.ShouldEncrypt() {
 			v = decrypt(config.EncryptionKey, v)
 		}
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
 		if jsonErr != nil {
-			//log.PutError(jsonErr.Error())
 			return result, jsonErr
 		}
 
@@ -194,34 +183,32 @@ func parseId(id string) (dataDir string, block string, record string, err error)
 	return dataDir, block, record, err
 }
 
-func Get(id string) (Model, error) {
-
-	var m Model
+func Get(id string, result interface{}) error {
 
 	dataDir, block, _, err := parseId(id)
 	if err != nil {
-		return m, err
+		return err
 	}
 
 	model := config.Factory(dataDir)
 	dataFilePath := filepath.Join(config.DbPath, dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
-		return m, errors.New(dataDir + " Not Found - " + id)
+		return errors.New(dataDir + " Not Found - " + id)
 	}
 
 	records, err := readBlock(dataFilePath, model)
 	if err != nil {
-		return m, err
+		return err
 	}
 
 	for _, record := range records {
 		if record.GetID().RecordId() == id {
-			return record, nil
+			return nil
 		}
 	}
 
 	events <- newReadEvent("...", id)
-	return m, errors.New("Record " + id + " not found in " + dataDir)
+	return errors.New("Record " + id + " not found in " + dataDir)
 }
 
 func Fetch(dataDir string) ([]Model, error) {
@@ -240,11 +227,11 @@ func Fetch(dataDir string) ([]Model, error) {
 	for _, file := range files {
 		fileName := filepath.Join(fullPath, file.Name())
 		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
-			results, err := readBlock(fileName, model)
+			blockRecords, err := readBlock(fileName, model)
 			if err != nil {
 				return records, nil
 			}
-			records = append(records, results...)
+			records = append(records, blockRecords...)
 		}
 	}
 
@@ -416,4 +403,13 @@ func RandStr(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func GetModel(in interface{}, out interface{}) error {
+	j, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(j, out)
 }

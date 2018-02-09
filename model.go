@@ -54,7 +54,7 @@ func (m *BaseModel) stampUpdatedDate() {
 }
 
 func (m *BaseModel) String() string {
-	return "" //m.GetID().String()
+	return m.ID
 }
 
 func (m *BaseModel) Validate() bool {

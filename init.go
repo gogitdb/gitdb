@@ -12,6 +12,7 @@ var isServer = false
 
 var events chan *dbEvent
 var User *DbUser
+var UserChan chan *User
 var absDbPath string
 var internalDir string
 

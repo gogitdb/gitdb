@@ -173,7 +173,7 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 func parseId(id string) (dataDir string, block string, record string, err error) {
 	recordMeta := strings.Split(id, "/")
 	if len(recordMeta) != 3 {
-		err = errors.New("Invalid record id")
+		err = errors.New("Invalid record id: "+id)
 	} else {
 		dataDir = recordMeta[0]
 		block = recordMeta[1]

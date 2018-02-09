@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	//"vogue/log"
 )
 
 func Lock(m Model) error {

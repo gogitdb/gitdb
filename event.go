@@ -2,7 +2,6 @@ package db
 
 import (
 	"time"
-	//"vogue/log"
 )
 
 type eventType string

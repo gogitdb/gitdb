@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
-	//"vogue/log"
 )
 
 func gitInit() {

@@ -33,6 +33,10 @@ type BaseModel struct {
 	UpdatedAt time.Time
 }
 
+func (m *BaseModel) Id() string {
+	return m.ID
+}
+
 func (m *BaseModel) SetId(id string) {
 	m.ID = id
 }

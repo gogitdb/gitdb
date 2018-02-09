@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	//"vogue/log"
+
 	"gopkg.in/mgo.v2/bson"
 )
 

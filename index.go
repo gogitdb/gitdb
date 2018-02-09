@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	//"vogue/log"
 )
 
 func updateIndexes(m Model) {
@@ -47,6 +46,20 @@ func readIndex(indexFile string) map[string]interface{} {
 	}
 
 	return rMap
+}
+
+func BuildIndex() {
+	dataSets := getDatasets()
+	for _, dataSet := range dataSets {
+		records, err := Fetch(dataSet)
+		if err != nil {
+			continue
+		}
+
+		for _, record := range records {
+			updateIndexes(record)
+		}
+	}
 }
 
 func indexDir() string {

@@ -11,7 +11,7 @@ func updateIndexes(models []Model) {
 
 	index := make(map[string]map[string]interface{})
 	for _, m := range models {
-		for name := range m.GetID().Indexes() {
+		for name, value := range m.GetID().Indexes() {
 			indexFile := filepath.Join(indexDir(), m.GetID().Name(), name+".json")
 
 			if _, ok := index[indexFile]; !ok {
@@ -23,12 +23,6 @@ func updateIndexes(models []Model) {
 
 				index[indexFile] = readIndex(indexFile)
 			}
-		}
-	}
-
-	for _, m := range models {
-		for name, value := range m.GetID().Indexes() {
-			indexFile := filepath.Join(indexDir(), m.GetID().Name(), name+".json")
 			index[indexFile][m.GetID().RecordId()] = value
 		}
 	}

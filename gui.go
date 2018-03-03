@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 )
+
+var DataSets []*DataSet
 
 func StartGUI() {
 	appHost := "localhost"
@@ -32,52 +35,279 @@ type Endpoint struct {
 }
 
 func GetGUIEndpoints() []*Endpoint {
-	return []*Endpoint{
-		&Endpoint{"/gitdb", handler},
+	DataSets = LoadDatasets()
+	endpoints := []*Endpoint{
+		&Endpoint{"/gitdb", overview},
 	}
+
+	for _, ds := range DataSets {
+		endpoints = append(endpoints, &Endpoint{"/gitdb/view/" + ds.Name, view})
+	}
+
+	return endpoints
 }
 
-type ViewModel struct {
+type OverviewViewModel struct {
 	Title    string
 	DataSets []*DataSet
 }
 
-var html = `<html>
+type ViewDataSetViewModel struct {
+	DataSets []*DataSet
+	DataSet *DataSet
+	Content string
+}
+
+func overview(w http.ResponseWriter, r *http.Request) {
+
+	var html = `<html>
 <head></head>
+<style type="text/css">
+  div {
+    box-sizing: border-box;
+  }
+
+  h1 {
+    padding: 0;
+    margin:  0;
+  }
+
+  .sidebar {
+    float:            left;
+    width:            20%;
+    height:           800px;
+    background-color: #ccc;
+    padding:          5px;
+  }
+
+  .content {
+    padding:     30px;
+    padding-top: 10px;
+    float:       left;
+    width:       80%;
+    height:      800px;
+  }
+
+  .nav {
+    list-style: none;
+    margin:     0;
+    padding:    0;
+  }
+
+  .nav li {
+    color: #000;
+  }
+
+  .nav a {
+    color:            #000;
+    text-decoration:  none;
+    display:          block;
+    padding:          12px;
+    background-color: blue;
+    border-bottom:    1px solid #000;
+  }
+
+  .nav a:hover {
+    background-color: yellow;
+  }
+
+  table tr:hover td {
+    background-color: #ccc;
+  }
+
+  table th {
+    background-color: #333;
+  }
+
+  table {
+    width:          100%;
+    border:         1px solid #000;
+    border-spacing: 0px;
+  }
+
+  table td, table th {
+    padding: 10px;
+    border:  1px solid #000;
+  }
+
+  pre {
+    background-color: #333;
+    color:            #fff;
+    padding:          10px;
+    font-size:        14px;
+  }
+
+</style>
 <body>
 
-	<h1>{{.Title}}</h1>
+<div class="sidebar">
+  <h1>GitDb</h1>
+  <hr>
+  <strong>Data Sets</strong>
+  <ul class="nav">
+  {{range $key, $value := .DataSets}}
+    <li><a href="/gitdb/view/{{ $value.Name }}">{{ $value.Name }}</a></li>
+  {{end}}
+  </ul>
+</div>
+<div class="content">
+  <h1>{{.Title}}</h1>
 
-	<h2>Data Sets</h2>
-	<table border="1">
-		<tr>
-			<th>Name</th>
-			<th>No. of blocks</th>
-			<th>No. of records</th>
-			<th>Size</th>
-			<th>Created</th>
-			<th>Last Modified</th>
-		</tr>
-		{{range $key, $value := .DataSets}}
-		<tr>
-			<td>{{ $value.Name }}</td>
-			<td>{{ $value.BlockCount }}</td>
-			<td>{{ $value.RecordCount }}</td>
-			<td>{{ $value.Size }}</td>
-			<td>-</td>
-			<td>-</td>
-		</tr>
-		{{end}}
-	</table>
+  <table border="1">
+    <tr>
+      <th>Name</th>
+      <th>No. of blocks</th>
+      <th>No. of records</th>
+      <th>Size</th>
+      <th>Created</th>
+      <th>Last Modified</th>
+    </tr>
+  {{range $key, $value := .DataSets}}
+    <tr>
+      <td>{{ $value.Name }}</td>
+      <td>{{ $value.BlockCount }}</td>
+      <td>{{ $value.RecordCount }}</td>
+      <td>{{ $value.Size }}</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+  {{end}}
+  </table>
+</div>
+
+</body>
+</html>
+`
+
+	viewModel := &OverviewViewModel{Title: "DB GUI", DataSets: DataSets}
+	t, _ := template.New("tt").Parse(html)
+	t.Execute(w, viewModel)
+}
+
+func view(w http.ResponseWriter, r *http.Request) {
+
+	var html = `<html>
+<head></head>
+<style type="text/css">
+  div{
+    box-sizing:  border-box;
+  }
+
+  h1{
+    padding:0;
+    margin:0;
+  }
+
+  .sidebar {
+    float:            left;
+    width:            20%;
+    height:           800px;
+    background-color: #ccc;
+    padding:5px;
+  }
+
+  .content {
+
+    padding:     30px;
+    padding-top: 10px;
+    float:       left;
+    width:       80%;
+    height:      800px;
+  }
+
+  .nav {
+    list-style: none;
+    margin:     0;
+    padding:    0;
+  }
+
+  .nav li {
+
+    color:#000;
+  }
+
+  .nav a{
+    color:#000;
+    text-decoration: none;
+    display: block;
+    padding:          12px;
+    background-color: blue;
+    border-bottom:    1px solid #000;
+  }
+
+  .nav a:hover{
+    background-color: yellow;
+  }
+
+  table tr:hover td{
+    background-color: #ccc;
+  }
+
+  table th {
+    background-color: #333;
+  }
+
+  table {
+    width:  100%;
+    border: 1px solid #000;
+    border-spacing: 0px;
+  }
+
+  table td, table th {
+    padding: 10px;
+    border: 1px solid #000;
+  }
+
+  pre{
+    background-color:#333;
+    color:#fff;
+    padding:10px;
+    font-size:14px;
+  }
+
+</style>
+<body>
+
+<div class="sidebar">
+  <h1>GitDb</h1>
+  <hr>
+  <strong>Data Sets</strong>
+  <ul class="nav">
+  {{range $key, $value := .DataSets}}
+    <li><a href="/gitdb/view/{{ $value.Name }}">{{ $value.Name }}</a></li>
+  {{end}}
+  </ul>
+</div>
+<div class="content">
+  <h1>{{.DataSet.Name}}</h1>
+  <div><span>{{.DataSet.BlockCount}} blocks</span> <span>{{.DataSet.HumanSize}}}</span></div>
+
+  <pre>
+    {{.Content}}}
+  </pre>
+</div>
 
 
 </body>
 </html>
 `
 
-func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.URL.Path)
 
-	viewModel := &ViewModel{Title: "DB GUI", DataSets: LoadDatasets()}
+	viewDs := strings.Replace(r.URL.Path, "/gitdb/view/","", -1)
+	var dataSet *DataSet
+	for _, ds := range DataSets {
+		if ds.Name == viewDs {
+			dataSet = ds
+			break
+		}
+	}
+
+	block := dataSet.Blocks[0]
+	block.LoadRecords()
+	content := block.Records[0].Content
+
+	viewModel := &ViewDataSetViewModel{DataSets: DataSets, DataSet: dataSet, Content: content}
 	t, _ := template.New("tt").Parse(html)
 	t.Execute(w, viewModel)
 }

@@ -1,13 +1,13 @@
 <html>
 <head></head>
 <style type="text/css">
-  div {
-    box-sizing: border-box;
+  div{
+    box-sizing:  border-box;
   }
 
-  h1 {
-    padding: 0;
-    margin:  0;
+  h1{
+    padding:0;
+    margin:0;
   }
 
   .sidebar {
@@ -15,10 +15,11 @@
     width:            20%;
     height:           800px;
     background-color: #ccc;
-    padding:          5px;
+    padding:5px;
   }
 
   .content {
+
     padding:     30px;
     padding-top: 10px;
     float:       left;
@@ -33,23 +34,24 @@
   }
 
   .nav li {
-    color: #000;
+
+    color:#000;
   }
 
-  .nav a {
-    color:            #000;
-    text-decoration:  none;
-    display:          block;
+  .nav a{
+    color:#000;
+    text-decoration: none;
+    display: block;
     padding:          12px;
     background-color: blue;
     border-bottom:    1px solid #000;
   }
 
-  .nav a:hover {
+  .nav a:hover{
     background-color: yellow;
   }
 
-  table tr:hover td {
+  table tr:hover td{
     background-color: #ccc;
   }
 
@@ -58,21 +60,21 @@
   }
 
   table {
-    width:          100%;
-    border:         1px solid #000;
+    width:  100%;
+    border: 1px solid #000;
     border-spacing: 0px;
   }
 
   table td, table th {
     padding: 10px;
-    border:  1px solid #000;
+    border: 1px solid #000;
   }
 
-  pre {
-    background-color: #333;
-    color:            #fff;
-    padding:          10px;
-    font-size:        14px;
+  pre{
+    background-color:#333;
+    color:#fff;
+    padding:10px;
+    font-size:14px;
   }
 
 </style>
@@ -89,27 +91,14 @@
   </ul>
 </div>
 <div class="content">
-  <h1>{{.Title}}</h1>
+  <h1>{{.DataSet.Name}}</h1>
+  <div><span>{{.DataSet.BlockCount}} blocks</span> <span>{{.DataSet.HumanSize}}}</span></div>
 
-  <table border="1">
-    <tr>
-      <th>Name</th>
-      <th>No. of blocks</th>
-      <th>No. of records</th>
-      <th>Size</th>
-      <th>Last Modified</th>
-    </tr>
-  {{range $key, $value := .DataSets}}
-    <tr>
-      <td>{{ $value.Name }}</td>
-      <td>{{ $value.BlockCount }}</td>
-      <td>{{ $value.RecordCount }}</td>
-      <td>{{ $value.Size }}</td>
-      <td>{{ $value.LastModified }}</td>
-    </tr>
-  {{end}}
-  </table>
+  <pre>
+    {{.Content}}
+  </pre>
 </div>
+
 
 </body>
 </html>

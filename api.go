@@ -5,11 +5,14 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"fmt"
+	"time"
 )
 
 type DataSet struct {
 	Name   string
 	Blocks []*Block
+	LastModified time.Time
 }
 
 func (d *DataSet) Size() int64 {
@@ -19,6 +22,10 @@ func (d *DataSet) Size() int64 {
 	}
 
 	return size
+}
+
+func (d *DataSet) HumanSize() string {
+	return formatBytes(uint64(d.Size()))
 }
 
 func (d *DataSet) BlockCount() int {
@@ -34,14 +41,28 @@ func (d *DataSet) RecordCount() int {
 	return count
 }
 
+func (d *DataSet) LoadBlocks(){
+	d.Blocks = blocks(d.Name)
+}
+
 type Block struct {
+	DataSet string
 	Name    string
 	Size    int64
 	Records []*Record
 }
 
+func (b *Block) HumanSize() string {
+	return formatBytes(uint64(b.Size))
+}
+
+
 func (b *Block) RecordCount() int {
 	return len(b.Records)
+}
+
+func (b *Block) LoadRecords(){
+	b.Records = records(b.DataSet, b.Name)
 }
 
 func (b *Block) Show() []string {
@@ -61,13 +82,24 @@ type Record struct {
 
 func LoadDatasets() []*DataSet {
 	var dataSets []*DataSet
-	for _, name := range getDatasets() {
-		dataset := &DataSet{
-			Name: name,
-		}
 
-		dataset.Blocks = blocks(name)
-		dataSets = append(dataSets, dataset)
+	dirs, err := ioutil.ReadDir(config.DbPath)
+	if err != nil {
+		//todo log error or return error?
+		return dataSets
+	}
+
+	for _, dir := range dirs {
+		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
+
+			dataset := &DataSet{
+				Name: dir.Name(),
+				LastModified: dir.ModTime(),
+			}
+
+			dataset.Blocks = blocks(dir.Name())
+			dataSets = append(dataSets, dataset)
+		}
 	}
 
 	return dataSets
@@ -84,11 +116,11 @@ func blocks(dataSet string) []*Block {
 		if !block.IsDir() && strings.HasSuffix(block.Name(), ".json") {
 			blockName := strings.TrimSuffix(block.Name(), ".json")
 			b := &Block{
-				Name: blockName,
-				Size: block.Size(),
+				DataSet: dataSet,
+				Name:    blockName,
+				Size:    block.Size(),
 			}
 
-			b.Records = records(dataSet, blockName)
 			blocks = append(blocks, b)
 		}
 	}
@@ -138,4 +170,40 @@ func getDatasets() []string {
 	}
 
 	return dataSets
+}
+
+const (
+	BYTE = 1.0 << (10 * iota)
+	KILOBYTE
+	MEGABYTE
+	GIGABYTE
+	TERABYTE
+)
+
+func formatBytes(bytes uint64) string {
+	unit := ""
+	value := float32(bytes)
+
+	switch {
+	case bytes >= TERABYTE:
+		unit = "TB"
+		value = value / TERABYTE
+	case bytes >= GIGABYTE:
+		unit = "GB"
+		value = value / GIGABYTE
+	case bytes >= MEGABYTE:
+		unit = "MB"
+		value = value / MEGABYTE
+	case bytes >= KILOBYTE:
+		unit = "KB"
+		value = value / KILOBYTE
+	case bytes >= BYTE:
+		unit = "B"
+	case bytes == 0:
+		return "0"
+	}
+
+	stringValue := fmt.Sprintf("%.1f", value)
+	stringValue = strings.TrimSuffix(stringValue, ".0")
+	return fmt.Sprintf("%s%s", stringValue, unit)
 }

@@ -93,7 +93,7 @@ func Insert(m Model) error {
 		events <- newWriteEvent(commitMsg, dataFileName)
 	}
 
-	defer updateIndexes(m)
+	defer updateIndexes([]Model{m})
 
 	return err
 }

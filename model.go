@@ -25,12 +25,14 @@ type Model interface {
 	stampUpdatedDate()
 	ShouldEncrypt() bool
 	GetDataFormat() DataFormat
+	GetValidationErrors() []error
 }
 
 type BaseModel struct {
 	ID        string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	errors []error
 }
 
 func (m *BaseModel) Id() string {
@@ -79,4 +81,8 @@ func (m *BaseModel) ShouldEncrypt() bool {
 
 func (m *BaseModel) GetDataFormat() DataFormat {
 	return JSON
+}
+
+func (m *BaseModel) GetValidationErrors() []error {
+	return m.errors
 }

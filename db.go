@@ -229,7 +229,7 @@ func Fetch(dataDir string) ([]Model, error) {
 		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
 			blockRecords, err := readBlock(fileName, model)
 			if err != nil {
-				return records, nil
+				return records, err
 			}
 			records = append(records, blockRecords...)
 		}

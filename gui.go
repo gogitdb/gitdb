@@ -165,17 +165,15 @@ func overview(w http.ResponseWriter, r *http.Request) {
       <th>No. of blocks</th>
       <th>No. of records</th>
       <th>Size</th>
-      <th>Created</th>
       <th>Last Modified</th>
     </tr>
   {{range $key, $value := .DataSets}}
     <tr>
-      <td>{{ $value.Name }}</td>
+      <td><a href="/gitdb/view/{{ $value.Name }}">{{ $value.Name }}</a></td>
       <td>{{ $value.BlockCount }}</td>
       <td>{{ $value.RecordCount }}</td>
       <td>{{ $value.HumanSize }}</td>
-      <td>-</td>
-      <td>-</td>
+      <td>{{ $value.LastModifiedDate }}</td>
     </tr>
   {{end}}
   </table>

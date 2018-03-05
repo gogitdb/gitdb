@@ -35,10 +35,15 @@ func (d *DataSet) BlockCount() int {
 func (d *DataSet) RecordCount() int {
 	count := 0
 	for _, block := range d.Blocks {
+		block.LoadRecords()
 		count += block.RecordCount()
 	}
 
 	return count
+}
+
+func (d *DataSet) LastModifiedDate() string {
+	return d.LastModified.Format("02 Jan 2006 15:04:05")
 }
 
 func (d *DataSet) LoadBlocks(){

@@ -58,18 +58,18 @@ type ViewDataSetViewModel struct {
 	Content string
 }
 
-func overview(w http.ResponseWriter, r *http.Request) {
-
-	var html = `<html>
-<head></head>
-<style type="text/css">
-  div {
+var css =`div {
     box-sizing: border-box;
   }
 
   h1 {
     padding: 0;
     margin:  0;
+  }
+
+  h1 a {
+    text-decoration:none;
+    color: darkseagreen
   }
 
   .sidebar {
@@ -103,12 +103,11 @@ func overview(w http.ResponseWriter, r *http.Request) {
     text-decoration:  none;
     display:          block;
     padding:          12px;
-    background-color: blue;
-    border-bottom:    1px solid #000;
+    border-bottom:    1px solid #ddd;
   }
 
   .nav a:hover {
-    background-color: yellow;
+    background-color: #ddd;
   }
 
   table tr:hover td {
@@ -116,7 +115,8 @@ func overview(w http.ResponseWriter, r *http.Request) {
   }
 
   table th {
-    background-color: #333;
+    background-color: darkseagreen;
+    color:#fff;
   }
 
   table {
@@ -135,13 +135,19 @@ func overview(w http.ResponseWriter, r *http.Request) {
     color:            #fff;
     padding:          10px;
     font-size:        14px;
-  }
+  }`
 
+func overview(w http.ResponseWriter, r *http.Request) {
+
+	var html = `<html>
+<head></head>
+<style type="text/css">
+  `+css+`
 </style>
 <body>
 
 <div class="sidebar">
-  <h1>GitDb</h1>
+  <h1><a href="/gitdb">GitDb</a></h1>
   <hr>
   <strong>Data Sets</strong>
   <ul class="nav">
@@ -167,7 +173,7 @@ func overview(w http.ResponseWriter, r *http.Request) {
       <td>{{ $value.Name }}</td>
       <td>{{ $value.BlockCount }}</td>
       <td>{{ $value.RecordCount }}</td>
-      <td>{{ $value.Size }}</td>
+      <td>{{ $value.HumanSize }}</td>
       <td>-</td>
       <td>-</td>
     </tr>
@@ -189,87 +195,12 @@ func view(w http.ResponseWriter, r *http.Request) {
 	var html = `<html>
 <head></head>
 <style type="text/css">
-  div{
-    box-sizing:  border-box;
-  }
-
-  h1{
-    padding:0;
-    margin:0;
-  }
-
-  .sidebar {
-    float:            left;
-    width:            20%;
-    height:           800px;
-    background-color: #ccc;
-    padding:5px;
-  }
-
-  .content {
-
-    padding:     30px;
-    padding-top: 10px;
-    float:       left;
-    width:       80%;
-    height:      800px;
-  }
-
-  .nav {
-    list-style: none;
-    margin:     0;
-    padding:    0;
-  }
-
-  .nav li {
-
-    color:#000;
-  }
-
-  .nav a{
-    color:#000;
-    text-decoration: none;
-    display: block;
-    padding:          12px;
-    background-color: blue;
-    border-bottom:    1px solid #000;
-  }
-
-  .nav a:hover{
-    background-color: yellow;
-  }
-
-  table tr:hover td{
-    background-color: #ccc;
-  }
-
-  table th {
-    background-color: #333;
-  }
-
-  table {
-    width:  100%;
-    border: 1px solid #000;
-    border-spacing: 0px;
-  }
-
-  table td, table th {
-    padding: 10px;
-    border: 1px solid #000;
-  }
-
-  pre{
-    background-color:#333;
-    color:#fff;
-    padding:10px;
-    font-size:14px;
-  }
-
+  `+css+`
 </style>
 <body>
 
 <div class="sidebar">
-  <h1>GitDb</h1>
+  <h1><a href="/gitdb">GitDb</a></h1>
   <hr>
   <strong>Data Sets</strong>
   <ul class="nav">
@@ -280,10 +211,10 @@ func view(w http.ResponseWriter, r *http.Request) {
 </div>
 <div class="content">
   <h1>{{.DataSet.Name}}</h1>
-  <div><span>{{.DataSet.BlockCount}} blocks</span> <span>{{.DataSet.HumanSize}}}</span></div>
+  <div><span>{{.DataSet.BlockCount}} blocks</span> <span>{{.DataSet.HumanSize}}</span></div>
 
   <pre>
-    {{.Content}}}
+    {{.Content}}
   </pre>
 </div>
 

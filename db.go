@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"gopkg.in/mgo.v2/bson"
+	"sort"
 )
 
 type SearchMode string
@@ -166,6 +167,8 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 
 		result = append(result, concreteModel.(Model))
 	}
+
+	sort.Sort(collection(result))
 
 	return result, err
 }

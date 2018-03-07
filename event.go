@@ -47,6 +47,7 @@ func sync() {
 				if err1 != nil || err2 != nil {
 					//log.PutError("Database sync failed")
 				}
+				BuildIndex()
 			} else {
 				//log.PutInfo("Syncing disabled: online remote is not set")
 			}

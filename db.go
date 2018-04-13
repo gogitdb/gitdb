@@ -69,7 +69,6 @@ func Insert(m Model) error {
 		}
 
 		for _, record := range records {
-			println(record.GetID().RecordId())
 			if record.GetID().RecordId() == m.GetID().RecordId() {
 				recordExists = true
 				dataBlock[record.GetID().RecordId()] = string(newRecordBytes)
@@ -413,4 +412,45 @@ func GetModel(in interface{}, out interface{}) error {
 	}
 
 	return json.Unmarshal(j, out)
+}
+
+//todo add revert logic if migrate fails mid way
+func Migrate(from Model, to Model) error {
+	records, err := Fetch(from.GetID().Name())
+	if err != nil {
+		return err
+	}else{
+		oldBlocks := map[string]string{}
+		for _, record := range records {
+
+			blockId := record.GetID().blockId()
+			if _, ok := oldBlocks[blockId]; !ok {
+				blockFile := blockId + "." + string(record.GetDataFormat())
+				println(blockFile)
+				blockFilePath := filepath.Join(config.DbPath, from.GetID().Name(), blockFile)
+				oldBlocks[blockId] = blockFilePath
+			}
+
+			err = GetModel(record, to)
+			if err != nil {
+				return err
+			}
+
+			err = Insert(to)
+			if err != nil {
+				return err
+			}
+		}
+
+		//remove all block files
+		for _, blockFilePath := range oldBlocks {
+			println("Removing old block: "+blockFilePath)
+			err := os.Remove(blockFilePath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

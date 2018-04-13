@@ -11,4 +11,5 @@ type Config struct {
 	EncryptionKey  string
 	SyncInterval   time.Duration
 	Factory        func(string) Model
+	Verbose        bool //flag for displaying messages useful for debugging. defaults to false
 }

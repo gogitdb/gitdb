@@ -2,6 +2,27 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/DHowett/go-plist"
+  packages = ["."]
+  revision = "84d08b7bddb35583bb3153b811c6cc52bb306f52"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/distatus/battery"
+  packages = ["."]
+  revision = "916919eb43bd0567646f048c0fb0e8c61a4ebc24"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
   packages = [
@@ -13,6 +34,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "72c4b713baceea3e6f505de57a758c2f27c3375e5d62237e0b1c2868f9b0771e"
+  inputs-digest = "26bd3e051e1058057298e7246be819f06dbd9b93bfba0eaab91baaf9ad2675b3"
   solver-name = "gps-cdcl"
   solver-version = 1

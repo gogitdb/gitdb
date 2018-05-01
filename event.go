@@ -2,6 +2,7 @@ package db
 
 import (
 	"time"
+	"github.com/distatus/battery"
 )
 
 type eventType string
@@ -40,7 +41,7 @@ func sync() {
 	for {
 		select {
 		case <-ticker.C:
-			if len(config.OnlineRemote) > 0 {
+			if len(config.OnlineRemote) > 0 && hasSufficientBatteryPower() {
 				//log.PutInfo("Syncing database...")
 				err1 := gitPull()
 				err2 := gitPush()
@@ -62,4 +63,16 @@ func sync() {
 
 func GetLastCommitTtime() (time.Time, error) {
 	return gitLastCommitTime()
+}
+
+func hasSufficientBatteryPower() bool {
+	batt, err := battery.Get(0)
+	if err != nil {
+		return false
+	}
+
+	percentageCharge := batt.Current/batt.Full*100
+
+	//if client PC has at least 20% battery life
+	return percentageCharge >= 20
 }

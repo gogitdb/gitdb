@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+	"os"
 )
 
 func gitInit() {
@@ -13,10 +14,6 @@ func gitInit() {
 	if err != nil {
 		panic(err)
 	}
-
-	//create .gitignore file
-	gitIgnore := filepath.Join(internalDir, "Index")
-	ioutil.WriteFile(filepath.Join(absDbPath, ".gitignore"), []byte(gitIgnore), 0744)
 
 	cmd := exec.Command("git", "-C", absDbPath, "init")
 	//log.PutInfo(utils.CmdToString(cmd))
@@ -44,6 +41,13 @@ func gitInit() {
 		if out, err := cmd.CombinedOutput(); err != nil {
 			panic(string(out))
 		}
+	}
+
+	//create .gitignore file
+	gitIgnore := filepath.Join(internalDir, "Index")
+	gitIgnoreFile := filepath.Join(absDbPath, ".gitignore")
+	if _, err := os.Stat(gitIgnoreFile); err != nil {
+		ioutil.WriteFile(gitIgnoreFile, []byte(gitIgnore), 0744)
 	}
 }
 

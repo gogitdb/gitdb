@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/DHowett/go-plist"
   packages = ["."]
-  revision = "84d08b7bddb35583bb3153b811c6cc52bb306f52"
+  revision = "500bd5b9081b5957ac10389f86e069869f00c348"
 
 [[projects]]
   branch = "master"
@@ -20,7 +20,7 @@
     "unix",
     "windows"
   ]
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+  revision = "6c888cc515d3ed83fc103cf1d84468aad274b0a7"
 
 [[projects]]
   branch = "v2"
@@ -34,6 +34,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "26bd3e051e1058057298e7246be819f06dbd9b93bfba0eaab91baaf9ad2675b3"
+  inputs-digest = "e1a5f0696540963c49bb677ddc7704ed627cf1d25466a2685c620ecdc8f10a0b"
   solver-name = "gps-cdcl"
   solver-version = 1

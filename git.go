@@ -45,6 +45,7 @@ func gitInit() {
 
 	//create .gitignore file
 	gitIgnore := filepath.Join(internalDir, "Index")
+	gitIgnore = gitIgnore+"\n.id"
 	gitIgnoreFile := filepath.Join(absDbPath, ".gitignore")
 	if _, err := os.Stat(gitIgnoreFile); err != nil {
 		ioutil.WriteFile(gitIgnoreFile, []byte(gitIgnore), 0744)

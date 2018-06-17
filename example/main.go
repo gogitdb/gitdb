@@ -28,11 +28,11 @@ func init() {
 }
 
 func main() {
-	// write()
+	 write()
 	//delete()
 	//search()
-	fetch()
-	read()
+	//fetch()
+	//read()
 
 	//db.Start(cfg)
 	//db.User = db.NewUser("dev", "dev@gitdb.io")
@@ -52,6 +52,7 @@ func write() {
 	bm.Status = booking.CheckedIn
 	bm.UserId = "user_1"
 	bm.RoomId = "room_1"
+	bm.AutoId = db.GenerateId(bm)
 
 	err := db.Insert(bm)
 	fmt.Println(err)

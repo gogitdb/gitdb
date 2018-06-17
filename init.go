@@ -14,6 +14,7 @@ var User *DbUser
 var UserChan chan *DbUser
 var absDbPath string
 var internalDir string
+var lastIds map[string]int64
 
 var config *Config
 
@@ -25,6 +26,7 @@ func Start(cfg *Config) {
 }
 
 func boot() {
+	lastIds = make(map[string]int64)
 	//log.PutInfo("Booting up db")
 	if _, err := os.Stat(config.OfflineRepoDir); err == nil {
 		isServer = true

@@ -12,6 +12,8 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 	"sort"
+	"time"
+	"strconv"
 )
 
 type SearchMode string
@@ -94,6 +96,10 @@ func Insert(m Model) error {
 	}
 
 	defer updateIndexes([]Model{m})
+
+	if err == nil {
+		updateId(m)
+	}
 
 	return err
 }
@@ -453,4 +459,80 @@ func Migrate(from Model, to Model) error {
 	}
 
 	return nil
+}
+
+/*func setAutoincrementId(m Model){
+	t := reflect.TypeOf(m)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	var autoIdFields []string
+	if t.Kind() == reflect.Struct {
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			if string(field.Tag) == "autoincrement" {
+				autoIdFields = append(autoIdFields, field.Name)
+			}
+		}
+	}
+
+	v := reflect.ValueOf(m).Elem()
+	if v.Kind() == reflect.Struct {
+		for _, field := range autoIdFields {
+			f := v.FieldByName(field)
+			if f.IsValid() {
+				if f.CanSet() {
+					if f.Kind() == reflect.Int {
+						id := GenerateId(m)
+						if !f.OverflowInt(id){
+							f.SetInt(id)
+							m.SetLastId(id)
+						}
+					}
+				}
+			}
+		}
+	}
+}*/
+
+func GenerateId(m Model) int64 {
+	var id int64
+	idFile := filepath.Join(config.DbPath, m.GetID().Name(), ".id")
+	//check if id file exists
+	f, err := os.Stat(idFile)
+	if err != nil || f.ModTime().Day() != time.Now().Day() {
+		id = 0
+	} else {
+		data, err := ioutil.ReadFile(idFile)
+		if err != nil {
+			panic(err)
+		}
+
+		id, err = strconv.ParseInt(strings.Trim(string(data), "\n"), 10, 64)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	id = id + 1
+	setLastId(m, id)
+	return id
+}
+
+func updateId(m Model) error {
+	if _, ok := lastIds[m.GetID().Name()]; ok {
+		idFile := filepath.Join(config.DbPath, m.GetID().Name(), ".id")
+		return ioutil.WriteFile(idFile, []byte(strconv.FormatInt(getLastId(m), 10)), 0744)
+	}
+
+	return nil
+}
+
+func setLastId(m Model, id int64){
+	lastIds[m.GetID().Name()] = id
+}
+
+func getLastId(m Model) int64 {
+	return lastIds[m.GetID().Name()]
 }

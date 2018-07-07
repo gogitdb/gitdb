@@ -6,6 +6,8 @@ import (
 
 	db "github.com/fobilow/gitdb"
 	"github.com/fobilow/gitdb/example/booking"
+	"log"
+	"os"
 )
 
 var cfg *db.Config
@@ -13,13 +15,16 @@ var cfg *db.Config
 func init() {
 	cfg = &db.Config{
 		DbPath:         "./data",
-		OfflineRepoDir: "./Repo/app.git",
 		OnlineRemote:   "",
-		OfflineRemote:  "",
 		SshKey:         "",
 		Factory:        make,
 		SyncInterval:   time.Minute * 5,
 		EncryptionKey:  "hellobjkdkdjkdjdkjkdjooo",
+	}
+
+	runLogFile, err := os.OpenFile("./db.log", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+	if err == nil {
+		cfg.Logger = log.New(runLogFile, "GITDB: ", log.Ldate|log.Ltime|log.Lshortfile)
 	}
 
 	db.Start(cfg)

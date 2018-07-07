@@ -14,6 +14,7 @@ import (
 	"sort"
 	"time"
 	"strconv"
+	"fmt"
 )
 
 type SearchMode string
@@ -39,35 +40,116 @@ func Insert(m Model) error {
 	}
 	m.stampUpdatedDate()
 
+	m.SetId(m.GetID().RecordId())
+
+	if _, err := os.Stat(fullPath(m)); err != nil {
+		os.MkdirAll(fullPath(m), 0755)
+	}
+
 	if !m.Validate() {
 		return errors.New("Model is not valid")
 	}
 
-	m.SetId(m.GetID().RecordId())
-	newRecordBytes, err := json.Marshal(m)
+	if getLock(){
+		flushQueue(m)
+		err := write(m)
+		releaseLock()
+		return err
+	}else{
+		return queue(m)
+	}
+}
+
+func fullPath(m Model) string {
+	return filepath.Join(config.DbPath, m.GetID().Name())
+}
+
+func blockFilePath(m Model) string{
+	dataFileName := m.GetID().blockId() + "." + string(m.GetDataFormat())
+	return filepath.Join(fullPath(m), dataFileName)
+}
+
+func queueFilePath(m Model) string {
+	dataFileName := "queue." + string(m.GetDataFormat())
+	return filepath.Join(fullPath(m), dataFileName)
+}
+
+func queue(m Model) error {
+
+	dataBlock, err := createBlock(m, queueFilePath(m))
 	if err != nil {
 		return err
 	}
 
-	fullPath = filepath.Join(config.DbPath, m.GetID().Name())
-
-	if _, err := os.Stat(fullPath); err != nil {
-		os.MkdirAll(fullPath, 0755)
+	writeErr := writeBlock(queueFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	if writeErr != nil {
+		return writeErr
 	}
+
+	return updateId(m)
+}
+
+func flushQueue(m Model) error {
+	log("flushing queue")
+	records, err := readBlock(queueFilePath(m), m)
+	if err != nil {
+		return err
+	}
+
+	//todo optimize: this will open and close file for each write operation
+	for _, record := range records {
+		log("Flushing: "+record.String())
+		err = write(record)
+		if err != nil {
+			println(err.Error())
+			return err
+		}
+		_, err = del(record.GetID().RecordId(), record, queueFilePath(m), false)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func write(m Model) error {
+
+	commitMsg := "Inserting " + m.GetID().RecordId() + " into " + blockFilePath(m)
+	//log.PutInfo(commitMsg)
+
+	dataBlock, err := createBlock(m, blockFilePath(m))
+	if err != nil {
+		return err
+	}
+
+	events <- newWriteBeforeEvent("...", blockFilePath(m))
+	writeErr := writeBlock(blockFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	if writeErr != nil {
+		return writeErr
+	}
+
+	events <- newWriteEvent(commitMsg, blockFilePath(m))
+	defer updateIndexes([]Model{m})
+
+	return	updateId(m)
+}
+
+func createBlock(m Model, blockFile string) (map[string]string, error){
 
 	dataBlock := map[string]string{}
 	recordExists := false
 
-	dataFileName := m.GetID().blockId() + "." + string(m.GetDataFormat())
-	dataFilePath := filepath.Join(fullPath, dataFileName)
-	commitMsg := "Inserting " + m.GetID().RecordId() + " into " + dataFileName
-	//log.PutInfo(commitMsg)
-	events <- newWriteBeforeEvent("...", dataFileName)
-	if _, err := os.Stat(dataFilePath); err == nil {
+	newRecordBytes, err := json.Marshal(m)
+	if err != nil {
+		return dataBlock, err
+	}
+
+	if _, err := os.Stat(blockFile); err == nil {
 		//block file exist, read it, check for duplicates and append new data
-		records, err := readBlock(dataFilePath, m)
+		records, err := readBlock(blockFile, m)
 		if err != nil {
-			return err
+			return dataBlock, err
 		}
 
 		for _, record := range records {
@@ -78,7 +160,7 @@ func Insert(m Model) error {
 			} else {
 				recordBytes, err := json.Marshal(record)
 				if err != nil {
-					return err
+					return dataBlock, err
 				}
 
 				dataBlock[record.GetID().RecordId()] = string(recordBytes)
@@ -90,18 +172,7 @@ func Insert(m Model) error {
 		dataBlock[m.GetID().RecordId()] = string(newRecordBytes)
 	}
 
-	writeErr := writeBlock(dataFilePath, dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
-	if writeErr == nil {
-		events <- newWriteEvent(commitMsg, dataFileName)
-	}
-
-	defer updateIndexes([]Model{m})
-
-	if err == nil {
-		updateId(m)
-	}
-
-	return err
+	return dataBlock, err
 }
 
 func writeBlock(blockFile string, data map[string]string, format DataFormat, encryptData bool) error {
@@ -225,7 +296,7 @@ func Fetch(dataDir string) ([]Model, error) {
 
 	fullPath := filepath.Join(config.DbPath, dataDir)
 	//events <- newReadEvent("...", fullPath)
-	//log.PutInfo("Fetching records from - " + fullPath)
+	log("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
 	if err != nil {
 		return records, err
@@ -243,7 +314,7 @@ func Fetch(dataDir string) ([]Model, error) {
 		}
 	}
 
-	//log.PutInfo(fmt.Sprintf("%d records found in %s", len(records), fullPath))
+	log(fmt.Sprintf("%d records found in %s", len(records), fullPath))
 	return records, nil
 }
 
@@ -329,14 +400,14 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 }
 
 func Delete(id string) (bool, error) {
-	return del(id, false)
+	return delImplicit(id,false)
 }
 
 func DeleteOrFail(id string) (bool, error) {
-	return del(id, true)
+	return delImplicit(id, true)
 }
 
-func del(id string, failIfNotFound bool) (bool, error) {
+func delImplicit(id string, failNotFound bool) (bool, error){
 
 	dataDir, block, _, err := parseId(id)
 	if err != nil {
@@ -345,15 +416,20 @@ func del(id string, failIfNotFound bool) (bool, error) {
 
 	model := config.Factory(dataDir)
 
-	dataFileName := filepath.Join(config.DbPath, dataDir, block+"."+string(model.GetDataFormat()))
-	if _, err := os.Stat(dataFileName); err != nil {
+	dataFilePath := filepath.Join(fullPath(model), block + "." + string(model.GetDataFormat()))
+	return del(id, model, dataFilePath, failNotFound)
+}
+
+func del(id string, m Model, blockFile string, failIfNotFound bool) (bool, error) {
+
+	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {
 			return false, errors.New("Could not delete [" + id + "]: record does not exist")
 		}
 		return true, nil
 	}
 
-	records, err := readBlock(dataFileName, model)
+	records, err := readBlock(blockFile, m)
 	if err != nil {
 		return false, err
 	}
@@ -381,7 +457,7 @@ func del(id string, failIfNotFound bool) (bool, error) {
 		}
 
 		//write undeleted records back to block file
-		err = ioutil.WriteFile(dataFileName, out, 0744)
+		err = ioutil.WriteFile(blockFile, out, 0744)
 		if err != nil {
 			return false, err
 		}
@@ -450,7 +526,7 @@ func Migrate(from Model, to Model) error {
 
 		//remove all block files
 		for _, blockFilePath := range oldBlocks {
-			println("Removing old block: "+blockFilePath)
+			log("Removing old block: "+blockFilePath)
 			err := os.Remove(blockFilePath)
 			if err != nil {
 				return err
@@ -535,4 +611,13 @@ func setLastId(m Model, id int64){
 
 func getLastId(m Model) int64 {
 	return lastIds[m.GetID().Name()]
+}
+
+func getLock() bool {
+	locked = !locked
+	return locked
+}
+
+func releaseLock() {
+	locked = false
 }

@@ -6,8 +6,7 @@ import (
 	"path/filepath"
 )
 
-var fullPath string
-var isServer = false
+var locked = false
 
 var events chan *dbEvent
 var User *DbUser
@@ -27,11 +26,7 @@ func Start(cfg *Config) {
 
 func boot() {
 	lastIds = make(map[string]int64)
-	//log.PutInfo("Booting up db")
-	if _, err := os.Stat(config.OfflineRepoDir); err == nil {
-		isServer = true
-		//log.PutInfo("application is running in server mode")
-	}
+	log("Booting up db")
 
 	events = make(chan *dbEvent)
 	var err error
@@ -46,10 +41,10 @@ func boot() {
 	dotGitDir := filepath.Join(config.DbPath, ".git")
 
 	if _, err := os.Stat(config.DbPath); err != nil {
-		//log.PutInfo("database not initialized")
+		log("database not initialized")
 		err = os.Mkdir(config.DbPath, 0755)
 		if err != nil {
-			//log.PutError("failed to create db directory - " + err.Error())
+			log("failed to create db directory - " + err.Error())
 		}
 		gitInit()
 	} else if _, err := os.Stat(dotGitDir); err != nil {
@@ -62,5 +57,13 @@ func boot() {
 		BuildIndex()
 	}
 
-	//log.PutInfo("Db booted")
+	log("Db booted")
+}
+
+func log(message string){
+	if config.Logger != nil {
+		config.Logger.Println(message)
+	}else{
+		println(message)
+	}
 }

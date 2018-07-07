@@ -3,6 +3,7 @@ package db
 import (
 	"time"
 	"github.com/distatus/battery"
+	"fmt"
 )
 
 type eventType string
@@ -41,16 +42,17 @@ func sync() {
 	for {
 		select {
 		case <-ticker.C:
-			if len(config.OnlineRemote) > 0 && hasSufficientBatteryPower() {
-				//log.PutInfo("Syncing database...")
+			if getLock() && len(config.OnlineRemote) > 0 && hasSufficientBatteryPower() {
+				log("Syncing database...")
 				err1 := gitPull()
 				err2 := gitPush()
 				if err1 != nil || err2 != nil {
-					//log.PutError("Database sync failed")
+					log("Database sync failed")
 				}
 				BuildIndex()
+				releaseLock()
 			} else {
-				//log.PutInfo("Syncing disabled: online remote is not set")
+				log("Syncing disabled: online remote is not set")
 			}
 		case e := <-events:
 			switch e.Type {
@@ -72,6 +74,8 @@ func hasSufficientBatteryPower() bool {
 	}
 
 	percentageCharge := batt.Current/batt.Full*100
+
+	log(fmt.Sprintf("Battery Level: %f%", percentageCharge))
 
 	//if client PC has at least 20% battery life
 	return percentageCharge >= 20

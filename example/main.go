@@ -11,37 +11,47 @@ import (
 )
 
 var cfg *db.Config
+var logToFile bool
 
 func init() {
 	cfg = &db.Config{
 		DbPath:         "./data",
-		OnlineRemote:   "",
-		SshKey:         "",
+		OnlineRemote:   os.Getenv("GITDB_REPO"),
+		SshKey:         os.Getenv("GITDB_SSH_KEY"),
 		Factory:        make,
-		SyncInterval:   time.Minute * 5,
-		EncryptionKey:  "hellobjkdkdjkdjdkjkdjooo",
+		SyncInterval:   time.Second * 5,
+		EncryptionKey:  "put_your_encryption_key_here",
+		//GitDriver: &db.GitBinary{},
+		GitDriver: &db.GoGit{},
 	}
 
-	runLogFile, err := os.OpenFile("./db.log", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
-	if err == nil {
-		cfg.Logger = log.New(runLogFile, "GITDB: ", log.Ldate|log.Ltime|log.Lshortfile)
+	if logToFile {
+		runLogFile, err := os.OpenFile("./db.log", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+		if err == nil {
+			cfg.Logger = log.New(runLogFile, "GITDB: ", log.Ldate|log.Ltime|log.Lshortfile)
+		}
 	}
 
-	db.Start(cfg)
 	db.User = db.NewUser("dev", "dev@gitdb.io")
-
+	db.Start(cfg)
 }
 
 func main() {
-	 write()
-	//delete()
-	//search()
-	//fetch()
-	//read()
+	testWrite()
+}
 
-	//db.Start(cfg)
-	//db.User = db.NewUser("dev", "dev@gitdb.io")
-	//db.StartGUI()
+func testGUI(){
+	db.StartGUI()
+}
+
+func testWrite() {
+	ticker := time.NewTicker(time.Second*4)
+	for {
+		select {
+		case <-ticker.C:
+			write()
+		}
+	}
 }
 
 func write() {
@@ -60,8 +70,9 @@ func write() {
 	bm.AutoId = db.GenerateId(bm)
 
 	err := db.Insert(bm)
-	fmt.Println(err)
-
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func read() {

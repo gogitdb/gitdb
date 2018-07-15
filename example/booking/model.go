@@ -44,7 +44,7 @@ func (b *BookingModel) GetID() *db.ID {
 
 	//Record of schema
 	record := func() string {
-		return string(b.Type) + "_" + b.CreatedAt.Format("200601021504")
+		return string(b.Type) + "_" + b.CreatedAt.Format("20060102150405")
 	}
 
 	//Indexes speed up searching
@@ -87,5 +87,5 @@ func (b *BookingModel) Validate() bool {
 }
 
 func (b *BookingModel) ShouldEncrypt() bool {
-	return true
+	return false
 }

@@ -89,5 +89,5 @@ func hasSufficientBatteryPower() bool {
 	log(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
 
 	//if client PC has at least 20% battery life
-	return percentageCharge >= 10
+	return percentageCharge >= 20
 }

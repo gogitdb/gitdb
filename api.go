@@ -90,7 +90,7 @@ func LoadDatasets() []*DataSet {
 
 	dirs, err := ioutil.ReadDir(config.DbPath)
 	if err != nil {
-		//todo log error or return error?
+		log(err.Error())
 		return dataSets
 	}
 
@@ -164,7 +164,7 @@ func getDatasets() []string {
 	var dataSets []string
 	dirs, err := ioutil.ReadDir(config.DbPath)
 	if err != nil {
-		//todo log error or return error?
+		log(err.Error())
 		return dataSets
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 var locked = false
@@ -14,12 +15,15 @@ var UserChan chan *DbUser
 var absDbPath string
 var internalDir string
 var lastIds map[string]int64
+var gitDriver GitDriver
 
 var config *Config
 
 func Start(cfg *Config) {
 	config = cfg
 	internalDir = ".gitdb" //todo rename
+	gitDriver = &GitBinary{}
+	gitDriver.configure(cfg)
 	boot()
 	go sync()
 }
@@ -42,10 +46,6 @@ func boot() {
 
 	if _, err := os.Stat(config.DbPath); err != nil {
 		log("database not initialized")
-		err = os.Mkdir(config.DbPath, 0755)
-		if err != nil {
-			log("failed to create db directory - " + err.Error())
-		}
 		gitInit()
 	} else if _, err := os.Stat(dotGitDir); err != nil {
 		panic(config.DbPath + " is not a git repository")
@@ -64,6 +64,10 @@ func log(message string){
 	if config.Logger != nil {
 		config.Logger.Println(message)
 	}else{
-		println(message)
+		println("["+time.Now().Format("2006-01-02-15:04:05.000000")+"] "+message)
 	}
+}
+
+func logError(message string){
+	log("ERROR: "+message)
 }

@@ -51,8 +51,11 @@ func Insert(m Model) error {
 	}
 
 	if getLock(){
-		flushQueue(m)
-		err := write(m)
+		err := flushQueue(m)
+		if err != nil {
+			log(err.Error())
+		}
+		err = write(m)
 		releaseLock()
 		return err
 	}else{
@@ -90,24 +93,30 @@ func queue(m Model) error {
 }
 
 func flushQueue(m Model) error {
-	log("flushing queue")
-	records, err := readBlock(queueFilePath(m), m)
-	if err != nil {
-		return err
-	}
 
-	//todo optimize: this will open and close file for each write operation
-	for _, record := range records {
-		log("Flushing: "+record.String())
-		err = write(record)
-		if err != nil {
-			println(err.Error())
-			return err
-		}
-		_, err = del(record.GetID().RecordId(), record, queueFilePath(m), false)
+	if _, err := os.Stat(queueFilePath(m)); err == nil {
+
+		log("flushing queue")
+		records, err := readBlock(queueFilePath(m), m)
 		if err != nil {
 			return err
 		}
+
+		//todo optimize: this will open and close file for each write operation
+		for _, record := range records {
+			log("Flushing: "+record.String())
+			err = write(record)
+			if err != nil {
+				println(err.Error())
+				return err
+			}
+			_, err = del(record.GetID().RecordId(), record, queueFilePath(m), false)
+			if err != nil {
+				return err
+			}
+		}
+
+		return os.Remove(queueFilePath(m))
 	}
 
 	return nil
@@ -116,7 +125,6 @@ func flushQueue(m Model) error {
 func write(m Model) error {
 
 	commitMsg := "Inserting " + m.GetID().RecordId() + " into " + blockFilePath(m)
-	//log.PutInfo(commitMsg)
 
 	dataBlock, err := createBlock(m, blockFilePath(m))
 	if err != nil {
@@ -132,6 +140,7 @@ func write(m Model) error {
 	events <- newWriteEvent(commitMsg, blockFilePath(m))
 	defer updateIndexes([]Model{m})
 
+	log(commitMsg)
 	return	updateId(m)
 }
 
@@ -233,6 +242,7 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 		concreteModel := config.Factory(m.GetID().Name())
 
 		if m.ShouldEncrypt() {
+			log("decrypting record")
 			v = decrypt(config.EncryptionKey, v)
 		}
 
@@ -615,6 +625,9 @@ func getLastId(m Model) int64 {
 
 func getLock() bool {
 	locked = !locked
+
+	log(fmt.Sprintf("getLock() = %t", locked))
+
 	return locked
 }
 

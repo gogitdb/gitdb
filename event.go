@@ -42,7 +42,9 @@ func sync() {
 	for {
 		select {
 		case <-ticker.C:
-			if getLock() && len(config.OnlineRemote) > 0 && hasSufficientBatteryPower() {
+			hasSufficientBatteryPower := hasSufficientBatteryPower()
+			getLock := getLock()
+			if getLock && len(config.OnlineRemote) > 0 && hasSufficientBatteryPower {
 				log("Syncing database...")
 				err1 := gitPull()
 				err2 := gitPush()
@@ -52,7 +54,16 @@ func sync() {
 				BuildIndex()
 				releaseLock()
 			} else {
-				log("Syncing disabled: online remote is not set")
+				if !hasSufficientBatteryPower{
+					log("Syncing disabled: insufficient battery power")
+				}
+				if !getLock{
+					log("Syncing disabled: db is locked by app")
+				}
+
+				if len(config.OnlineRemote) <= 0 {
+					log("Syncing disabled: online remote is not set")
+				}
 			}
 		case e := <-events:
 			switch e.Type {
@@ -75,8 +86,8 @@ func hasSufficientBatteryPower() bool {
 
 	percentageCharge := batt.Current/batt.Full*100
 
-	log(fmt.Sprintf("Battery Level: %f%", percentageCharge))
+	log(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
 
 	//if client PC has at least 20% battery life
-	return percentageCharge >= 20
+	return percentageCharge >= 10
 }

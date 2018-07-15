@@ -31,3 +31,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/distatus/battery"
+
+[[constraint]]
+  branch = "master"
+  name = "gopkg.in/src-d/go-git.v4"

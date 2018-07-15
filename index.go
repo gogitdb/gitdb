@@ -30,13 +30,13 @@ func updateIndexes(models []Model) {
 	for indexFile, data := range index {
 		indexBytes, err := json.MarshalIndent(data, "", "\t")
 		if err != nil {
-			//log.PutError("Failed to write to index [" + indexFile + "]: " + err.Error())
+			logError("Failed to write to index [" + indexFile + "]: " + err.Error())
 			return
 		}
 
 		err = ioutil.WriteFile(indexFile, indexBytes, 0744)
 		if err != nil {
-			//log.PutError("Failed to write to index: " + indexFile)
+			logError("Failed to write to index: " + indexFile)
 		}
 	}
 }
@@ -49,7 +49,7 @@ func readIndex(indexFile string) map[string]interface{} {
 	}
 
 	if err != nil {
-		//log.PutError(err.Error())
+		logError(err.Error())
 	}
 
 	return rMap
@@ -58,7 +58,7 @@ func readIndex(indexFile string) map[string]interface{} {
 func BuildIndex() {
 	dataSets := getDatasets()
 	for _, dataSet := range dataSets {
-		println("Building index for Dataset: "+dataSet)
+		log("Building index for Dataset: "+dataSet)
 		records, err := Fetch(dataSet)
 		if err != nil {
 			continue

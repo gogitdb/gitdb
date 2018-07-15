@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 	"os"
+	"strings"
 )
 
 type GitDriver interface {
@@ -42,8 +43,12 @@ func gitInit() {
 	//create .gitignore file
 	gitIgnoreFile := filepath.Join(absDbPath, ".gitignore")
 	if _, err := os.Stat(gitIgnoreFile); err != nil {
-		gitIgnore := filepath.Join(internalDir, "Index")
-		gitIgnore = gitIgnore+"\n.id"
+		ignoreList := []string{
+			filepath.Join(internalDir, "Index"),
+			".id",
+			"queue.json",
+		}
+		gitIgnore := strings.Join(ignoreList, "\n")
 		ioutil.WriteFile(gitIgnoreFile, []byte(gitIgnore), 0744)
 
 		gitDriver.commit("gitignore file added by gitdb", User)

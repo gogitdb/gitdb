@@ -54,15 +54,12 @@ func sync() {
 				BuildIndex()
 				releaseLock()
 			} else {
-				if !hasSufficientBatteryPower{
-					log("Syncing disabled: insufficient battery power")
-				}
-				if !getLock{
-					log("Syncing disabled: db is locked by app")
-				}
-
 				if len(config.OnlineRemote) <= 0 {
 					log("Syncing disabled: online remote is not set")
+				} else if !getLock {
+					log("Syncing disabled: db is locked by app")
+				} else if !hasSufficientBatteryPower {
+					log("Syncing disabled: insufficient battery power")
 				}
 			}
 		case e := <-events:
@@ -84,7 +81,7 @@ func hasSufficientBatteryPower() bool {
 		return false
 	}
 
-	percentageCharge := batt.Current/batt.Full*100
+	percentageCharge := batt.Current / batt.Full * 100
 
 	log(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
 

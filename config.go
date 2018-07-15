@@ -14,4 +14,5 @@ type Config struct {
 	Factory        func(string) Model
 	Verbose        bool //flag for displaying messages useful for debugging. defaults to false
 	Logger         *golog.Logger
+	GitDriver 	   GitDriver
 }

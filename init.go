@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"runtime"
 )
 
 var locked = false
@@ -22,7 +23,7 @@ var config *Config
 func Start(cfg *Config) {
 	config = cfg
 	internalDir = ".gitdb" //todo rename
-	gitDriver = &GitBinary{}
+	gitDriver = cfg.GitDriver
 	gitDriver.configure(cfg)
 	boot()
 	go sync()
@@ -30,7 +31,7 @@ func Start(cfg *Config) {
 
 func boot() {
 	lastIds = make(map[string]int64)
-	log("Booting up db")
+	log("Booting up db using "+gitDriver.name()+" driver")
 
 	events = make(chan *dbEvent)
 	var err error
@@ -69,5 +70,6 @@ func log(message string){
 }
 
 func logError(message string){
-	log("ERROR: "+message)
+	_, fn, line, _ := runtime.Caller(1)
+	log(fmt.Sprintf("ERROR: %s | %s:%d",message, fn, line))
 }

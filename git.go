@@ -10,11 +10,12 @@ import (
 )
 
 type GitDriver interface {
+	name() string
 	configure(config *Config)
 	init() error
 	pull() error
 	push() error
-	commit(msg string, user *DbUser) error
+	commit(filePath string, msg string, user *DbUser) error
 }
 
 type BaseGitDriver struct {
@@ -23,11 +24,11 @@ type BaseGitDriver struct {
 }
 
 func (g *BaseGitDriver) configure(config *Config) {
-	g.config = config
-	absDbPath, err := filepath.Abs(g.config.DbPath)
+	absDbPath, err := filepath.Abs(config.DbPath)
 	if err != nil {
 		panic(err)
 	}
+	g.config = config
 	g.absDbPath = absDbPath
 }
 
@@ -37,6 +38,7 @@ func gitInit() {
 	//we take this very seriously
 	err := gitDriver.init()
 	if err != nil {
+		os.RemoveAll(absDbPath)
 		panic(err)
 	}
 
@@ -51,7 +53,11 @@ func gitInit() {
 		gitIgnore := strings.Join(ignoreList, "\n")
 		ioutil.WriteFile(gitIgnoreFile, []byte(gitIgnore), 0744)
 
-		gitDriver.commit("gitignore file added by gitdb", User)
+		err = gitDriver.commit(gitIgnoreFile, "gitignore file added by gitdb", User)
+		if err != nil {
+			logError(gitIgnoreFile)
+			logError(err.Error())
+		}
 		err = gitDriver.push()
 		if err != nil {
 			panic(err)
@@ -71,8 +77,8 @@ func gitPush() error {
  	return gitDriver.push()
 }
 
-func gitCommit(msg string, user *DbUser) {
-	gitDriver.commit(msg, user)
+func gitCommit(filePath string, msg string, user *DbUser) {
+	gitDriver.commit(filePath, msg, user)
 }
 
 func gitLastCommitTime() (time.Time, error) {

@@ -626,7 +626,9 @@ func getLastId(m Model) int64 {
 func getLock() bool {
 	locked = !locked
 
-	log(fmt.Sprintf("getLock() = %t", locked))
+	_, fn, line, _ := runtime.Caller(1)
+
+	log(fmt.Sprintf("getLock() = %t | %s:%d", locked, fn, line))
 
 	return locked
 }

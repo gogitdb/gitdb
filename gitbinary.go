@@ -9,6 +9,10 @@ type GitBinary struct {
 	BaseGitDriver
 }
 
+func (g *GitBinary) name() string {
+	return "GitBinary"
+}
+
 func (g *GitBinary) init() error {
 
 	cmd := exec.Command("git", "clone", g.config.OnlineRemote, g.absDbPath)
@@ -59,8 +63,8 @@ func (g *GitBinary) push() error {
 	return nil
 }
 
-func (g *GitBinary) commit(msg string, user *DbUser) error {
-	cmd := exec.Command("git", "-C", g.absDbPath, "add", ".")
+func (g *GitBinary) commit(filePath string, msg string, user *DbUser) error {
+	cmd := exec.Command("git", "-C", g.absDbPath, "add", filePath)
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		logError(string(out))

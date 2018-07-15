@@ -43,15 +43,16 @@ func updateIndexes(models []Model) {
 
 func readIndex(indexFile string) map[string]interface{} {
 	rMap := make(map[string]interface{})
-	data, err := ioutil.ReadFile(indexFile)
-	if err == nil {
-		err = json.Unmarshal(data, &rMap)
-	}
+	if _, err := os.Stat(indexFile); err == nil {
+		data, err := ioutil.ReadFile(indexFile)
+		if err == nil {
+			err = json.Unmarshal(data, &rMap)
+		}
 
-	if err != nil {
-		logError(err.Error())
+		if err != nil {
+			logError(err.Error())
+		}
 	}
-
 	return rMap
 }
 
@@ -66,6 +67,7 @@ func BuildIndex() {
 
 		updateIndexes(records)
 	}
+	log("Building index complete")
 }
 
 func indexDir() string {

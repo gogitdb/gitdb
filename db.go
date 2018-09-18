@@ -234,7 +234,7 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 	}
 
 	if fmtErr != nil {
-		return result, fmtErr
+		return result, errors.New(fmtErr.Error()+" - "+blockFile)
 	}
 
 	for _, v := range dataBlock {
@@ -248,7 +248,7 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
 		if jsonErr != nil {
-			return result, jsonErr
+			return result, errors.New(jsonErr.Error()+" - "+v[0:20])
 		}
 
 		result = append(result, concreteModel.(Model))

@@ -12,7 +12,6 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 	"sort"
-	"time"
 	"strconv"
 	"fmt"
 )
@@ -234,10 +233,10 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 	}
 
 	if fmtErr != nil {
-		return result, errors.New(fmtErr.Error()+" - "+blockFile)
+		return result, &badBlockError{fmtErr.Error()+" - "+blockFile, blockFile}
 	}
 
-	for _, v := range dataBlock {
+	for k, v := range dataBlock {
 
 		concreteModel := config.Factory(m.GetID().Name())
 
@@ -248,7 +247,7 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
 		if jsonErr != nil {
-			return result, errors.New(jsonErr.Error()+" - "+v[0:20])
+			return result, &badRecordError{jsonErr.Error()+" - "+k, k}
 		}
 
 		result = append(result, concreteModel.(Model))
@@ -582,12 +581,14 @@ func Migrate(from Model, to Model) error {
 	}
 }*/
 
+//TODO make this method more robust to handle cases where the id file is deleted
+//TODO it needs to be intelligent enough to figure out the last id from the last existing record
 func GenerateId(m Model) int64 {
 	var id int64
 	idFile := filepath.Join(config.DbPath, m.GetID().Name(), ".id")
 	//check if id file exists
-	f, err := os.Stat(idFile)
-	if err != nil || f.ModTime().Day() != time.Now().Day() {
+	_, err := os.Stat(idFile)
+	if err != nil {
 		id = 0
 	} else {
 		data, err := ioutil.ReadFile(idFile)

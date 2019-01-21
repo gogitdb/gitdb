@@ -40,9 +40,6 @@ func main() {
 	testWrite()
 }
 
-func testGUI(){
-	db.StartGUI()
-}
 
 func testWrite() {
 	ticker := time.NewTicker(time.Second*4)

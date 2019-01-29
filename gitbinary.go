@@ -2,6 +2,7 @@ package db
 
 import (
 	"os/exec"
+	"errors"
 )
 
 
@@ -15,20 +16,37 @@ func (g *GitBinary) name() string {
 
 func (g *GitBinary) init() error {
 
-	cmd := exec.Command("git", "clone", g.config.OnlineRemote, g.absDbPath)
+	cmd := exec.Command("git", "-C", g.absDbPath, "init")
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log(string(out))
 		return err
 	}
 
-	cmd = exec.Command("git", "-C", absDbPath, "remote", "rm", "origin")
+	return nil
+}
+
+func (g *GitBinary) clone() error {
+
+	cmd := exec.Command("git", "clone", g.config.OnlineRemote, g.absDbPath)
+	//log(fmt.Sprintf("%s", cmd))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		log(string(out))
+		return errors.New(string(out))
+	}
+
+	return nil
+}
+
+func (g *GitBinary) addRemote() error {
+
+	cmd := exec.Command("git", "-C", g.absDbPath, "remote", "rm", "origin")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log(string(out))
 		return err
 	}
 
-	cmd = exec.Command("git", "-C", absDbPath, "remote", "add", "online", g.config.OnlineRemote)
+	cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log(string(out))
@@ -79,5 +97,17 @@ func (g *GitBinary) commit(filePath string, msg string, user *DbUser) error {
 	}
 
 	log("new changes committed")
+	return nil
+}
+
+func (g *GitBinary) undo() error {
+	cmd := exec.Command("git", "-C", g.absDbPath, "checkout", ".")
+	//log.PutInfo(utils.CmdToString(cmd))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		logError(string(out))
+		return err
+	}
+
+	log("changes reverted")
 	return nil
 }

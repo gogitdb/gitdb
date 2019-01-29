@@ -32,7 +32,7 @@ func (g *GoGit) getRepo() (*git.Repository, error) {
 
 func (g *GoGit) getSshAuth() *ssh.PublicKeys {
 	if g.sshAuth == nil {
-		auth, err := ssh.NewPublicKeysFromFile("git", g.config.SshKey, "")
+		auth, err := ssh.NewPublicKeysFromFile("git", g.config.sshKey, "")
 		if err != nil {
 			return nil
 		}
@@ -48,7 +48,11 @@ func (g *GoGit) name() string {
 }
 
 func (g *GoGit) init() error {
-	repo, err := git.PlainClone(g.absDbPath, false, &git.CloneOptions{
+	return nil
+}
+
+func (g *GoGit) clone() error {
+	_, err := git.PlainClone(g.absDbPath, false, &git.CloneOptions{
 		URL:  g.config.OnlineRemote,
 		Auth: g.getSshAuth(),
 	})
@@ -57,18 +61,17 @@ func (g *GoGit) init() error {
 		return err
 	}
 
-	repo.DeleteRemote("origin")
+	return nil
+}
 
-	_, err = repo.CreateRemote(&gogitconfig.RemoteConfig{
+func (g *GoGit) addRemote() error {
+	repo := git.Repository{}
+	_, err := repo.CreateRemote(&gogitconfig.RemoteConfig{
 		Name: "online",
 		URLs: []string{g.config.OnlineRemote},
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (g *GoGit) pull() error {
@@ -150,5 +153,11 @@ func (g *GoGit) commit(filePath string, msg string, user *DbUser) error {
 
 	log("new changes committed")
 
+	return nil
+}
+
+func (g *GoGit) undo() error {
+
+	log("changes reverted")
 	return nil
 }

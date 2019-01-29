@@ -16,7 +16,7 @@ func Lock(m Model) error {
 
 	lockFilesWritten := []string{}
 
-	fullPath := lockDir()
+	fullPath := lockDir(m)
 	if _, err := os.Stat(fullPath); err != nil {
 		os.MkdirAll(fullPath, 0755)
 	}
@@ -56,7 +56,7 @@ func UnLock(m Model) error {
 		return errors.New("Model is not lockable")
 	}
 
-	fullPath := lockDir()
+	fullPath := lockDir(m)
 
 	lockFiles := m.GetLockFileNames()
 	for _, file := range lockFiles {
@@ -93,8 +93,4 @@ func deleteLockFiles(files []string) error {
 	}
 
 	return err
-}
-
-func lockDir() string {
-	return filepath.Join(config.DbPath, internalDir, "Lock")
 }

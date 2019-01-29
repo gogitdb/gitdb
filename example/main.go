@@ -8,6 +8,7 @@ import (
 	"github.com/fobilow/gitdb/example/booking"
 	"log"
 	"os"
+	"errors"
 )
 
 var cfg *db.Config
@@ -17,12 +18,11 @@ func init() {
 	cfg = &db.Config{
 		DbPath:         "./data",
 		OnlineRemote:   os.Getenv("GITDB_REPO"),
-		SshKey:         os.Getenv("GITDB_SSH_KEY"),
 		Factory:        make,
 		SyncInterval:   time.Second * 5,
 		EncryptionKey:  "put_your_encryption_key_here",
-		//GitDriver: &db.GitBinary{},
-		GitDriver: &db.GoGit{},
+		GitDriver: &db.GitBinary{},
+		//GitDriver: &db.GoGit{},
 	}
 
 	if logToFile {
@@ -39,6 +39,18 @@ func init() {
 func main() {
 	testWrite()
 }
+
+func testTransaction() {
+	t := db.NewTransaction("booking")
+	t.AddOperation(updateRoom)
+	t.AddOperation(lockRoom)
+	t.AddOperation(saveBooking)
+	t.Commit()
+}
+
+func updateRoom() error { println("updating room..."); return nil}
+func lockRoom() error { println("locking room"); return errors.New("cannot lock room")}
+func saveBooking() error { println("saving booking"); return nil}
 
 
 func testWrite() {

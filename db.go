@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
 	"gopkg.in/mgo.v2/bson"
 	"sort"
 	"strconv"
@@ -62,23 +61,9 @@ func Insert(m Model) error {
 	}
 }
 
-func fullPath(m Model) string {
-	return filepath.Join(config.DbPath, m.GetID().Name())
-}
-
-func blockFilePath(m Model) string{
-	dataFileName := m.GetID().blockId() + "." + string(m.GetDataFormat())
-	return filepath.Join(fullPath(m), dataFileName)
-}
-
-func queueFilePath(m Model) string {
-	dataFileName := "queue." + string(m.GetDataFormat())
-	return filepath.Join(fullPath(m), dataFileName)
-}
-
 func queue(m Model) error {
 
-	dataBlock, err := createBlock(m, queueFilePath(m))
+	dataBlock, err := loadBlock(m, queueFilePath(m))
 	if err != nil {
 		return err
 	}
@@ -125,10 +110,17 @@ func write(m Model) error {
 
 	commitMsg := "Inserting " + m.GetID().RecordId() + " into " + blockFilePath(m)
 
-	dataBlock, err := createBlock(m, blockFilePath(m))
+	dataBlock, err := loadBlock(m, blockFilePath(m))
 	if err != nil {
 		return err
 	}
+
+	//...append new record to block
+	newRecordBytes, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	dataBlock[m.GetID().RecordId()] = string(newRecordBytes)
 
 	events <- newWriteBeforeEvent("...", blockFilePath(m))
 	writeErr := writeBlock(blockFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
@@ -136,51 +128,36 @@ func write(m Model) error {
 		return writeErr
 	}
 
-	events <- newWriteEvent(commitMsg, blockFilePath(m))
-	defer updateIndexes([]Model{m})
+	if autoCommit {
+		events <- newWriteEvent(commitMsg, blockFilePath(m))
+		defer updateIndexes([]Model{m})
+	}
 
 	log(commitMsg)
 	return	updateId(m)
 }
 
-func createBlock(m Model, blockFile string) (map[string]string, error){
+func loadBlock(m Model, blockFile string) (map[string]string, error){
 
 	dataBlock := map[string]string{}
-	recordExists := false
-
-	newRecordBytes, err := json.Marshal(m)
-	if err != nil {
-		return dataBlock, err
-	}
-
 	if _, err := os.Stat(blockFile); err == nil {
-		//block file exist, read it, check for duplicates and append new data
+		//block file exist, read it and load into map
 		records, err := readBlock(blockFile, m)
 		if err != nil {
 			return dataBlock, err
 		}
 
 		for _, record := range records {
-			if record.GetID().RecordId() == m.GetID().RecordId() {
-				recordExists = true
-				dataBlock[record.GetID().RecordId()] = string(newRecordBytes)
-
-			} else {
-				recordBytes, err := json.Marshal(record)
-				if err != nil {
-					return dataBlock, err
-				}
-
-				dataBlock[record.GetID().RecordId()] = string(recordBytes)
+			recordBytes, err := json.Marshal(record)
+			if err != nil {
+				return dataBlock, err
 			}
+
+			dataBlock[record.GetID().RecordId()] = string(recordBytes)
 		}
 	}
 
-	if !recordExists {
-		dataBlock[m.GetID().RecordId()] = string(newRecordBytes)
-	}
-
-	return dataBlock, err
+	return dataBlock, nil
 }
 
 func writeBlock(blockFile string, data map[string]string, format DataFormat, encryptData bool) error {
@@ -279,7 +256,7 @@ func Get(id string, result interface{}) error {
 	}
 
 	model := config.Factory(dataDir)
-	dataFilePath := filepath.Join(config.DbPath, dataDir, block+"."+string(model.GetDataFormat()))
+	dataFilePath := filepath.Join(dbDir(), dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return errors.New(dataDir + " Not Found - " + id)
 	}
@@ -303,7 +280,7 @@ func Fetch(dataDir string) ([]Model, error) {
 
 	var records []Model
 
-	fullPath := filepath.Join(config.DbPath, dataDir)
+	fullPath := filepath.Join(dbDir(), dataDir)
 	//events <- newReadEvent("...", fullPath)
 	log("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
@@ -391,7 +368,7 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 		model := config.Factory(query.DataDir)
 
-		blockFile := OsPath(filepath.Join(config.DbPath, query.DataDir, block+"."+string(model.GetDataFormat())))
+		blockFile := OsPath(filepath.Join(dbDir(), query.DataDir, block+"."+string(model.GetDataFormat())))
 		blockRecords, err := readBlock(blockFile, model)
 		if err != nil {
 			return records, err
@@ -480,13 +457,6 @@ func del(id string, m Model, blockFile string, failIfNotFound bool) (bool, error
 	}
 }
 
-func OsPath(path string) string {
-	if runtime.GOOS == "windows" {
-		return strings.Replace(path, "/", string(filepath.Separator), -1)
-	}
-	return strings.Replace(path, "\\", string(filepath.Separator), -1)
-}
-
 func RandStr(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, n)
@@ -518,7 +488,7 @@ func Migrate(from Model, to Model) error {
 			if _, ok := oldBlocks[blockId]; !ok {
 				blockFile := blockId + "." + string(record.GetDataFormat())
 				println(blockFile)
-				blockFilePath := filepath.Join(config.DbPath, from.GetID().Name(), blockFile)
+				blockFilePath := filepath.Join(dbDir(), from.GetID().Name(), blockFile)
 				oldBlocks[blockId] = blockFilePath
 			}
 
@@ -546,46 +516,11 @@ func Migrate(from Model, to Model) error {
 	return nil
 }
 
-/*func setAutoincrementId(m Model){
-	t := reflect.TypeOf(m)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	var autoIdFields []string
-	if t.Kind() == reflect.Struct {
-		for i := 0; i < t.NumField(); i++ {
-			field := t.Field(i)
-			if string(field.Tag) == "autoincrement" {
-				autoIdFields = append(autoIdFields, field.Name)
-			}
-		}
-	}
-
-	v := reflect.ValueOf(m).Elem()
-	if v.Kind() == reflect.Struct {
-		for _, field := range autoIdFields {
-			f := v.FieldByName(field)
-			if f.IsValid() {
-				if f.CanSet() {
-					if f.Kind() == reflect.Int {
-						id := GenerateId(m)
-						if !f.OverflowInt(id){
-							f.SetInt(id)
-							m.SetLastId(id)
-						}
-					}
-				}
-			}
-		}
-	}
-}*/
-
 //TODO make this method more robust to handle cases where the id file is deleted
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
 func GenerateId(m Model) int64 {
 	var id int64
-	idFile := filepath.Join(config.DbPath, m.GetID().Name(), ".id")
+	idFile := idFilePath(m)
 	//check if id file exists
 	_, err := os.Stat(idFile)
 	if err != nil {
@@ -609,8 +544,7 @@ func GenerateId(m Model) int64 {
 
 func updateId(m Model) error {
 	if _, ok := lastIds[m.GetID().Name()]; ok {
-		idFile := filepath.Join(config.DbPath, m.GetID().Name(), ".id")
-		return ioutil.WriteFile(idFile, []byte(strconv.FormatInt(getLastId(m), 10)), 0744)
+		return ioutil.WriteFile(idFilePath(m), []byte(strconv.FormatInt(getLastId(m), 10)), 0744)
 	}
 
 	return nil

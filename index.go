@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func updateIndexes(models []Model) {
@@ -12,11 +13,11 @@ func updateIndexes(models []Model) {
 	index := make(map[string]map[string]interface{})
 	for _, m := range models {
 		for name, value := range m.GetID().Indexes() {
-			indexFile := filepath.Join(indexDir(), m.GetID().Name(), name+".json")
+			indexFile := filepath.Join(indexPath(m), name+".json")
 
 			if _, ok := index[indexFile]; !ok {
 
-				indexPath := filepath.Join(indexDir(), m.GetID().Name())
+				indexPath := indexPath(m)
 				if _, err := os.Stat(indexPath); err != nil {
 					os.MkdirAll(indexPath, 0755)
 				}
@@ -70,6 +71,20 @@ func BuildIndex() {
 	log("Building index complete")
 }
 
-func indexDir() string {
-	return filepath.Join(config.DbPath, internalDir, "Index")
+func getDatasets() []string {
+	var dataSets []string
+	dirs, err := ioutil.ReadDir(dbDir())
+	if err != nil {
+		log(err.Error())
+		return dataSets
+	}
+
+	for _, dir := range dirs {
+		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
+			dataSets = append(dataSets, dir.Name())
+		}
+	}
+
+	return dataSets
 }
+

@@ -32,7 +32,6 @@ func boot() {
 	lastIds = make(map[string]int64)
 	log("Booting up db using "+gitDriver.name()+" driver")
 
-
 	//create id dir
 	if _, err := os.Stat(idDir()); err != nil {
 		os.MkdirAll(idDir(), 0755)
@@ -75,19 +74,6 @@ func boot() {
 			gitAddRemote()
 		}
 	}
-
-	//create id dir
-	if _, err := os.Stat(idDir()); err != nil {
-		os.MkdirAll(idDir(), 0755)
-	}
-
-	//create queue dir
-	if _, err := os.Stat(queueDir()); err != nil {
-		os.MkdirAll(queueDir(), 0755)
-	}
-
-	//create .ssh dir
-	generateSSHKeyPair()
 
 	//rebuild index if we have to
 	if _, err := os.Stat(indexDir()); err != nil {

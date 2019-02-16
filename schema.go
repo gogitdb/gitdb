@@ -22,7 +22,7 @@ type Schema struct {
 	indexesFunc  IndexFunction
 }
 
-func NewID(name StringFunc, block StringFunc, record StringFunc, indexes IndexFunction) *Schema {
+func NewSchema(name StringFunc, block StringFunc, record StringFunc, indexes IndexFunction) *Schema {
 	return &Schema{name, block, record, indexes}
 }
 
@@ -50,31 +50,26 @@ func (a *Schema) Indexes() map[string]interface{} {
 	return a.indexesFunc()
 }
 
-type autoBlock struct {
-	currentBlock int
-	model Model
-	sizePerBlock int64
-	recordsPerBlock int
-}
-
 func NewAutoBlock(model Model, maxBlockSize int64, recordsPerBlock int) func() string {
-	a := &autoBlock{model:model,sizePerBlock:maxBlockSize,recordsPerBlock:recordsPerBlock}
-	return a.blockId()
-}
-
-func (a *autoBlock) blockId() func() string {
+	currentBlock := -1
 	return func () string {
-		a.currentBlock = -1
+
+		//don't bother figuring out the block id if model also has been assigned an id
+		//simply parse it and return right block
+		if len(model.Id()) > 0 {
+			return NewIDParser(model.Id()).block
+		}
+
 		var currentBlockFile os.FileInfo
 		var currentBlockFileName string
 
-		fullPath := fullPath(a.model)
+		fullPath := fullPath(model)
 		files, err := ioutil.ReadDir(fullPath)
 		if err == nil {
 			for _, currentBlockFile = range files {
 				currentBlockFileName = filepath.Join(fullPath, currentBlockFile.Name())
-				if filepath.Ext(currentBlockFileName) == "."+string(a.model.GetDataFormat()) {
-					a.currentBlock++
+				if filepath.Ext(currentBlockFileName) == "."+string(model.GetDataFormat()) {
+					currentBlock++
 				}
 			}
 		}
@@ -82,8 +77,8 @@ func (a *autoBlock) blockId() func() string {
 		//is current block at it's limit?
 		if currentBlockFile != nil {
 			//block size check
-			if currentBlockFile.Size() >= a.sizePerBlock {
-				a.currentBlock++
+			if currentBlockFile.Size() >= maxBlockSize {
+				currentBlock++
 			} else {
 				//record size check
 				b, err := ioutil.ReadFile(currentBlockFileName)
@@ -93,17 +88,17 @@ func (a *autoBlock) blockId() func() string {
 
 				var records map[string]interface{}
 				json.Unmarshal(b, &records)
-				if len(records) >= a.recordsPerBlock {
-					a.currentBlock++
+				if len(records) >= recordsPerBlock {
+					currentBlock++
 				}
 			}
 		}
 
-		if a.currentBlock == -1 {
-			a.currentBlock = 0
+		if currentBlock == -1 {
+			currentBlock = 0
 		}
 
-		return fmt.Sprintf("b%d", a.currentBlock)
+		return fmt.Sprintf("b%d", currentBlock)
 	}
 }
 

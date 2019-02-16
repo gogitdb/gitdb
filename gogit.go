@@ -11,13 +11,13 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
-type GoGit struct {
-	BaseGitDriver
+type goGit struct {
+	baseGitDriver
 	repo *git.Repository
 	sshAuth *ssh.PublicKeys
 }
 
-func (g *GoGit) getRepo() (*git.Repository, error) {
+func (g *goGit) getRepo() (*git.Repository, error) {
 	if g.repo == nil {
 		// Opens an already existent repository.
 		repo, err := git.PlainOpen(g.absDbPath)
@@ -30,7 +30,7 @@ func (g *GoGit) getRepo() (*git.Repository, error) {
 	return g.repo, nil
 }
 
-func (g *GoGit) getSshAuth() *ssh.PublicKeys {
+func (g *goGit) getSshAuth() *ssh.PublicKeys {
 	if g.sshAuth == nil {
 		auth, err := ssh.NewPublicKeysFromFile("git", g.config.sshKey, "")
 		if err != nil {
@@ -43,15 +43,15 @@ func (g *GoGit) getSshAuth() *ssh.PublicKeys {
 	return g.sshAuth
 }
 
-func (g *GoGit) name() string {
-	return "GoGit"
+func (g *goGit) name() string {
+	return "goGit"
 }
 
-func (g *GoGit) init() error {
+func (g *goGit) init() error {
 	return nil
 }
 
-func (g *GoGit) clone() error {
+func (g *goGit) clone() error {
 	_, err := git.PlainClone(g.absDbPath, false, &git.CloneOptions{
 		URL:  g.config.OnlineRemote,
 		Auth: g.getSshAuth(),
@@ -64,7 +64,7 @@ func (g *GoGit) clone() error {
 	return nil
 }
 
-func (g *GoGit) addRemote() error {
+func (g *goGit) addRemote() error {
 	repo := git.Repository{}
 	_, err := repo.CreateRemote(&gogitconfig.RemoteConfig{
 		Name: "online",
@@ -74,7 +74,7 @@ func (g *GoGit) addRemote() error {
 	return err
 }
 
-func (g *GoGit) pull() error {
+func (g *goGit) pull() error {
 
 	// We instance a new repository targeting the given path (the .git folder)
 	repo, err := g.getRepo()
@@ -99,7 +99,7 @@ func (g *GoGit) pull() error {
 	return nil
 }
 
-func (g *GoGit) push() error {
+func (g *goGit) push() error {
 
 	repo, err := g.getRepo()
 	if err != nil {
@@ -118,7 +118,7 @@ func (g *GoGit) push() error {
 
 //best to pass the absolute file path to this method. Else it will try to
 //work out the file path relative to the db repo
-func (g *GoGit) commit(filePath string, msg string, user *DbUser) error {
+func (g *goGit) commit(filePath string, msg string, user *DbUser) error {
 	repo, err := g.getRepo()
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func (g *GoGit) commit(filePath string, msg string, user *DbUser) error {
 	return nil
 }
 
-func (g *GoGit) undo() error {
+func (g *goGit) undo() error {
 
 	log("changes reverted")
 	return nil

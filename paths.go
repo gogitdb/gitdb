@@ -2,9 +2,6 @@ package db
 
 import (
 	"path/filepath"
-	"runtime"
-	"strings"
-
 )
 
 func absDbPath() string {
@@ -77,11 +74,4 @@ func privateKeyFilePath() string {
 
 func internalDirName() string {
 	return ".gitdb" //todo rename
-}
-
-func OsPath(path string) string {
-	if runtime.GOOS == "windows" {
-		return strings.Replace(path, "/", string(filepath.Separator), -1)
-	}
-	return strings.Replace(path, "\\", string(filepath.Separator), -1)
 }

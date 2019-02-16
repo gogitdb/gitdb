@@ -22,8 +22,8 @@ func init() {
 		SyncInterval:   time.Second * 5,
 		EncryptionKey:  "put_your_encryption_key_here",
 		User: db.NewUser("dev", "dev@gitdb.io"),
-		GitDriver: &db.GitBinary{},
-		//GitDriver: &db.GoGit{},
+		GitDriver: db.GitDriverBinary,
+		//gitDriver: db.GitDriverGoGit,
 	}
 
 	if logToFile {

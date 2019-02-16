@@ -6,15 +6,15 @@ import (
 )
 
 
-type GitBinary struct {
-	BaseGitDriver
+type gitBinary struct {
+	baseGitDriver
 }
 
-func (g *GitBinary) name() string {
-	return "GitBinary"
+func (g *gitBinary) name() string {
+	return "gitBinary"
 }
 
-func (g *GitBinary) init() error {
+func (g *gitBinary) init() error {
 
 	cmd := exec.Command("git", "-C", g.absDbPath, "init")
 	//log.PutInfo(utils.CmdToString(cmd))
@@ -26,7 +26,7 @@ func (g *GitBinary) init() error {
 	return nil
 }
 
-func (g *GitBinary) clone() error {
+func (g *gitBinary) clone() error {
 
 	cmd := exec.Command("git", "clone", g.config.OnlineRemote, g.absDbPath)
 	//log(fmt.Sprintf("%s", cmd))
@@ -38,7 +38,7 @@ func (g *GitBinary) clone() error {
 	return nil
 }
 
-func (g *GitBinary) addRemote() error {
+func (g *gitBinary) addRemote() error {
 
 	cmd := exec.Command("git", "-C", g.absDbPath, "remote", "rm", "origin")
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -56,7 +56,7 @@ func (g *GitBinary) addRemote() error {
 	return nil
 }
 
-func (g *GitBinary) pull() error {
+func (g *gitBinary) pull() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "pull", "online", "master")
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -69,7 +69,7 @@ func (g *GitBinary) pull() error {
 	return nil
 }
 
-func (g *GitBinary) push() error {
+func (g *gitBinary) push() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "push", "online", "master")
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -81,7 +81,7 @@ func (g *GitBinary) push() error {
 	return nil
 }
 
-func (g *GitBinary) commit(filePath string, msg string, user *DbUser) error {
+func (g *gitBinary) commit(filePath string, msg string, user *DbUser) error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "add", filePath)
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -100,7 +100,7 @@ func (g *GitBinary) commit(filePath string, msg string, user *DbUser) error {
 	return nil
 }
 
-func (g *GitBinary) undo() error {
+func (g *gitBinary) undo() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "checkout", ".")
 	//log.PutInfo(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {

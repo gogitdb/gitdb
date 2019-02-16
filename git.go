@@ -9,7 +9,13 @@ import (
 	"io/ioutil"
 )
 
-type GitDriver interface {
+type GitDriverName string
+const (
+	GitDriverBinary   GitDriverName = "git-binary"
+	GitDriverGoGit   GitDriverName = "git-gogit"
+)
+
+type gitDriver interface {
 	name() string
 	configure(config *Config)
 	init() error
@@ -21,12 +27,12 @@ type GitDriver interface {
 	undo() error
 }
 
-type BaseGitDriver struct {
+type baseGitDriver struct {
 	config *Config
 	absDbPath string
 }
 
-func (g *BaseGitDriver) configure(config *Config) {
+func (g *baseGitDriver) configure(config *Config) {
 	g.config = config
 	g.absDbPath = dbDir()
 }
@@ -35,7 +41,7 @@ func (g *BaseGitDriver) configure(config *Config) {
 //very first time. In this case we must clone the online repo
 func (g *Gitdb) gitInit() {
 	//we take this very seriously
-	err := g.config.GitDriver.init()
+	err := g.GitDriver.init()
 	if err != nil {
 		os.RemoveAll(absDbPath())
 		panic(err)
@@ -45,7 +51,7 @@ func (g *Gitdb) gitInit() {
 func (g *Gitdb) gitClone() {
 	//we take this very seriously
 	log("cloning down database...")
-	err := g.config.GitDriver.clone()
+	err := g.GitDriver.clone()
 	if err != nil {
 		//TODO if err is authentication related generate key pair
 		//TODO inform users to ask admin to add their public key to repo
@@ -66,7 +72,7 @@ func (g *Gitdb) gitClone() {
 
 func (g *Gitdb) gitAddRemote() {
 	//we take this very seriously
-	err := g.config.GitDriver.addRemote()
+	err := g.GitDriver.addRemote()
 	if err != nil {
 		os.RemoveAll(absDbPath())
 		panic(err)
@@ -77,19 +83,21 @@ func (g *Gitdb) gitAddRemote() {
 //fails silently, logs error message and determine if we need to put the
 //application in an error state
 func (g *Gitdb) gitPull() error {
-	return g.config.GitDriver.pull()
+	return g.GitDriver.pull()
 }
 
 func (g *Gitdb) gitPush() error {
- 	return g.config.GitDriver.push()
+ 	return g.GitDriver.push()
 }
 
 func (g *Gitdb) gitCommit(filePath string, msg string, user *DbUser) {
-	g.config.GitDriver.commit(filePath, msg, user)
+	mu.Lock()
+	defer mu.Unlock()
+	g.GitDriver.commit(filePath, msg, user)
 }
 
 func (g *Gitdb) gitUndo() error {
-	return g.config.GitDriver.undo()
+	return g.GitDriver.undo()
 }
 
 func (g *Gitdb) gitLastCommitTime() (time.Time, error) {

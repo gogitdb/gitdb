@@ -59,7 +59,7 @@ func (b *BookingModel) GetSchema() *db.Schema {
 		return indexes
 	}
 
-	return db.NewID(name, block, record, indexes)
+	return db.NewSchema(name, block, record, indexes)
 }
 
 func (b *BookingModel) GetLockFileNames() []string {

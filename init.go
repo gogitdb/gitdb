@@ -9,10 +9,10 @@ import (
 
 var mu sync.Mutex
 var dbPath string
+
 func Start(cfg *Config) *Gitdb {
 	logger = cfg.Logger
 	dbPath = cfg.DbPath
-	verbosity = cfg.Verbose
 
 	db := NewGitdb()
 	db.Configure(cfg)
@@ -34,7 +34,7 @@ func Start(cfg *Config) *Gitdb {
 
 func (g *Gitdb) boot() {
 	g.lastIds = make(map[string]int64)
-	log("Booting up db using "+g.config.GitDriver.name()+" driver")
+	log("Booting up db using "+g.GitDriver.name()+" driver")
 
 	//create id dir
 	err := os.MkdirAll(idDir(), 0755)

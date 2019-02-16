@@ -24,10 +24,10 @@ const (
 	SEARCH_MODE_ENDS_WITH   SearchMode = "ends_with"
 )
 
-type SearchQuery struct {
-	DataDir string
-	SearchParams []*SearchParam //map of index => value
-	Mode    SearchMode
+type searchQuery struct {
+	dataset      string
+	searchParams []*SearchParam //map of index => value
+	mode         SearchMode
 }
 
 type SearchParam struct {
@@ -36,15 +36,17 @@ type SearchParam struct {
 }
 
 type Gitdb struct {
-	locked bool
-	autoCommit bool //default to true
+	locked      bool
+	autoCommit  bool //default to true
 	loopStarted bool
-	events chan *dbEvent
-	lastIds map[string]int64
-	config *Config
+	events      chan *dbEvent
+	lastIds     map[string]int64
+	config      *Config
+	GitDriver   gitDriver
 
 	UserChan chan *DbUser
 	indexCache gdbIndexCache
+	mu sync.Mutex
 }
 
 func NewGitdb() *Gitdb {
@@ -69,7 +71,19 @@ func (g *Gitdb) Shutdown() error {
 func (g *Gitdb) Configure(cfg *Config) {
 	g.config = cfg
 	g.config.sshKey = privateKeyFilePath()
-	g.config.GitDriver.configure(cfg)
+
+	switch cfg.GitDriver {
+	case GitDriverGoGit:
+		g.GitDriver = &goGit{}
+		break
+	case GitDriverBinary:
+		g.GitDriver = &gitBinary{}
+		break
+	default:
+		g.GitDriver = &gitBinary{}
+	}
+
+	g.GitDriver.configure(cfg)
 }
 
 func (g *Gitdb) Insert(m Model) error {
@@ -183,7 +197,7 @@ func (g *Gitdb) write(m Model) error {
 		defer g.flushIndex()
 	}
 
-	log(commitMsg)
+	logTest(commitMsg)
 	return	g.updateId(m)
 }
 
@@ -424,16 +438,16 @@ func (g *Gitdb) Fetch2(dataDir string) ([]Model, error) {
 
 func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]Model, error) {
 
-	query := &SearchQuery{
-		DataDir: dataDir,
-		SearchParams: searchParams,
-		Mode:    searchMode,
+	query := &searchQuery{
+		dataset:      dataDir,
+		searchParams: searchParams,
+		mode:         searchMode,
 	}
 
 	var records []Model
 	matchingRecords := make(map[string]string)
-	for _, searchParam := range query.SearchParams {
-		indexFile := filepath.Join(indexDir(), query.DataDir, searchParam.Index+".json")
+	for _, searchParam := range query.searchParams {
+		indexFile := filepath.Join(indexDir(), query.dataset, searchParam.Index+".json")
 		if _, ok := g.indexCache[indexFile]; !ok {
 			g.readIndex(indexFile)
 		}
@@ -446,7 +460,7 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 		for k, v := range index {
 			addResult := false
 			dbValue := strings.ToLower(v.(string))
-			switch query.Mode {
+			switch query.mode {
 			case SEARCH_MODE_EQUALS:
 				addResult = dbValue == queryValue
 				break
@@ -481,9 +495,9 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 
 	for _, block := range searchBlocks {
 
-		model := g.config.Factory(query.DataDir)
+		model := g.config.Factory(query.dataset)
 
-		blockFile := OsPath(filepath.Join(dbDir(), query.DataDir, block+"."+string(model.GetDataFormat())))
+		blockFile := filepath.Join(dbDir(), query.dataset, block+"."+string(model.GetDataFormat()))
 		blockRecords, err := g.readBlock(blockFile, model)
 		if err != nil {
 			return records, err

@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-func Lock(m Model) error {
+func (g *Gitdb) Lock(m Model) error {
 
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
 	}
 
-	lockFilesWritten := []string{}
+	var lockFilesWritten []string
 
 	fullPath := lockDir(m)
 	if _, err := os.Stat(fullPath); err != nil {
@@ -24,11 +24,11 @@ func Lock(m Model) error {
 	lockFiles := m.GetLockFileNames()
 	for _, file := range lockFiles {
 		lockFile := filepath.Join(fullPath, file)
-		events <- newWriteBeforeEvent("...", lockFile)
+		g.events <- newWriteBeforeEvent("...", lockFile)
 
 		//when locking a model, lockfile should not exist
 		if _, err := os.Stat(lockFile); err == nil {
-			if derr := deleteLockFiles(lockFilesWritten); derr != nil {
+			if derr := g.deleteLockFiles(lockFilesWritten); derr != nil {
 				//log.PutError(derr.Error())
 			}
 			return errors.New("Lock file already exist: " + lockFile)
@@ -36,7 +36,7 @@ func Lock(m Model) error {
 
 		err := ioutil.WriteFile(lockFile, []byte(""), 0644)
 		if err != nil {
-			if derr := deleteLockFiles(lockFilesWritten); derr != nil {
+			if derr := g.deleteLockFiles(lockFilesWritten); derr != nil {
 				//log.PutError(derr.Error())
 			}
 			return errors.New("Failed to write lock " + lockFile + ": " + err.Error())
@@ -45,12 +45,12 @@ func Lock(m Model) error {
 		lockFilesWritten = append(lockFilesWritten, lockFile)
 	}
 
-	commitMsg := "Created Lock Files for: " + m.GetID().Id()
-	events <- newWriteEvent(commitMsg, "lock-"+m.String())
+	commitMsg := "Created Lock Files for: " + m.Id()
+	g.events <- newWriteEvent(commitMsg, "lock-"+m.Id())
 	return nil
 }
 
-func UnLock(m Model) error {
+func (g *Gitdb) UnLock(m Model) error {
 
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
@@ -71,12 +71,12 @@ func UnLock(m Model) error {
 		}
 	}
 
-	commitMsg := "Removing Lock Files for: " + m.GetID().Id()
-	events <- newWriteEvent(commitMsg, "lock-"+m.GetID().Id())
+	commitMsg := "Removing Lock Files for: " + m.GetSchema().Id()
+	g.events <- newWriteEvent(commitMsg, "lock-"+m.GetSchema().Id())
 	return nil
 }
 
-func deleteLockFiles(files []string) error {
+func (g *Gitdb) deleteLockFiles(files []string) error {
 	var err error
 	var failedDeletes []string
 	if len(files) > 0 {

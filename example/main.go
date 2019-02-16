@@ -11,16 +11,17 @@ import (
 	"errors"
 )
 
-var cfg *db.Config
+var dbconn *db.Gitdb
 var logToFile bool
 
 func init() {
-	cfg = &db.Config{
+	cfg := &db.Config{
 		DbPath:         "./data",
 		OnlineRemote:   os.Getenv("GITDB_REPO"),
 		Factory:        make,
 		SyncInterval:   time.Second * 5,
 		EncryptionKey:  "put_your_encryption_key_here",
+		User: db.NewUser("dev", "dev@gitdb.io"),
 		GitDriver: &db.GitBinary{},
 		//GitDriver: &db.GoGit{},
 	}
@@ -32,8 +33,7 @@ func init() {
 		}
 	}
 
-	db.User = db.NewUser("dev", "dev@gitdb.io")
-	db.Start(cfg)
+	dbconn = db.Start(cfg)
 }
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 }
 
 func testTransaction() {
-	t := db.NewTransaction("booking")
+	t := dbconn.NewTransaction("booking")
 	t.AddOperation(updateRoom)
 	t.AddOperation(lockRoom)
 	t.AddOperation(saveBooking)
@@ -76,9 +76,9 @@ func write() {
 	bm.Status = booking.CheckedIn
 	bm.UserId = "user_1"
 	bm.RoomId = "room_1"
-	bm.AutoId = db.GenerateId(bm)
+	bm.AutoId = dbconn.GenerateId(bm)
 
-	err := db.Insert(bm)
+	err := dbconn.Insert(bm)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -86,7 +86,7 @@ func write() {
 
 func read() {
 	b := &booking.BookingModel{}
-	err := db.Get("Booking/201802/room_201802070030", b)
+	err := dbconn.Get("Booking/201802/room_201802070030", b)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -95,7 +95,7 @@ func read() {
 }
 
 func delete() {
-	r, err := db.Delete("Booking/201801/room_201801111823")
+	r, err := dbconn.Delete("Booking/201801/room_201801111823")
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -108,7 +108,8 @@ func delete() {
 }
 
 func search() {
-	rows, err := db.Search("Booking", []string{"CustomerId"}, []string{"customer_2"}, db.SEARCH_MODE_EQUALS)
+	searchParam := &db.SearchParam{Index:"CustomerId",Value:"customer_2"}
+	rows, err := dbconn.Search("Booking", []*db.SearchParam{searchParam}, db.SEARCH_MODE_EQUALS)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -119,13 +120,13 @@ func search() {
 }
 
 func fetch() {
-	rows, err := db.Fetch("Booking")
+	rows, err := dbconn.Fetch("Booking")
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
 		for _, r := range rows {
 			b := &booking.BookingModel{}
-			db.GetModel(r, b)
+			dbconn.GetModel(r, b)
 
 			fmt.Println(b.CustomerId)
 		}

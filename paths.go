@@ -8,7 +8,7 @@ import (
 )
 
 func absDbPath() string {
-	absDbPath, err := filepath.Abs(config.DbPath)
+	absDbPath, err := filepath.Abs(dbPath)
 	if err != nil {
 		panic(err)
 	}
@@ -21,20 +21,20 @@ func dbDir() string {
 }
 
 func fullPath(m Model) string {
-	return filepath.Join(dbDir(), m.GetID().Name())
+	return filepath.Join(dbDir(), m.GetSchema().Name())
 }
 
 func blockFilePath(m Model) string{
-	dataFileName := m.GetID().blockId() + "." + string(m.GetDataFormat())
+	dataFileName := m.GetSchema().blockIdFunc() + "." + string(m.GetDataFormat())
 	return filepath.Join(fullPath(m), dataFileName)
 }
 
 func queueDir() string {
-	return filepath.Join(config.DbPath, internalDirName(), "queue")
+	return filepath.Join(dbPath, internalDirName(), "queue")
 }
 
 func queueFilePath(m Model) string {
-	dataFileName := m.GetID().Name() + "." + string(m.GetDataFormat())
+	dataFileName := m.GetSchema().Name() + "." + string(m.GetDataFormat())
 	return filepath.Join(queueDir(), dataFileName)
 }
 
@@ -44,12 +44,12 @@ func lockDir(m Model) string {
 
 
 func idDir() string {
-	return filepath.Join(config.DbPath, internalDirName(), "id")
+	return filepath.Join(dbPath, internalDirName(), "id")
 }
 
 //db/.db/Id/ModelName.json
 func idFilePath(m Model) string {
-	dataFileName := m.GetID().Name() + "."+ string(m.GetDataFormat())
+	dataFileName := m.GetSchema().Name() + "."+ string(m.GetDataFormat())
 	return filepath.Join(idDir(), dataFileName)
 }
 
@@ -59,7 +59,7 @@ func indexDir() string {
 }
 
 func indexPath(m Model) string {
-	return filepath.Join(indexDir(), m.GetID().Name())
+	return filepath.Join(indexDir(), m.GetSchema().Name())
 }
 
 //ssh paths

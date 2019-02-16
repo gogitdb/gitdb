@@ -37,42 +37,47 @@ func newDeleteEvent(description string, dataset string) *dbEvent {
 	return &dbEvent{Type: w, Description: description, Dataset: dataset}
 }
 
-func sync() {
-	ticker := time.NewTicker(config.SyncInterval)
+func (g *Gitdb) startEventLoop() {
 	for {
+		log("looping...")
 		select {
-		case <-ticker.C:
-			hasSufficientBatteryPower := hasSufficientBatteryPower()
-			getLock := getLock()
-			if getLock && len(config.OnlineRemote) > 0 && hasSufficientBatteryPower {
-				log("Syncing database...")
-				err1 := gitPull()
-				err2 := gitPush()
-				if err1 != nil || err2 != nil {
-					log("Database sync failed")
-				}
-				BuildIndex()
-				releaseLock()
-			} else {
-				if len(config.OnlineRemote) <= 0 {
-					log("Syncing disabled: online remote is not set")
-				} else if !getLock {
-					log("Syncing disabled: db is locked by app")
-				} else if !hasSufficientBatteryPower {
-					log("Syncing disabled: insufficient battery power")
-				}
-			}
-		case e := <-events:
+		case e := <-g.events:
 			switch e.Type {
 			case w, d:
-				gitCommit(e.Dataset, e.Description, User)
+				g.gitCommit(e.Dataset, e.Description, g.config.User)
+			default:
+				log("No handler found for "+string(e.Type)+" event")
 			}
 		}
 	}
 }
 
-func GetLastCommitTtime() (time.Time, error) {
-	return gitLastCommitTime()
+func (g *Gitdb) startSyncClock() {
+	ticker := time.NewTicker(g.config.SyncInterval)
+	for {
+		select {
+		case <-ticker.C:
+			getLock := g.getLock()
+			if getLock && hasSufficientBatteryPower() {
+				log("Syncing database...")
+				err1 := g.gitPull()
+				err2 := g.gitPush()
+				if err1 != nil || err2 != nil {
+					log("Database sync failed")
+				}
+				g.buildIndex()
+				g.releaseLock()
+			} else if !getLock {
+				log("Syncing disabled: db is locked by app")
+			} else {
+				log("Syncing disabled: insufficient battery power")
+			}
+		}
+	}
+}
+
+func (g *Gitdb) GetLastCommitTtime() (time.Time, error) {
+	return g.gitLastCommitTime()
 }
 
 func hasSufficientBatteryPower() bool {

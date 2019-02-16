@@ -33,19 +33,19 @@ func (g *BaseGitDriver) configure(config *Config) {
 
 //this function is only called once. I.e when a initializing the database for the
 //very first time. In this case we must clone the online repo
-func gitInit() {
+func (g *Gitdb) gitInit() {
 	//we take this very seriously
-	err := gitDriver.init()
+	err := g.config.GitDriver.init()
 	if err != nil {
 		os.RemoveAll(absDbPath())
 		panic(err)
 	}
 }
 
-func gitClone() {
+func (g *Gitdb) gitClone() {
 	//we take this very seriously
 	log("cloning down database...")
-	err := gitDriver.clone()
+	err := g.config.GitDriver.clone()
 	if err != nil {
 		//TODO if err is authentication related generate key pair
 		//TODO inform users to ask admin to add their public key to repo
@@ -64,9 +64,9 @@ func gitClone() {
 	}
 }
 
-func gitAddRemote() {
+func (g *Gitdb) gitAddRemote() {
 	//we take this very seriously
-	err := gitDriver.addRemote()
+	err := g.config.GitDriver.addRemote()
 	if err != nil {
 		os.RemoveAll(absDbPath())
 		panic(err)
@@ -76,23 +76,23 @@ func gitAddRemote() {
 //first attempt to pull from offline DB repo followed by online DB repo
 //fails silently, logs error message and determine if we need to put the
 //application in an error state
-func gitPull() error {
-	return gitDriver.pull()
+func (g *Gitdb) gitPull() error {
+	return g.config.GitDriver.pull()
 }
 
-func gitPush() error {
- 	return gitDriver.push()
+func (g *Gitdb) gitPush() error {
+ 	return g.config.GitDriver.push()
 }
 
-func gitCommit(filePath string, msg string, user *DbUser) {
-	gitDriver.commit(filePath, msg, user)
+func (g *Gitdb) gitCommit(filePath string, msg string, user *DbUser) {
+	g.config.GitDriver.commit(filePath, msg, user)
 }
 
-func gitUndo() error {
-	return gitDriver.undo()
+func (g *Gitdb) gitUndo() error {
+	return g.config.GitDriver.undo()
 }
 
-func gitLastCommitTime() (time.Time, error) {
+func (g *Gitdb) gitLastCommitTime() (time.Time, error) {
 	var t time.Time
 	cmd := exec.Command("git", "-C", dbDir(), "log", "-1", "--remotes=online", "--format=%cd", "--date=iso")
 	//log.PutInfo(utils.CmdToString(cmd))

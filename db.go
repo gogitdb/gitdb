@@ -7,12 +7,12 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"gopkg.in/mgo.v2/bson"
 	"sort"
 	"strconv"
 	"fmt"
+	"sync"
 )
 
 type SearchMode string
@@ -26,19 +26,60 @@ const (
 
 type SearchQuery struct {
 	DataDir string
-	Indexes []string
-	Values  []string
+	SearchParams []*SearchParam //map of index => value
 	Mode    SearchMode
 }
 
-func Insert(m Model) error {
+type SearchParam struct {
+	Index string
+	Value string
+}
+
+type Gitdb struct {
+	locked bool
+	autoCommit bool //default to true
+	loopStarted bool
+	events chan *dbEvent
+	lastIds map[string]int64
+	config *Config
+
+	UserChan chan *DbUser
+	indexCache gdbIndexCache
+}
+
+func NewGitdb() *Gitdb {
+	//autocommit defaults to true
+	return &Gitdb{autoCommit: true, indexCache: make(gdbIndexCache)}
+}
+
+func (g *Gitdb) Shutdown() error {
+	err := g.flushDb()
+	if err != nil {
+		return err
+	}
+
+	err = g.flushIndex()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Gitdb) Configure(cfg *Config) {
+	g.config = cfg
+	g.config.sshKey = privateKeyFilePath()
+	g.config.GitDriver.configure(cfg)
+}
+
+func (g *Gitdb) Insert(m Model) error {
 
 	if m.GetCreatedDate().IsZero() {
 		m.stampCreatedDate()
 	}
 	m.stampUpdatedDate()
 
-	m.SetId(m.GetID().RecordId())
+	m.SetId(m.GetSchema().RecordId())
 
 	if _, err := os.Stat(fullPath(m)); err != nil {
 		os.MkdirAll(fullPath(m), 0755)
@@ -48,40 +89,39 @@ func Insert(m Model) error {
 		return errors.New("Model is not valid")
 	}
 
-	if getLock(){
-		err := flushQueue(m)
-		if err != nil {
+	if g.getLock(){
+		if err := g.flushQueue(m); err != nil {
 			log(err.Error())
 		}
-		err = write(m)
-		releaseLock()
+		err := g.write(m)
+		g.releaseLock()
 		return err
 	}else{
-		return queue(m)
+		return g.queue(m)
 	}
 }
 
-func queue(m Model) error {
+func (g *Gitdb) queue(m Model) error {
 
-	dataBlock, err := loadBlock(m, queueFilePath(m))
+	dataBlock, err := g.loadBlock(queueFilePath(m), m)
 	if err != nil {
 		return err
 	}
 
-	writeErr := writeBlock(queueFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	writeErr := g.writeBlock(queueFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
 	if writeErr != nil {
 		return writeErr
 	}
 
-	return updateId(m)
+	return g.updateId(m)
 }
 
-func flushQueue(m Model) error {
+func (g *Gitdb) flushQueue(m Model) error {
 
 	if _, err := os.Stat(queueFilePath(m)); err == nil {
 
 		log("flushing queue")
-		records, err := readBlock(queueFilePath(m), m)
+		records, err := g.readBlock(queueFilePath(m), m)
 		if err != nil {
 			return err
 		}
@@ -89,12 +129,12 @@ func flushQueue(m Model) error {
 		//todo optimize: this will open and close file for each write operation
 		for _, record := range records {
 			log("Flushing: "+record.String())
-			err = write(record)
+			err = g.write(record)
 			if err != nil {
 				println(err.Error())
 				return err
 			}
-			_, err = del(record.GetID().RecordId(), record, queueFilePath(m), false)
+			_, err = g.del(record.Id(), record, queueFilePath(m), false)
 			if err != nil {
 				return err
 			}
@@ -103,14 +143,21 @@ func flushQueue(m Model) error {
 		return os.Remove(queueFilePath(m))
 	}
 
+	log("empty queue :)")
+
 	return nil
 }
 
-func write(m Model) error {
+func (g *Gitdb) flushDb() error {
+	return nil
+}
 
-	commitMsg := "Inserting " + m.GetID().RecordId() + " into " + blockFilePath(m)
+func (g *Gitdb) write(m Model) error {
 
-	dataBlock, err := loadBlock(m, blockFilePath(m))
+	blockFilePath := blockFilePath(m)
+	commitMsg := "Inserting " + m.Id() + " into " + blockFilePath
+
+	dataBlock, err := g.loadBlock(blockFilePath, m)
 	if err != nil {
 		return err
 	}
@@ -120,29 +167,32 @@ func write(m Model) error {
 	if err != nil {
 		return err
 	}
-	dataBlock[m.GetID().RecordId()] = string(newRecordBytes)
+	dataBlock[m.GetSchema().RecordId()] = string(newRecordBytes)
 
-	events <- newWriteBeforeEvent("...", blockFilePath(m))
-	writeErr := writeBlock(blockFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	g.events <- newWriteBeforeEvent("...", blockFilePath)
+	writeErr := g.writeBlock(blockFilePath, dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
 	if writeErr != nil {
 		return writeErr
 	}
 
-	if autoCommit {
-		events <- newWriteEvent(commitMsg, blockFilePath(m))
-		defer updateIndexes([]Model{m})
+	log(fmt.Sprintf("autoCommit: %v", g.autoCommit))
+
+	if g.autoCommit {
+		g.events <- newWriteEvent(commitMsg, blockFilePath)
+		g.updateIndexes([]Model{m})
+		defer g.flushIndex()
 	}
 
 	log(commitMsg)
-	return	updateId(m)
+	return	g.updateId(m)
 }
 
-func loadBlock(m Model, blockFile string) (map[string]string, error){
+func (g *Gitdb) loadBlock(blockFile string, m Model) (map[string]string, error){
 
 	dataBlock := map[string]string{}
 	if _, err := os.Stat(blockFile); err == nil {
 		//block file exist, read it and load into map
-		records, err := readBlock(blockFile, m)
+		records, err := g.readBlock(blockFile, m)
 		if err != nil {
 			return dataBlock, err
 		}
@@ -153,19 +203,19 @@ func loadBlock(m Model, blockFile string) (map[string]string, error){
 				return dataBlock, err
 			}
 
-			dataBlock[record.GetID().RecordId()] = string(recordBytes)
+			dataBlock[record.GetSchema().RecordId()] = string(recordBytes)
 		}
 	}
 
 	return dataBlock, nil
 }
 
-func writeBlock(blockFile string, data map[string]string, format DataFormat, encryptData bool) error {
+func (g *Gitdb) writeBlock(blockFile string, data map[string]string, format DataFormat, encryptData bool) error {
 
 	//encrypt data if need be
 	if encryptData {
 		for k, v := range data {
-			data[k] = encrypt(config.EncryptionKey, v)
+			data[k] = encrypt(g.config.EncryptionKey, v)
 		}
 	}
 
@@ -188,7 +238,7 @@ func writeBlock(blockFile string, data map[string]string, format DataFormat, enc
 	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 
-func readBlock(blockFile string, m Model) ([]Model, error) {
+func (g *Gitdb) readBlock(blockFile string, m Model) ([]Model, error) {
 
 	var result []Model
 	var jsonErr error
@@ -215,11 +265,11 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 
 	for k, v := range dataBlock {
 
-		concreteModel := config.Factory(m.GetID().Name())
+		concreteModel := g.config.Factory(m.GetSchema().Name())
 
 		if m.ShouldEncrypt() {
 			log("decrypting record")
-			v = decrypt(config.EncryptionKey, v)
+			v = decrypt(g.config.EncryptionKey, v)
 		}
 
 		jsonErr = json.Unmarshal([]byte(v), concreteModel)
@@ -235,7 +285,7 @@ func readBlock(blockFile string, m Model) ([]Model, error) {
 	return result, err
 }
 
-func parseId(id string) (dataDir string, block string, record string, err error) {
+func (g *Gitdb) ParseId(id string) (dataDir string, block string, record string, err error) {
 	recordMeta := strings.Split(id, "/")
 	if len(recordMeta) != 3 {
 		err = errors.New("Invalid record id: "+id)
@@ -248,35 +298,63 @@ func parseId(id string) (dataDir string, block string, record string, err error)
 	return dataDir, block, record, err
 }
 
-func Get(id string, result interface{}) error {
+func (g *Gitdb) Get(id string, result interface{}) error {
 
-	dataDir, block, _, err := parseId(id)
+	dataDir, block, _, err := g.ParseId(id)
 	if err != nil {
 		return err
 	}
 
-	model := config.Factory(dataDir)
+	model := g.config.Factory(dataDir)
 	dataFilePath := filepath.Join(dbDir(), dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return errors.New(dataDir + " Not Found - " + id)
 	}
 
-	records, err := readBlock(dataFilePath, model)
+	records, err := g.readBlock(dataFilePath, model)
 	if err != nil {
 		return err
 	}
 
 	for _, record := range records {
-		if record.GetID().RecordId() == id {
-			return GetModel(record, result)
+		if record.Id() == id {
+			return g.GetModel(record, result)
 		}
 	}
 
-	events <- newReadEvent("...", id)
+	g.events <- newReadEvent("...", id)
 	return errors.New("Record " + id + " not found in " + dataDir)
 }
 
-func Fetch(dataDir string) ([]Model, error) {
+func (g *Gitdb) Exists(id string) error {
+
+	dataDir, block, _, err := g.ParseId(id)
+	if err != nil {
+		return err
+	}
+
+	model := g.config.Factory(dataDir)
+	dataFilePath := filepath.Join(dbDir(), dataDir, block+"."+string(model.GetDataFormat()))
+	if _, err := os.Stat(dataFilePath); err != nil {
+		return errors.New(dataDir + " Not Found - " + id)
+	}
+
+	records, err := g.readBlock(dataFilePath, model)
+	if err != nil {
+		return err
+	}
+
+	for _, record := range records {
+		if record.Id() == id {
+			return nil
+		}
+	}
+
+	g.events <- newReadEvent("...", id)
+	return errors.New("Record " + id + " not found in " + dataDir)
+}
+
+func (g *Gitdb) Fetch(dataDir string) ([]Model, error) {
 
 	var records []Model
 
@@ -288,11 +366,12 @@ func Fetch(dataDir string) ([]Model, error) {
 		return records, err
 	}
 
-	model := config.Factory(dataDir)
+
+	model := g.config.Factory(dataDir)
 	for _, file := range files {
 		fileName := filepath.Join(fullPath, file.Name())
 		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
-			blockRecords, err := readBlock(fileName, model)
+			blockRecords, err := g.readBlock(fileName, model)
 			if err != nil {
 				return records, err
 			}
@@ -304,59 +383,95 @@ func Fetch(dataDir string) ([]Model, error) {
 	return records, nil
 }
 
-func Search(dataDir string, searchIndexes []string, searchValues []string, searchMode SearchMode) ([]Model, error) {
+func (g *Gitdb) Fetch2(dataDir string) ([]Model, error) {
+
+	var records []Model
+
+	fullPath := filepath.Join(dbDir(), dataDir)
+	//events <- newReadEvent("...", fullPath)
+	log("Fetching records from - " + fullPath)
+	files, err := ioutil.ReadDir(fullPath)
+	if err != nil {
+		return records, err
+	}
+
+	model := g.config.Factory(dataDir)
+	var mutex = &sync.Mutex{}
+	wg := sync.WaitGroup{}
+
+	for _, file := range files {
+		fileName := filepath.Join(fullPath, file.Name())
+		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
+			wg.Add(1)
+			go func() {
+				blockRecords, err := g.readBlock(fileName, model)
+				if err != nil {
+					logError(err.Error())
+					return
+				}
+				log(fmt.Sprintf("%d records found in %s", len(blockRecords), fileName))
+				mutex.Lock()
+				records = append(records, blockRecords...)
+				mutex.Unlock()
+				wg.Done()
+			}()
+		}
+	}
+	wg.Wait()
+	log(fmt.Sprintf("%d records found in %s", len(records), fullPath))
+	return records, nil
+}
+
+func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]Model, error) {
 
 	query := &SearchQuery{
 		DataDir: dataDir,
-		Indexes: searchIndexes,
-		Values:  searchValues,
+		SearchParams: searchParams,
 		Mode:    searchMode,
 	}
 
 	var records []Model
 	matchingRecords := make(map[string]string)
-	//log.PutInfo(fmt.Sprintf("Searching "+query.DataDir+" namespace by %s for '%s'", query.Index, strings.Join(query.Values, ",")))
-	for _, index := range query.Indexes {
-		indexFile := filepath.Join(indexDir(), query.DataDir, index+".json")
-		if _, err := os.Stat(indexFile); err != nil {
-			return records, errors.New(index + " index does not exist")
+	for _, searchParam := range query.SearchParams {
+		indexFile := filepath.Join(indexDir(), query.DataDir, searchParam.Index+".json")
+		if _, ok := g.indexCache[indexFile]; !ok {
+			g.readIndex(indexFile)
 		}
 
-		events <- newReadEvent("...", indexFile)
+		g.events <- newReadEvent("...", indexFile)
 
-		index := readIndex(indexFile)
+		index := g.indexCache[indexFile]
 
-		for _, value := range query.Values {
-			queryValue := strings.ToLower(value)
-			for k, v := range index {
-				addResult := false
-				dbValue := strings.ToLower(v.(string))
-				switch query.Mode {
-				case SEARCH_MODE_EQUALS:
-					addResult = (dbValue == queryValue)
-					break
-				case SEARCH_MODE_CONTAINS:
-					addResult = strings.Contains(dbValue, queryValue)
-					break
-				case SEARCH_MODE_STARTS_WITH:
-					addResult = strings.HasPrefix(dbValue, queryValue)
-					break
-				case SEARCH_MODE_ENDS_WITH:
-					addResult = strings.HasSuffix(dbValue, queryValue)
-					break
-				}
+		queryValue := strings.ToLower(searchParam.Value)
+		for k, v := range index {
+			addResult := false
+			dbValue := strings.ToLower(v.(string))
+			switch query.Mode {
+			case SEARCH_MODE_EQUALS:
+				addResult = dbValue == queryValue
+				break
+			case SEARCH_MODE_CONTAINS:
+				addResult = strings.Contains(dbValue, queryValue)
+				break
+			case SEARCH_MODE_STARTS_WITH:
+				addResult = strings.HasPrefix(dbValue, queryValue)
+				break
+			case SEARCH_MODE_ENDS_WITH:
+				addResult = strings.HasSuffix(dbValue, queryValue)
+				break
+			}
 
-				if addResult {
-					matchingRecords[k] = v.(string)
-				}
+			if addResult {
+				matchingRecords[k] = v.(string)
 			}
 		}
+
 	}
 
 	//filter out the blocks that we need to search
 	searchBlocks := map[string]string{}
 	for recordId := range matchingRecords {
-		_, block, _, err := parseId(recordId)
+		_, block, _, err := g.ParseId(recordId)
 		if err != nil {
 			return records, err
 		}
@@ -366,16 +481,16 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 
 	for _, block := range searchBlocks {
 
-		model := config.Factory(query.DataDir)
+		model := g.config.Factory(query.DataDir)
 
 		blockFile := OsPath(filepath.Join(dbDir(), query.DataDir, block+"."+string(model.GetDataFormat())))
-		blockRecords, err := readBlock(blockFile, model)
+		blockRecords, err := g.readBlock(blockFile, model)
 		if err != nil {
 			return records, err
 		}
 
 		for _, record := range blockRecords {
-			if _, ok := matchingRecords[record.GetID().RecordId()]; ok {
+			if _, ok := matchingRecords[record.Id()]; ok {
 				records = append(records, record)
 			}
 		}
@@ -385,28 +500,28 @@ func Search(dataDir string, searchIndexes []string, searchValues []string, searc
 	return records, nil
 }
 
-func Delete(id string) (bool, error) {
-	return delImplicit(id,false)
+func (g *Gitdb) Delete(id string) (bool, error) {
+	return g.delImplicit(id,false)
 }
 
-func DeleteOrFail(id string) (bool, error) {
-	return delImplicit(id, true)
+func (g *Gitdb) DeleteOrFail(id string) (bool, error) {
+	return g.delImplicit(id, true)
 }
 
-func delImplicit(id string, failNotFound bool) (bool, error){
+func (g *Gitdb) delImplicit(id string, failNotFound bool) (bool, error){
 
-	dataDir, block, _, err := parseId(id)
+	dataDir, block, _, err := g.ParseId(id)
 	if err != nil {
 		return false, err
 	}
 
-	model := config.Factory(dataDir)
+	model := g.config.Factory(dataDir)
 
 	dataFilePath := filepath.Join(fullPath(model), block + "." + string(model.GetDataFormat()))
-	return del(id, model, dataFilePath, failNotFound)
+	return g.del(id, model, dataFilePath, failNotFound)
 }
 
-func del(id string, m Model, blockFile string, failIfNotFound bool) (bool, error) {
+func (g *Gitdb) del(id string, m Model, blockFile string, failIfNotFound bool) (bool, error) {
 
 	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {
@@ -415,7 +530,7 @@ func del(id string, m Model, blockFile string, failIfNotFound bool) (bool, error
 		return true, nil
 	}
 
-	records, err := readBlock(blockFile, m)
+	records, err := g.readBlock(blockFile, m)
 	if err != nil {
 		return false, err
 	}
@@ -423,13 +538,13 @@ func del(id string, m Model, blockFile string, failIfNotFound bool) (bool, error
 	deleteRecordFound := false
 	blockData := map[string]string{}
 	for _, record := range records {
-		if record.GetID().RecordId() != id {
+		if record.Id() != id {
 			data, err := json.Marshal(record)
 			if err != nil {
 				return false, err
 			}
 
-			blockData[record.GetID().RecordId()] = string(data)
+			blockData[record.Id()] = string(data)
 		} else {
 			deleteRecordFound = true
 		}
@@ -457,7 +572,7 @@ func del(id string, m Model, blockFile string, failIfNotFound bool) (bool, error
 	}
 }
 
-func RandStr(n int) string {
+func (g *Gitdb) RandStr(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, n)
 	for i := range b {
@@ -466,7 +581,7 @@ func RandStr(n int) string {
 	return string(b)
 }
 
-func GetModel(in interface{}, out interface{}) error {
+func (g *Gitdb) GetModel(in interface{}, out interface{}) error {
 	j, err := json.Marshal(in)
 	if err != nil {
 		return err
@@ -476,40 +591,40 @@ func GetModel(in interface{}, out interface{}) error {
 }
 
 //todo add revert logic if migrate fails mid way
-func Migrate(from Model, to Model) error {
-	records, err := Fetch(from.GetID().Name())
+func (g *Gitdb) Migrate(from Model, to Model) error {
+	records, err := g.Fetch(from.GetSchema().Name())
 	if err != nil {
 		return err
-	}else{
-		oldBlocks := map[string]string{}
-		for _, record := range records {
+	}
 
-			blockId := record.GetID().blockId()
-			if _, ok := oldBlocks[blockId]; !ok {
-				blockFile := blockId + "." + string(record.GetDataFormat())
-				println(blockFile)
-				blockFilePath := filepath.Join(dbDir(), from.GetID().Name(), blockFile)
-				oldBlocks[blockId] = blockFilePath
-			}
+	oldBlocks := map[string]string{}
+	for _, record := range records {
 
-			err = GetModel(record, to)
-			if err != nil {
-				return err
-			}
-
-			err = Insert(to)
-			if err != nil {
-				return err
-			}
+		blockId := record.GetSchema().blockIdFunc()
+		if _, ok := oldBlocks[blockId]; !ok {
+			blockFile := blockId + "." + string(record.GetDataFormat())
+			println(blockFile)
+			blockFilePath := filepath.Join(dbDir(), from.GetSchema().Name(), blockFile)
+			oldBlocks[blockId] = blockFilePath
 		}
 
-		//remove all block files
-		for _, blockFilePath := range oldBlocks {
-			log("Removing old block: "+blockFilePath)
-			err := os.Remove(blockFilePath)
-			if err != nil {
-				return err
-			}
+		err = g.GetModel(record, to)
+		if err != nil {
+			return err
+		}
+
+		err = g.Insert(to)
+		if err != nil {
+			return err
+		}
+	}
+
+	//remove all block files
+	for _, blockFilePath := range oldBlocks {
+		log("Removing old block: "+blockFilePath)
+		err := os.Remove(blockFilePath)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -518,7 +633,7 @@ func Migrate(from Model, to Model) error {
 
 //TODO make this method more robust to handle cases where the id file is deleted
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
-func GenerateId(m Model) int64 {
+func (g *Gitdb) GenerateId(m Model) int64 {
 	var id int64
 	idFile := idFilePath(m)
 	//check if id file exists
@@ -538,36 +653,32 @@ func GenerateId(m Model) int64 {
 	}
 
 	id = id + 1
-	setLastId(m, id)
+	g.setLastId(m, id)
 	return id
 }
 
-func updateId(m Model) error {
-	if _, ok := lastIds[m.GetID().Name()]; ok {
-		return ioutil.WriteFile(idFilePath(m), []byte(strconv.FormatInt(getLastId(m), 10)), 0744)
+func (g *Gitdb) updateId(m Model) error {
+	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
+		return ioutil.WriteFile(idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
 	}
 
 	return nil
 }
 
-func setLastId(m Model, id int64){
-	lastIds[m.GetID().Name()] = id
+func (g *Gitdb) setLastId(m Model, id int64){
+	g.lastIds[m.GetSchema().Name()] = id
 }
 
-func getLastId(m Model) int64 {
-	return lastIds[m.GetID().Name()]
+func (g *Gitdb) getLastId(m Model) int64 {
+	return g.lastIds[m.GetSchema().Name()]
 }
 
-func getLock() bool {
-	locked = !locked
-
-	_, fn, line, _ := runtime.Caller(1)
-
-	log(fmt.Sprintf("getLock() = %t | %s:%d", locked, fn, line))
-
-	return locked
+func (g *Gitdb) getLock() bool {
+	g.locked = !g.locked
+	log(fmt.Sprintf("getLock() = %t ", g.locked))
+	return g.locked
 }
 
-func releaseLock() {
-	locked = false
+func (g *Gitdb) releaseLock() {
+	g.locked = false
 }

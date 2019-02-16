@@ -1,32 +1,33 @@
 package db
 
-type Operation func() error
+type operation func() error
 
-type Transaction struct {
+type transaction struct {
 	name string
-	operations []Operation
+	operations []operation
+	db *Gitdb
 }
 
-func (t *Transaction) Commit() error {
-	autoCommit = false
+func (t *transaction) Commit() error {
+	t.db.autoCommit = false
 	for _, o := range t.operations {
 		if err := o(); err != nil {
 			log("Reverting transaction: "+err.Error())
-			gitUndo()
-			autoCommit = true
+			t.db.gitUndo()
+			t.db.autoCommit = true
 			return err
 		}
 	}
 	commitMsg := "Committing transaction: " + t.name
-	events <- newWriteEvent(commitMsg, ".")
-	autoCommit = true
+	t.db.events <- newWriteEvent(commitMsg, ".")
+	t.db.autoCommit = true
 	return nil
 }
 
-func (t *Transaction) AddOperation(o Operation) {
+func (t *transaction) AddOperation(o operation) {
 	t.operations = append(t.operations, o)
 }
 
-func NewTransaction(name string) *Transaction {
-	return &Transaction{name: name}
+func (g *Gitdb) NewTransaction(name string) *transaction {
+	return &transaction{name: name, db: g}
 }

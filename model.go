@@ -13,14 +13,17 @@ const (
 )
 
 type Model interface {
+	Id() string
 	SetId(string)
 	String() string
 	Validate() bool
 	IsLockable() bool
 	GetLockFileNames() []string
-	GetID() *ID
+	GetSchema() *Schema
 	GetCreatedDate() time.Time
 	GetUpdatedDate() time.Time
+	SetCreatedDate(time.Time)
+	SetUpdatedDate(time.Time)
 	stampCreatedDate()
 	stampUpdatedDate()
 	ShouldEncrypt() bool
@@ -49,6 +52,14 @@ func (m *BaseModel) GetCreatedDate() time.Time {
 
 func (m *BaseModel) GetUpdatedDate() time.Time {
 	return m.UpdatedAt
+}
+
+func (m *BaseModel) SetCreatedDate(t time.Time) {
+	m.CreatedAt = t
+}
+
+func (m *BaseModel) SetUpdatedDate(t time.Time) {
+	m.UpdatedAt = t
 }
 
 func (m *BaseModel) stampCreatedDate() {

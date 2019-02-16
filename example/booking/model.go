@@ -30,7 +30,7 @@ func NewBookingModel() *BookingModel {
 	return &BookingModel{}
 }
 
-func (b *BookingModel) GetID() *db.ID {
+func (b *BookingModel) GetSchema() *db.Schema {
 
 	//Name of schema
 	name := func() string {

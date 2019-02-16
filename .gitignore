@@ -4,3 +4,7 @@ example/example
 .vscode
 .idea
 vendor
+*.test
+cover
+prof.cpu
+prof.mem

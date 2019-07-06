@@ -107,7 +107,7 @@ func (g *Gitdb) startSyncClock() {
 	}
 }
 
-func (g *Gitdb) GetLastCommitTtime() (time.Time, error) {
+func (g *Gitdb) GetLastCommitTime() (time.Time, error) {
 	return g.gitLastCommitTime()
 }
 

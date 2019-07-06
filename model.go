@@ -24,8 +24,6 @@ type Model interface {
 	GetUpdatedDate() time.Time
 	SetCreatedDate(time.Time)
 	SetUpdatedDate(time.Time)
-	stampCreatedDate()
-	stampUpdatedDate()
 	ShouldEncrypt() bool
 	GetDataFormat() DataFormat
 	GetValidationErrors() []error
@@ -39,6 +37,9 @@ type BaseModel struct {
 }
 
 func (m *BaseModel) Id() string {
+	if len(m.ID) <= 0 {
+		panic("Model.ID not set")
+	}
 	return m.ID
 }
 
@@ -60,14 +61,6 @@ func (m *BaseModel) SetCreatedDate(t time.Time) {
 
 func (m *BaseModel) SetUpdatedDate(t time.Time) {
 	m.UpdatedAt = t
-}
-
-func (m *BaseModel) stampCreatedDate() {
-	m.CreatedAt = time.Now()
-}
-
-func (m *BaseModel) stampUpdatedDate() {
-	m.UpdatedAt = time.Now()
 }
 
 func (m *BaseModel) String() string {

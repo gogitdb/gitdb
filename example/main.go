@@ -126,7 +126,7 @@ func fetch() {
 	} else {
 		for _, r := range rows {
 			b := &booking.BookingModel{}
-			dbconn.MakeModel(r, b)
+			dbconn.MakeModelFromString(r, b)
 			fmt.Println(b.CustomerId)
 		}
 	}

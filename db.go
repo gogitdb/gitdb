@@ -130,7 +130,16 @@ func (g *Gitdb) RandStr(n int) string {
 	return string(b)
 }
 
-func (g *Gitdb) MakeModel(jsonString string, out Model) error {
+func MakeModel(in interface{}, out interface{}) error {
+	j, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(j, out)
+}
+
+func (g *Gitdb) MakeModelFromString(jsonString string, out Model) error {
 	return json.Unmarshal([]byte(jsonString), out)
 }
 

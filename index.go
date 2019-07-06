@@ -12,7 +12,7 @@ type gdbIndex map[string]interface{}
 type gdbIndexCache map[string]gdbIndex
 
 func (g *Gitdb) updateIndexes(models []Model) {
-
+	g.indexUpdated = true
 	for _, m := range models {
 		indexPath := indexPath(m)
 		for name, value := range m.GetSchema().Indexes() {
@@ -27,29 +27,32 @@ func (g *Gitdb) updateIndexes(models []Model) {
 }
 
 func (g *Gitdb) flushIndex() error {
-	logTest("flushing index")
-	for indexFile, data := range g.indexCache {
+	if g.indexUpdated {
+		logTest("flushing index")
+		for indexFile, data := range g.indexCache {
 
-		indexPath := filepath.Dir(indexFile)
-		if _, err := os.Stat(indexPath); err != nil {
-			err = os.MkdirAll(indexPath, 0755)
+			indexPath := filepath.Dir(indexFile)
+			if _, err := os.Stat(indexPath); err != nil {
+				err = os.MkdirAll(indexPath, 0755)
+				if err != nil {
+					logError("Failed to write to index: " + indexFile)
+					return err
+				}
+			}
+
+			indexBytes, err := json.MarshalIndent(data, "", "\t")
+			if err != nil {
+				logError("Failed to write to index [" + indexFile + "]: " + err.Error())
+				return err
+			}
+
+			err = ioutil.WriteFile(indexFile, indexBytes, 0744)
 			if err != nil {
 				logError("Failed to write to index: " + indexFile)
 				return err
 			}
 		}
-
-		indexBytes, err := json.MarshalIndent(data, "", "\t")
-		if err != nil {
-			logError("Failed to write to index [" + indexFile + "]: " + err.Error())
-			return err
-		}
-
-		err = ioutil.WriteFile(indexFile, indexBytes, 0744)
-		if err != nil {
-			logError("Failed to write to index: " + indexFile)
-			return err
-		}
+		g.indexUpdated = false
 	}
 
 	return nil
@@ -81,7 +84,6 @@ func (g *Gitdb) buildIndex() {
 
 		g.updateIndexes(records)
 	}
-	defer g.flushIndex()
 	log("Building index complete")
 }
 

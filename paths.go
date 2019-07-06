@@ -42,9 +42,9 @@ func idDir() string {
 	return filepath.Join(dbPath, internalDirName(), "id")
 }
 
-//db/.db/Id/ModelName.json
+//db/.db/Id/ModelName
 func idFilePath(m Model) string {
-	return filepath.Join(idDir(), m.GetSchema().Name() + "."+ string(m.GetDataFormat()))
+	return filepath.Join(idDir(), m.GetSchema().Name())
 }
 
 //index path

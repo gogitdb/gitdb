@@ -22,8 +22,7 @@ func fullPath(m Model) string {
 }
 
 func blockFilePath(m Model) string{
-	dataFileName := m.GetSchema().blockIdFunc() + "." + string(m.GetDataFormat())
-	return filepath.Join(fullPath(m), dataFileName)
+	return filepath.Join(fullPath(m), m.GetSchema().blockIdFunc() + "." + string(m.GetDataFormat()))
 }
 
 func queueDir() string {
@@ -31,8 +30,7 @@ func queueDir() string {
 }
 
 func queueFilePath(m Model) string {
-	dataFileName := m.GetSchema().Name() + "." + string(m.GetDataFormat())
-	return filepath.Join(queueDir(), dataFileName)
+	return filepath.Join(queueDir(), m.GetSchema().Name() + "." + string(m.GetDataFormat()))
 }
 
 func lockDir(m Model) string {
@@ -46,8 +44,7 @@ func idDir() string {
 
 //db/.db/Id/ModelName.json
 func idFilePath(m Model) string {
-	dataFileName := m.GetSchema().Name() + "."+ string(m.GetDataFormat())
-	return filepath.Join(idDir(), dataFileName)
+	return filepath.Join(idDir(), m.GetSchema().Name() + "."+ string(m.GetDataFormat()))
 }
 
 //index path

@@ -145,3 +145,20 @@ func (i *IDParser) BlockId() string {
 func NewIDParser(id string) *IDParser {
 	return new(IDParser).Parse(id)
 }
+
+type Block map[string]string
+func (d Block) Add(key string, value string){
+	d[key] = value
+}
+func (d Block) Get(key string) (string, error) {
+	if _, ok := d[key]; ok {
+		return d[key], nil
+	}
+
+	return "", errors.New("key does not exist")
+}
+func (d Block) Reset(){
+	for k := range d {
+		delete(d, k)
+	}
+}

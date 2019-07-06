@@ -1,4 +1,4 @@
-package db
+package gitdb
 
 import (
 	"crypto/aes"

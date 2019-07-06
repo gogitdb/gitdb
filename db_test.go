@@ -1,9 +1,9 @@
-package db_test
+package gitdb_test
 
 import (
 	"time"
 	"testing"
-	"github.com/fobilow/gitdb"
+	db "github.com/fobilow/gitdb"
 	"encoding/json"
 	"os"
 	"path/filepath"

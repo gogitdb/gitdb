@@ -1,4 +1,4 @@
-package db
+package gitdb
 
 type operation func() error
 

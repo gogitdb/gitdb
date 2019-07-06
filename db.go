@@ -1,4 +1,4 @@
-package db
+package gitdb
 
 import (
 	"encoding/json"
@@ -102,6 +102,10 @@ func (g *Gitdb) Configure(cfg *Config) {
 	g.locked = make(chan bool, 1)
 
 	g.GitDriver.configure(cfg)
+}
+
+func (g *Gitdb) SetUser(user *DbUser){
+	g.config.User = user
 }
 
 func (g *Gitdb) ParseId(id string) (dataDir string, block string, record string, err error) {

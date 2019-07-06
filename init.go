@@ -1,4 +1,4 @@
-package db
+package gitdb
 
 import (
 	"fmt"
@@ -9,26 +9,39 @@ import (
 
 var mu sync.Mutex
 var dbPath string
+var conns map[string]*Gitdb
 
 func Start(cfg *Config) *Gitdb {
 	logger = cfg.Logger
 	dbPath = cfg.DbPath
 
-	db := NewGitdb()
-	db.Configure(cfg)
+	if _, ok := conns[dbPath]; !ok {
+		conns[dbPath] = NewGitdb()
+	}
 
-	db.boot()
-	if !db.loopStarted {
-		go db.startEventLoop()
-		if len(db.config.OnlineRemote) > 0 {
-			go db.startSyncClock()
+	conns[dbPath].Configure(cfg)
+
+	conns[dbPath].boot()
+	if !conns[dbPath].loopStarted {
+		go conns[dbPath].startEventLoop()
+		if len(conns[dbPath].config.OnlineRemote) > 0 {
+			go conns[dbPath].startSyncClock()
 		} else {
 			log("Syncing disabled: online remote is not set")
 		}
-		db.loopStarted = true
+		conns[dbPath].loopStarted = true
 	}
 
-	return db
+	return conns[dbPath]
+}
+
+//TODO support multiple connections
+func Conn() *Gitdb {
+	if _, ok := conns[dbPath]; !ok {
+		panic("No gitdb connection found")
+	}
+
+	return conns[dbPath]
 }
 
 func (g *Gitdb) boot() {

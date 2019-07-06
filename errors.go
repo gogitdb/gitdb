@@ -1,28 +1,9 @@
 package db
 
-type dbError struct {
-	s string
-}
+import "errors"
 
-func (e *dbError) Error() string {
-	return e.s
-}
-
-
-type badBlockError struct {
-	s string
-	blockFile string
-}
-
-func (e *badBlockError) Error() string {
-	return e.s
-}
-
-type badRecordError struct {
-	s string
-	recordId string
-}
-
-func (e *badRecordError) Error() string {
-	return e.s
-}
+var (
+	dbError error = errors.New("Database error")
+	badBlockError error = errors.New("Bad Block error - invalid json")
+	badRecordError error = errors.New("Bad Record error")
+)

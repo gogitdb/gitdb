@@ -120,14 +120,13 @@ func search() {
 }
 
 func fetch() {
-	rows, err := dbconn.Fetch("Booking")
+	rows, err := dbconn.FetchRaw("Booking")
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
 		for _, r := range rows {
 			b := &booking.BookingModel{}
-			dbconn.GetModel(r, b)
-
+			dbconn.MakeModel(r, b)
 			fmt.Println(b.CustomerId)
 		}
 	}

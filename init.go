@@ -19,7 +19,6 @@ func Start(cfg *Config) *Gitdb {
 
 	db.boot()
 	if !db.loopStarted {
-		db.events = make(chan *dbEvent)
 		go db.startEventLoop()
 		if len(db.config.OnlineRemote) > 0 {
 			go db.startSyncClock()

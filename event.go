@@ -13,6 +13,7 @@ var (
 	wBefore eventType = "writeBefore" //writeBefore
 	d       eventType = "delete"      //delete
 	r       eventType = "read"        //read
+	s       eventType = "shutdown"    //shutdown
 )
 
 type dbEvent struct {
@@ -37,6 +38,10 @@ func newDeleteEvent(description string, dataset string) *dbEvent {
 	return &dbEvent{Type: w, Description: description, Dataset: dataset}
 }
 
+func newShutdownEvent() *dbEvent {
+	return &dbEvent{Type: s}
+}
+
 func (g *Gitdb) startEventLoop() {
 	for {
 		log("looping...")
@@ -44,9 +49,35 @@ func (g *Gitdb) startEventLoop() {
 		case e := <-g.events:
 			switch e.Type {
 			case w, d:
+				logTest("handling write event for "+e.Dataset)
 				g.gitCommit(e.Dataset, e.Description, g.config.User)
+			case s:
+				log("event shutdown")
+				return
 			default:
 				log("No handler found for "+string(e.Type)+" event")
+			}
+		}
+	}
+}
+
+//use this for testing go MockSyncClock(..)
+func MockSyncClock(db *Gitdb){
+	ticker := time.NewTicker(db.config.SyncInterval)
+	for {
+		logTest("tick! tock!")
+		select {
+		case <-ticker.C:
+			getLock := db.getLock()
+			if getLock && hasSufficientBatteryPower() {
+				logTest("MOCK: Syncing database...")
+
+				db.buildIndex()
+				db.releaseLock()
+			} else if !getLock {
+				logTest("MOCK: Syncing disabled: db is locked by app")
+			} else {
+				logTest("MOCK: Syncing disabled: insufficient battery power")
 			}
 		}
 	}

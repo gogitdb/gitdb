@@ -15,6 +15,10 @@ func Start(cfg *Config) *Gitdb {
 	logger = cfg.Logger
 	dbPath = cfg.DbPath
 
+	if conns == nil {
+		conns = make(map[string]*Gitdb)
+	}
+
 	if _, ok := conns[dbPath]; !ok {
 		conns[dbPath] = NewGitdb()
 	}

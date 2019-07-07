@@ -43,7 +43,7 @@ func (g *Gitdb) gitInit() {
 	//we take this very seriously
 	err := g.GitDriver.init()
 	if err != nil {
-		os.RemoveAll(absDbPath())
+		os.RemoveAll(dbDir())
 		panic(err)
 	}
 }
@@ -55,7 +55,7 @@ func (g *Gitdb) gitClone() {
 	if err != nil {
 		//TODO if err is authentication related generate key pair
 		//TODO inform users to ask admin to add their public key to repo
-		if strings.Contains(err.Error(), "repository access denied") {
+		if strings.Contains(err.Error(), "denied") {
 			log("Contact your database admin to add your public key to git server")
 			fb, err := ioutil.ReadFile(publicKeyFilePath())
 			if err != nil  {
@@ -65,7 +65,7 @@ func (g *Gitdb) gitClone() {
 			os.Exit(1)
 		}
 
-		os.RemoveAll(absDbPath())
+		os.RemoveAll(dbDir())
 		panic(err)
 	}
 }
@@ -74,7 +74,7 @@ func (g *Gitdb) gitAddRemote() {
 	//we take this very seriously
 	err := g.GitDriver.addRemote()
 	if err != nil {
-		os.RemoveAll(absDbPath())
+		os.RemoveAll(dbDir())
 		panic(err)
 	}
 }

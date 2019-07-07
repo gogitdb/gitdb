@@ -267,10 +267,8 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 
 		g.events <- newReadEvent("...", indexFile)
 
-		index := g.indexCache[indexFile]
-
 		queryValue := strings.ToLower(searchParam.Value)
-		for k, v := range index {
+		for k, v := range g.indexCache[indexFile] {
 			addResult := false
 			dbValue := strings.ToLower(v.(string))
 			switch query.mode {

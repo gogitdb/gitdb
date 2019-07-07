@@ -262,7 +262,7 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 	for _, searchParam := range query.searchParams {
 		indexFile := filepath.Join(indexDir(), query.dataset, searchParam.Index+".json")
 		if _, ok := g.indexCache[indexFile]; !ok {
-			g.readIndex(indexFile)
+			g.indexCache[indexFile] = g.readIndex(indexFile)
 		}
 
 		g.events <- newReadEvent("...", indexFile)

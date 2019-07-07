@@ -18,7 +18,6 @@ func (g *Gitdb) updateIndexes(models []Model) {
 		for name, value := range m.GetSchema().Indexes() {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
-				g.indexCache[indexFile] = make(gdbIndex)
 				g.indexCache[indexFile] = g.readIndex(indexFile)
 			}
 			g.indexCache[indexFile][m.Id()] = value

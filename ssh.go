@@ -59,7 +59,7 @@ func generateSSHKeyPair() error {
 
 func generatePrivateKey(pk *rsa.PrivateKey) error {
 	// generate and write private key as PEM
-	privateKeyFile, err := os.Create(privateKeyFilePath())
+	privateKeyFile, err := os.OpenFile(privateKeyFilePath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0400)
 	defer privateKeyFile.Close()
 	if err != nil {
 		return err

@@ -73,8 +73,8 @@ func (g *Gitdb) boot() {
 
 	// if .db directory does not exist and create it and attempt
 	// to do a git pull from remote
-	dotGitDir := filepath.Join(dbDir(), ".git")
 	dataDir :=  dbDir()
+	dotGitDir := filepath.Join(dataDir, ".git")
 	if _, err := os.Stat(dataDir); err != nil {
 		log("database not initialized")
 
@@ -92,7 +92,7 @@ func (g *Gitdb) boot() {
 	}else if len(g.config.OnlineRemote) > 0 {
 		//if remote is configured i.e stat .git/refs/remotes/online
 		//if remote dir does not exist add remotes
-		remotesPath := filepath.Join(absDbPath(), ".git", "refs", "remotes", "online")
+		remotesPath := filepath.Join(dataDir, ".git", "refs", "remotes", "online")
 		if _, err := os.Stat(remotesPath); err != nil {
 			g.gitAddRemote()
 		}

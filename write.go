@@ -85,7 +85,7 @@ func (g *Gitdb) flushQueue(m Model) error {
 		for recordId, record := range dataBlock {
 			log("Flushing: "+recordId)
 
-			g.MakeModel(record, model)
+			g.MakeModelFromString(record, model)
 
 			err = g.write(model)
 			if err != nil {

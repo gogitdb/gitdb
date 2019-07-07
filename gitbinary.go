@@ -43,7 +43,7 @@ func (g *gitBinary) addRemote() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "remote", "rm", "origin")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log(string(out))
-		return err
+		//return err
 	}
 
 	cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)

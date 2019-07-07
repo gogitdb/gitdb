@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,15 +120,6 @@ func (g *Gitdb) ParseId(id string) (dataDir string, block string, record string,
 	return dataDir, block, record, err
 }
 
-func (g *Gitdb) RandStr(n int) string {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
 func (g *Gitdb) MakeModel(in interface{}, out interface{}) error {
 	j, err := json.Marshal(in)
 	if err != nil {
@@ -191,7 +181,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 			oldBlocks[blockId] = blockFilePath
 		}
 
-		err = g.MakeModel(record, to)
+		err = g.MakeModelFromString(record, to)
 		if err != nil {
 			return err
 		}

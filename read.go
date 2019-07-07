@@ -124,7 +124,7 @@ func (g *Gitdb) Get(id string, result Model) error {
 	if err != nil {
 		return err
 	}
-	return g.MakeModel(record, result)
+	return g.MakeModelFromString(record, result)
 
 	g.events <- newReadEvent("...", id)
 	return errors.New("Record " + id + " not found in " + dataDir)
@@ -320,7 +320,7 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 		for recordId, record := range dataBlock {
 			if _, ok := matchingRecords[recordId]; ok {
 				model := g.config.Factory(query.dataset)
-				err := g.MakeModel(record, model)
+				err := g.MakeModelFromString(record, model)
 				if err != nil {
 					return records, nil
 				}

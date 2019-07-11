@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"errors"
 )
 
 var mu sync.Mutex
@@ -120,13 +121,17 @@ func (g *Gitdb) boot() error {
 			}
 		}
 	} else if _, err := os.Stat(dotGitDir); err != nil {
-		panic(g.config.DbPath + " is not a git repository")
+		log(err.Error())
+		return errors.New(g.config.DbPath + " is not a git repository")
 	}else if len(g.config.OnlineRemote) > 0 { //TODO Review this properly
 		//if remote is configured i.e stat .git/refs/remotes/online
 		//if remote dir does not exist add remotes
 		remotesPath := filepath.Join(dataDir, ".git", "refs", "remotes", "online")
 		if _, err := os.Stat(remotesPath); err != nil {
-			g.gitAddRemote()
+			err = g.gitAddRemote()
+			if err != nil {
+				return err
+			}
 		}
 	}
 

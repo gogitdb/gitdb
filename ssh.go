@@ -39,7 +39,7 @@ func generateSSHKeyPair() error {
 
 	if _, err := os.Stat(sshDir()); err != nil {
 		if err := os.MkdirAll(sshDir(), os.ModePerm); err != nil {
-			panic(err)
+			return err
 		}
 	}
 

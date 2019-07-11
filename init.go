@@ -31,7 +31,9 @@ func Start(cfg *Config) *Gitdb {
 	}else{
 		log("Db booted fine")
 	}
-	if !conns[dbPath].loopStarted {
+
+	//if boot() returned an error do no start event loop
+	if err == nil && !conns[dbPath].loopStarted {
 		go conns[dbPath].startEventLoop()
 		if len(conns[dbPath].config.OnlineRemote) > 0 {
 			go conns[dbPath].startSyncClock()

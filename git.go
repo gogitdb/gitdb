@@ -48,7 +48,7 @@ func (g *Gitdb) gitInit() {
 	}
 }
 
-func (g *Gitdb) gitClone() {
+func (g *Gitdb) gitClone() error {
 	//we take this very seriously
 	log("cloning down database...")
 	err := g.GitDriver.clone()
@@ -56,26 +56,34 @@ func (g *Gitdb) gitClone() {
 		//TODO if err is authentication related generate key pair
 		//TODO inform users to ask admin to add their public key to repo
 		if strings.Contains(err.Error(), "denied") {
-			log("Contact your database admin to add your public key to git server")
 			fb, err := ioutil.ReadFile(publicKeyFilePath())
 			if err != nil  {
 				panic(err)
 			}
-			log("Public key: "+fmt.Sprintf("%s", fb))
-			os.Exit(1)
+
+			notification := "Contact your database admin to add your public key to git server\n"
+			notification += "Public key: "+fmt.Sprintf("%s", fb)
+
+			logTest(notification)
+
+			return newMail("Database Setup Error", notification).send()
 		}
 
 		os.RemoveAll(dbDir())
 		panic(err)
 	}
+
+	return nil
 }
 
 func (g *Gitdb) gitAddRemote() {
 	//we take this very seriously
 	err := g.GitDriver.addRemote()
 	if err != nil {
-		os.RemoveAll(dbDir())
-		panic(err)
+		if !strings.Contains(err.Error(), "already exists") {
+			os.RemoveAll(dbDir()) //TODO is this necessary?
+			panic(err)
+		}
 	}
 }
 

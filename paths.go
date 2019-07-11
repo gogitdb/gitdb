@@ -61,6 +61,11 @@ func sshDir() string {
 	return filepath.Join(absDbPath(), internalDirName(), "ssh")
 }
 
+//ssh paths
+func mailDir() string {
+	return filepath.Join(absDbPath(), internalDirName(), "mail")
+}
+
 func publicKeyFilePath() string {
 	return filepath.Join(sshDir(), "gitdb.pub")
 }

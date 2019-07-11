@@ -25,7 +25,12 @@ func Start(cfg *Config) *Gitdb {
 
 	conns[dbPath].Configure(cfg)
 
-	conns[dbPath].boot()
+	err := conns[dbPath].boot()
+	if err != nil {
+		log("Db booted - with errors")
+	}else{
+		log("Db booted fine")
+	}
 	if !conns[dbPath].loopStarted {
 		go conns[dbPath].startEventLoop()
 		if len(conns[dbPath].config.OnlineRemote) > 0 {
@@ -40,6 +45,7 @@ func Start(cfg *Config) *Gitdb {
 }
 
 //TODO support multiple connections
+//At the moment this method will return the last connected started by Start(*Config)
 func Conn() *Gitdb {
 	if _, ok := conns[dbPath]; !ok {
 		panic("No gitdb connection found")
@@ -48,26 +54,38 @@ func Conn() *Gitdb {
 	return conns[dbPath]
 }
 
-func (g *Gitdb) boot() {
+func (g *Gitdb) boot() error {
 	g.lastIds = make(map[string]int64)
 	log("Booting up db using "+g.GitDriver.name()+" driver")
 
+	var err error
+
 	//create id dir
-	err := os.MkdirAll(idDir(), 0755)
+	err = os.MkdirAll(idDir(), 0755)
 	if err != nil {
 		log(err.Error())
-		os.Exit(101)
+		return err
 	}
 
 	//create queue dir
 	err = os.MkdirAll(queueDir(), 0755)
 	if err != nil {
 		log(err.Error())
-		os.Exit(101)
+		return err
+	}
+
+	//create mail dir
+	err = os.MkdirAll(mailDir(), 0755)
+	if err != nil {
+		log(err.Error())
+		return err
 	}
 
 	//create .ssh dir
-	generateSSHKeyPair()
+	err = generateSSHKeyPair()
+	if err != nil {
+		return err
+	}
 
 	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i '%s' -o 'StrictHostKeyChecking no'", g.config.sshKey))
 
@@ -79,17 +97,23 @@ func (g *Gitdb) boot() {
 		log("database not initialized")
 
 		//create db directory
-		os.MkdirAll(dataDir, 0755)
+		err = os.MkdirAll(dataDir, 0755)
+		if err != nil {
+			return err
+		}
 
 		if len(g.config.OnlineRemote) > 0 {
-			g.gitClone()
+			err = g.gitClone()
+			if err != nil {
+				return err
+			}
 			g.gitAddRemote()
 		}else{
 			g.gitInit()
 		}
 	} else if _, err := os.Stat(dotGitDir); err != nil {
 		panic(g.config.DbPath + " is not a git repository")
-	}else if len(g.config.OnlineRemote) > 0 {
+	}else if len(g.config.OnlineRemote) > 0 { //TODO Review this properly
 		//if remote is configured i.e stat .git/refs/remotes/online
 		//if remote dir does not exist add remotes
 		remotesPath := filepath.Join(dataDir, ".git", "refs", "remotes", "online")
@@ -104,6 +128,6 @@ func (g *Gitdb) boot() {
 		go g.buildIndex()
 	}
 
-	log("Db booted")
+	return nil
 }
 

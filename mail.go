@@ -8,26 +8,35 @@ import (
 	"encoding/json"
 )
 
+type mail struct {
+	Subject string
+	Body    string
+	Date    time.Time
+}
+
 type Mail struct {
-	subject string
-	body    string
-	date    time.Time
+	privateMail *mail
+}
+
+// Implement json.Unmarshaller
+func (m *Mail) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &m.privateMail)
 }
 
 func newMail(subject string, body string) *Mail {
-	return &Mail{subject:subject, body:body, date:time.Now()}
+	return &Mail{privateMail: &mail{Subject: subject, Body: body, Date: time.Now()}}
 }
 
 func (m *Mail) GetSubject() string {
-	return m.subject
+	return m.privateMail.Subject
 }
 
 func (m *Mail) GetBody() string {
-	return m.body
+	return m.privateMail.Body
 }
 
 func (m *Mail) GetDate() time.Time {
-	return m.date
+	return m.privateMail.Date
 }
 
 func (m *Mail) send() error {
@@ -36,7 +45,7 @@ func (m *Mail) send() error {
 		os.MkdirAll(mailDir(), 0744)
 	}
 
-	bytes, err := json.Marshal(m)
+	bytes, err := json.Marshal(m.privateMail)
 	if err != nil {
 		return err
 	}
@@ -49,9 +58,9 @@ func (m *Mail) send() error {
 	return err
 }
 
-func GetMails() []*Mail {
+func GetMails() []*mail {
 
-	var mails []*Mail
+	var mails []*mail
 	files, err := ioutil.ReadDir(mailDir())
 	if err != nil {
 		logError(err.Error())
@@ -75,7 +84,7 @@ func GetMails() []*Mail {
 				continue
 			}
 
-			mails = append(mails, mail)
+			mails = append(mails, mail.privateMail)
 		}
 	}
 

@@ -132,6 +132,13 @@ func fetch() {
 	}
 }
 
+func mail() {
+	mails := db.GetMails()
+	for _, m := range mails {
+		m.GetBody()
+	}
+}
+
 func make(modelName string) db.Model {
 	var m db.Model
 	switch modelName {

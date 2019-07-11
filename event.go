@@ -44,7 +44,7 @@ func newShutdownEvent() *dbEvent {
 
 func (g *Gitdb) startEventLoop() {
 	for {
-		log("looping...")
+		logTest("looping...")
 		select {
 		case e := <-g.events:
 			switch e.Type {

@@ -147,7 +147,7 @@ func (g *Gitdb) MakeModels(dataset string, dataBlock Block, result *[]Model) err
 
 		err := json.Unmarshal([]byte(v), model)
 		if err != nil {
-			println(err.Error())
+			log(err.Error())
 			return badRecordError
 		}
 		mutex.Lock()

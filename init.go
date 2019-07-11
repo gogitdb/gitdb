@@ -107,9 +107,15 @@ func (g *Gitdb) boot() error {
 			if err != nil {
 				return err
 			}
-			g.gitAddRemote()
+			err = g.gitAddRemote()
+			if err != nil {
+				return err
+			}
 		}else{
-			g.gitInit()
+			err = g.gitInit()
+			if err != nil {
+				return err
+			}
 		}
 	} else if _, err := os.Stat(dotGitDir); err != nil {
 		panic(g.config.DbPath + " is not a git repository")

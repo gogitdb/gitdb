@@ -39,13 +39,14 @@ func (g *baseGitDriver) configure(config *Config) {
 
 //this function is only called once. I.e when a initializing the database for the
 //very first time. In this case we must clone the online repo
-func (g *Gitdb) gitInit() {
+func (g *Gitdb) gitInit() error {
 	//we take this very seriously
 	err := g.GitDriver.init()
 	if err != nil {
 		os.RemoveAll(dbDir())
-		panic(err)
 	}
+
+	return err
 }
 
 func (g *Gitdb) gitClone() error {
@@ -58,7 +59,7 @@ func (g *Gitdb) gitClone() error {
 		if strings.Contains(err.Error(), "denied") {
 			fb, err := ioutil.ReadFile(publicKeyFilePath())
 			if err != nil  {
-				panic(err)
+				return err
 			}
 
 			notification := "Contact your database admin to add your public key to git server\n"
@@ -66,25 +67,27 @@ func (g *Gitdb) gitClone() error {
 
 			logTest(notification)
 
-			return newMail("Database Setup Error", notification).send()
+			newMail("Database Setup Error", notification).send()
 		}
 
 		os.RemoveAll(dbDir())
-		panic(err)
+		return err
 	}
 
 	return nil
 }
 
-func (g *Gitdb) gitAddRemote() {
+func (g *Gitdb) gitAddRemote() error {
 	//we take this very seriously
 	err := g.GitDriver.addRemote()
 	if err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
 			os.RemoveAll(dbDir()) //TODO is this necessary?
-			panic(err)
+			return err
 		}
 	}
+
+	return nil
 }
 
 //first attempt to pull from offline DB repo followed by online DB repo

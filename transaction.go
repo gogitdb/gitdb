@@ -18,9 +18,10 @@ func (t *transaction) Commit() error {
 			return err
 		}
 	}
+
+	t.db.autoCommit = true
 	commitMsg := "Committing transaction: " + t.name
 	t.db.events <- newWriteEvent(commitMsg, ".")
-	t.db.autoCommit = true
 	return nil
 }
 

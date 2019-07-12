@@ -142,11 +142,9 @@ func (g *Gitdb) write(m Model) error {
 
 	log(fmt.Sprintf("autoCommit: %v", g.autoCommit))
 
-	if g.autoCommit {
-		logTest("sending write event to loop")
-		g.events <- newWriteEvent(commitMsg, blockFilePath)
-		g.updateIndexes([]Model{m})
-	}
+	logTest("sending write event to loop")
+	g.events <- newWriteEvent(commitMsg, blockFilePath)
+	g.updateIndexes([]Model{m})
 
 	//what is the effect of this on InsertMany?
 	return	g.updateId(m)

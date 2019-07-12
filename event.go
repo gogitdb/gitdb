@@ -49,8 +49,10 @@ func (g *Gitdb) startEventLoop() {
 		case e := <-g.events:
 			switch e.Type {
 			case w, d:
-				logTest("handling write event for "+e.Dataset)
-				g.gitCommit(e.Dataset, e.Description, g.config.User)
+				if g.autoCommit {
+					logTest("handling write event for " + e.Dataset)
+					g.gitCommit(e.Dataset, e.Description, g.config.User)
+				}
 			case s:
 				log("event shutdown")
 				return

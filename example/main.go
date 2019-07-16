@@ -133,9 +133,9 @@ func fetch() {
 }
 
 func mail() {
-	mails := db.GetMails()
+	mails := dbconn.GetMails()
 	for _, m := range mails {
-		m.GetBody()
+		fmt.Println(m.Body)
 	}
 }
 

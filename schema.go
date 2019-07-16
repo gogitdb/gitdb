@@ -50,7 +50,7 @@ func (a *Schema) Indexes() map[string]interface{} {
 	return a.indexesFunc()
 }
 
-func NewAutoBlock(model Model, maxBlockSize int64, recordsPerBlock int) func() string {
+func NewAutoBlock(db *Gitdb, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
 	currentBlock := -1
 	return func () string {
 
@@ -63,7 +63,7 @@ func NewAutoBlock(model Model, maxBlockSize int64, recordsPerBlock int) func() s
 		var currentBlockFile os.FileInfo
 		var currentBlockFileName string
 
-		fullPath := fullPath(model)
+		fullPath := db.fullPath(model)
 		files, err := ioutil.ReadDir(fullPath)
 		if err == nil {
 			for _, currentBlockFile = range files {

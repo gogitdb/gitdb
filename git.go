@@ -17,7 +17,7 @@ const (
 
 type gitDriver interface {
 	name() string
-	configure(config *Config)
+	configure(db *Gitdb)
 	init() error
 	clone() error
 	addRemote() error
@@ -32,9 +32,9 @@ type baseGitDriver struct {
 	absDbPath string
 }
 
-func (g *baseGitDriver) configure(config *Config) {
-	g.config = config
-	g.absDbPath = dbDir()
+func (g *baseGitDriver) configure(db *Gitdb) {
+	g.config = db.config
+	g.absDbPath = db.dbDir()
 }
 
 //this function is only called once. I.e when a initializing the database for the
@@ -43,7 +43,7 @@ func (g *Gitdb) gitInit() error {
 	//we take this very seriously
 	err := g.GitDriver.init()
 	if err != nil {
-		os.RemoveAll(dbDir())
+		os.RemoveAll(g.dbDir())
 	}
 
 	return err
@@ -57,7 +57,7 @@ func (g *Gitdb) gitClone() error {
 		//TODO if err is authentication related generate key pair
 		//TODO inform users to ask admin to add their public key to repo
 		if strings.Contains(err.Error(), "denied") {
-			fb, err := ioutil.ReadFile(publicKeyFilePath())
+			fb, err := ioutil.ReadFile(g.publicKeyFilePath())
 			if err != nil  {
 				return err
 			}
@@ -67,10 +67,10 @@ func (g *Gitdb) gitClone() error {
 
 			logTest(notification)
 
-			newMail("Database Setup Error", notification).send()
+			newMail(g,"Database Setup Error", notification).send()
 		}
 
-		os.RemoveAll(dbDir())
+		os.RemoveAll(g.dbDir())
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (g *Gitdb) gitAddRemote() error {
 	err := g.GitDriver.addRemote()
 	if err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
-			os.RemoveAll(dbDir()) //TODO is this necessary?
+			os.RemoveAll(g.dbDir()) //TODO is this necessary?
 			return err
 		}
 	}
@@ -113,7 +113,7 @@ func (g *Gitdb) gitUndo() error {
 
 func (g *Gitdb) gitLastCommitTime() (time.Time, error) {
 	var t time.Time
-	cmd := exec.Command("git", "-C", dbDir(), "log", "-1", "--remotes=online", "--format=%cd", "--date=iso")
+	cmd := exec.Command("git", "-C", g.dbDir(), "log", "-1", "--remotes=online", "--format=%cd", "--date=iso")
 	//log.PutInfo(utils.CmdToString(cmd))
 	out, err := cmd.CombinedOutput()
 	if err != nil {

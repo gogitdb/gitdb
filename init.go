@@ -9,52 +9,72 @@ import (
 )
 
 var mu sync.Mutex
-var dbPath string
 var conns map[string]*Gitdb
 
 func Start(cfg *Config) *Gitdb {
 	logger = cfg.Logger
-	dbPath = cfg.DbPath
+
+	if len(cfg.ConnectionName) == 0 {
+		cfg.ConnectionName = "default"
+	}
 
 	if conns == nil {
 		conns = make(map[string]*Gitdb)
 	}
 
-	if _, ok := conns[dbPath]; !ok {
-		conns[dbPath] = NewGitdb()
+	if _, ok := conns[cfg.ConnectionName]; !ok {
+		conns[cfg.ConnectionName] = NewGitdb()
 	}
 
-	conns[dbPath].Configure(cfg)
+	conns[cfg.ConnectionName].Configure(cfg)
 
-	err := conns[dbPath].boot()
+	err := conns[cfg.ConnectionName].boot()
 	if err != nil {
 		log("Db booted - with errors")
 	}else{
 		log("Db booted fine")
 	}
 
-	//if boot() returned an error do no start event loop
-	if err == nil && !conns[dbPath].loopStarted {
-		go conns[dbPath].startEventLoop()
-		if len(conns[dbPath].config.OnlineRemote) > 0 {
-			go conns[dbPath].startSyncClock()
+	//if boot() returned an error do not start event loop
+	if err == nil && !conns[cfg.ConnectionName].loopStarted {
+		go conns[cfg.ConnectionName].startEventLoop()
+		if len(conns[cfg.ConnectionName].config.OnlineRemote) > 0 {
+			go conns[cfg.ConnectionName].startSyncClock()
 		} else {
 			log("Syncing disabled: online remote is not set")
 		}
-		conns[dbPath].loopStarted = true
+		conns[cfg.ConnectionName].loopStarted = true
 	}
 
-	return conns[dbPath]
+	return conns[cfg.ConnectionName]
 }
 
-//TODO support multiple connections
 //At the moment this method will return the last connected started by Start(*Config)
 func Conn() *Gitdb {
-	if _, ok := conns[dbPath]; !ok {
+
+	if len(conns) > 1 {
+		panic("Multiple gitdb connections found. Use GetConn function instead")
+	}
+
+	var connName string
+	for k := range conns {
+		connName = k
+		break
+	}
+
+	if _, ok := conns[connName]; !ok {
 		panic("No gitdb connection found")
 	}
 
-	return conns[dbPath]
+	return conns[connName]
+}
+
+func GetConn(name string) *Gitdb {
+	if _, ok := conns[name]; !ok {
+		panic("No gitdb connection found")
+	}
+
+	return conns[name]
 }
 
 func (g *Gitdb) boot() error {
@@ -64,28 +84,28 @@ func (g *Gitdb) boot() error {
 	var err error
 
 	//create id dir
-	err = os.MkdirAll(idDir(), 0755)
+	err = os.MkdirAll(g.idDir(), 0755)
 	if err != nil {
 		log(err.Error())
 		return err
 	}
 
 	//create queue dir
-	err = os.MkdirAll(queueDir(), 0755)
+	err = os.MkdirAll(g.queueDir(), 0755)
 	if err != nil {
 		log(err.Error())
 		return err
 	}
 
 	//create mail dir
-	err = os.MkdirAll(mailDir(), 0755)
+	err = os.MkdirAll(g.mailDir(), 0755)
 	if err != nil {
 		log(err.Error())
 		return err
 	}
 
 	//create .ssh dir
-	err = generateSSHKeyPair()
+	err = g.generateSSHKeyPair()
 	if err != nil {
 		return err
 	}
@@ -94,7 +114,7 @@ func (g *Gitdb) boot() error {
 
 	// if .db directory does not exist and create it and attempt
 	// to do a git pull from remote
-	dataDir :=  dbDir()
+	dataDir :=  g.dbDir()
 	dotGitDir := filepath.Join(dataDir, ".git")
 	if _, err := os.Stat(dataDir); err != nil {
 		log("database not initialized")
@@ -136,7 +156,7 @@ func (g *Gitdb) boot() error {
 	}
 
 	//rebuild index if we have to
-	if _, err := os.Stat(indexDir()); err != nil {
+	if _, err := os.Stat(g.indexDir()); err != nil {
 		//no index directory found so we need to re-index the whole db
 		go g.buildIndex()
 	}

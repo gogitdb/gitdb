@@ -20,8 +20,8 @@ var testDb *db.Gitdb
 var messageId int
 
 func init(){
-	//db.SetLogLevel(db.LOGLEVEL_TEST)
-	db.SetLogLevel(db.LOGLEVEL_NONE)
+	db.SetLogLevel(db.LOGLEVEL_TEST)
+	//db.SetLogLevel(db.LOGLEVEL_NONE)
 }
 
 func setup(){
@@ -210,9 +210,6 @@ func TestFetch(t *testing.T) {
 	got := len(messages)
 	want := got
 	if got > 0 {
-		println(messages[0].Id())
-		println(messages[1].Id())
-		println(messages[2].Id())
 		want = checkFetchResult(messages[0])
 		if got != want {
 			t.Fail()
@@ -300,8 +297,8 @@ func TestDeleteOrFail(t *testing.T) {
 	}
 }
 
-func TestGetModel(t *testing.T) {
-	got := getModel()
+func TestMakeModelFromString(t *testing.T) {
+	got := makeModelFromString()
 	x := messageId
 	messageId = 0
 	want := getTestMessage()
@@ -317,7 +314,7 @@ func (m *Message) String() string {
 	return fmt.Sprint(m.MessageId, m.From, m.To, m.Body)
 }
 
-func getModel() *Message {
+func makeModelFromString() *Message {
 
 	in := `{
 	"MessageId": 0,
@@ -327,7 +324,7 @@ func getModel() *Message {
 	}`
 
 	m := &Message{}
-	err := testDb.MakeModel(in, m)
+	err := testDb.MakeModelFromString(in, m)
 	if err != nil {
 		println(err.Error())
 	}
@@ -335,10 +332,10 @@ func getModel() *Message {
 	return m
 }
 
-func BenchmarkGetModel(b *testing.B) {
+func BenchmarkMakeModelFromString(b *testing.B) {
 	b.ReportAllocs()
 	for i :=0; i <= b.N; i++ {
-      getModel()
+		makeModelFromString()
 	}
 }
 

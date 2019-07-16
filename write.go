@@ -7,22 +7,15 @@ import (
 	"os"
 	"gopkg.in/mgo.v2/bson"
 	"fmt"
-	"time"
 )
 
 
 func (g *Gitdb) Insert(m Model) error {
 
-	stampTime := time.Now()
-	if m.GetCreatedDate().IsZero() {
-		m.SetCreatedDate(stampTime)
-	}
-	m.SetUpdatedDate(stampTime)
+	stamp(m)
 
-	m.SetId(m.GetSchema().RecordId())
-
-	if _, err := os.Stat(fullPath(m)); err != nil {
-		os.MkdirAll(fullPath(m), 0755)
+	if _, err := os.Stat(g.fullPath(m)); err != nil {
+		os.MkdirAll(g.fullPath(m), 0755)
 	}
 
 	if !m.Validate() {
@@ -56,12 +49,12 @@ func (g *Gitdb) InsertMany(models []Model) error {
 
 func (g *Gitdb) queue(m Model) error {
 
-	dataBlock, err := g.loadBlock(queueFilePath(m), m.GetDataFormat())
+	dataBlock, err := g.loadBlock(g.queueFilePath(m), m.GetDataFormat())
 	if err != nil {
 		return err
 	}
 
-	writeErr := g.writeBlock(queueFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	writeErr := g.writeBlock(g.queueFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
 	if writeErr != nil {
 		return writeErr
 	}
@@ -71,11 +64,11 @@ func (g *Gitdb) queue(m Model) error {
 
 func (g *Gitdb) flushQueue(m Model) error {
 
-	if _, err := os.Stat(queueFilePath(m)); err == nil {
+	if _, err := os.Stat(g.queueFilePath(m)); err == nil {
 
 		log("flushing queue")
 		dataBlock := Block{}
-		err := g.readBlock(queueFilePath(m), m.GetDataFormat(), dataBlock)
+		err := g.readBlock(g.queueFilePath(m), m.GetDataFormat(), dataBlock)
 		if err != nil {
 			return err
 		}
@@ -92,13 +85,13 @@ func (g *Gitdb) flushQueue(m Model) error {
 				println(err.Error())
 				return err
 			}
-			_, err = g.qdel(recordId, queueFilePath(m), dataBlock,false)
+			_, err = g.qdel(recordId, g.queueFilePath(m), dataBlock,false)
 			if err != nil {
 				return err
 			}
 		}
 
-		return os.Remove(queueFilePath(m))
+		return os.Remove(g.queueFilePath(m))
 	}
 
 	log("empty queue :)")
@@ -112,7 +105,7 @@ func (g *Gitdb) flushDb() error {
 
 func (g *Gitdb) write(m Model) error {
 
-	blockFilePath := blockFilePath(m)
+	blockFilePath := g.blockFilePath(m)
 	commitMsg := "Inserting " + m.Id() + " into " + blockFilePath
 
 	dataBlock, err := g.loadBlock(blockFilePath, m.GetDataFormat())
@@ -196,7 +189,7 @@ func (g *Gitdb) delImplicit(id string, failNotFound bool) (bool, error){
 
 	model := g.getModelFromCache(dataDir)
 
-	dataFilePath := blockFilePath(model)
+	dataFilePath := g.blockFilePath(model)
 	return g.del(id, model.GetDataFormat(), dataFilePath, failNotFound)
 }
 

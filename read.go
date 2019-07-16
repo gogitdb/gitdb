@@ -109,7 +109,7 @@ func (g *Gitdb) Get(id string, result Model) error {
 	}
 
 	model := g.getModelFromCache(dataDir)
-	dataFilePath := filepath.Join(dbDir(), dataDir, block+"."+string(model.GetDataFormat()))
+	dataFilePath := filepath.Join(g.dbDir(), dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return errors.New(dataDir + " Not Found - " + id)
 	}
@@ -140,7 +140,7 @@ func (g *Gitdb) Exists(id string) error {
 	model := g.getModelFromCache(dataDir)
 	modelFormat := model.GetDataFormat()
 
-	dataFilePath := filepath.Join(dbDir(), dataDir, block+"."+string(modelFormat))
+	dataFilePath := filepath.Join(g.dbDir(), dataDir, block+"."+string(modelFormat))
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return errors.New(dataDir + " Not Found - " + id)
 	}
@@ -188,7 +188,7 @@ func (g *Gitdb) FetchRaw(dataDir string) (Block, error) {
 
 func (g *Gitdb) fetch(dataDir string, format DataFormat, dataBlock Block) error {
 
-	fullPath := filepath.Join(dbDir(), dataDir)
+	fullPath := filepath.Join(g.dbDir(), dataDir)
 	//events <- newReadEvent("...", fullPath)
 	log("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
@@ -216,7 +216,7 @@ func (g *Gitdb) FetchMt(dataset string) ([]Model, error) {
 	dataBlock := Block{}
 	var records []Model
 
-	fullPath := filepath.Join(dbDir(), dataset)
+	fullPath := filepath.Join(g.dbDir(), dataset)
 	//events <- newReadEvent("...", fullPath)
 	log("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
@@ -260,7 +260,7 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 	var records []Model
 	matchingRecords := make(map[string]string)
 	for _, searchParam := range query.searchParams {
-		indexFile := filepath.Join(indexDir(), query.dataset, searchParam.Index+".json")
+		indexFile := filepath.Join(g.indexDir(), query.dataset, searchParam.Index+".json")
 		if _, ok := g.indexCache[indexFile]; !ok {
 			g.indexCache[indexFile] = g.readIndex(indexFile)
 		}
@@ -309,7 +309,7 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 	var blockFile string
 	for _, block := range searchBlocks {
 
-		blockFile = filepath.Join(dbDir(), query.dataset, block+"."+string(model.GetDataFormat()))
+		blockFile = filepath.Join(g.dbDir(), query.dataset, block+"."+string(model.GetDataFormat()))
 		err := g.readBlock(blockFile, model.GetDataFormat(), dataBlock)
 		if err != nil {
 			return records, err

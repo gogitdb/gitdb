@@ -14,7 +14,7 @@ type gdbIndexCache map[string]gdbIndex
 func (g *Gitdb) updateIndexes(models []Model) {
 	g.indexUpdated = true
 	for _, m := range models {
-		indexPath := indexPath(m)
+		indexPath := g.indexPath(m)
 		for name, value := range m.GetSchema().Indexes() {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
@@ -73,7 +73,7 @@ func (g *Gitdb) readIndex(indexFile string) gdbIndex {
 }
 
 func (g *Gitdb) buildIndex() {
-	dataSets := getDatasets()
+	dataSets := getDatasets(g.dbDir())
 	for _, dataSet := range dataSets {
 		log("Building index for Dataset: "+dataSet)
 		records, err := g.Fetch(dataSet)
@@ -86,9 +86,9 @@ func (g *Gitdb) buildIndex() {
 	log("Building index complete")
 }
 
-func getDatasets() []string {
+func getDatasets(dbDir string) []string {
 	var dataSets []string
-	dirs, err := ioutil.ReadDir(dbDir())
+	dirs, err := ioutil.ReadDir(dbDir)
 	if err != nil {
 		log(err.Error())
 		return dataSets

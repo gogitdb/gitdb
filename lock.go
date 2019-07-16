@@ -10,13 +10,15 @@ import (
 
 func (g *Gitdb) Lock(m Model) error {
 
+	stamp(m)
+
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
 	}
 
 	var lockFilesWritten []string
 
-	fullPath := lockDir(m)
+	fullPath := g.lockDir(m)
 	if _, err := os.Stat(fullPath); err != nil {
 		os.MkdirAll(fullPath, 0755)
 	}
@@ -56,7 +58,7 @@ func (g *Gitdb) UnLock(m Model) error {
 		return errors.New("Model is not lockable")
 	}
 
-	fullPath := lockDir(m)
+	fullPath := g.lockDir(m)
 
 	lockFiles := m.GetLockFileNames()
 	for _, file := range lockFiles {
@@ -71,7 +73,7 @@ func (g *Gitdb) UnLock(m Model) error {
 		}
 	}
 
-	commitMsg := "Removing Lock Files for: " + m.GetSchema().Id()
+	commitMsg := "Removing Lock Files for: " + m.Id()
 	g.events <- newWriteEvent(commitMsg, fullPath)
 	return nil
 }

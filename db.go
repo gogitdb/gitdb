@@ -83,7 +83,7 @@ func (g *Gitdb) Shutdown() error {
 
 func (g *Gitdb) Configure(cfg *Config) {
 	g.config = cfg
-	g.config.sshKey = privateKeyFilePath()
+	g.config.sshKey = g.privateKeyFilePath()
 
 	switch cfg.GitDriver {
 	case GitDriverGoGit:
@@ -100,7 +100,7 @@ func (g *Gitdb) Configure(cfg *Config) {
 	g.events = make(chan *dbEvent, 1)
 	g.locked = make(chan bool, 1)
 
-	g.GitDriver.configure(cfg)
+	g.GitDriver.configure(g)
 }
 
 func (g *Gitdb) SetUser(user *DbUser){
@@ -177,7 +177,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 		if _, ok := oldBlocks[blockId]; !ok {
 			blockFile := blockId + "." + string(from.GetDataFormat())
 			println(blockFile)
-			blockFilePath := filepath.Join(dbDir(), dataset, blockFile)
+			blockFilePath := filepath.Join(g.dbDir(), dataset, blockFile)
 			oldBlocks[blockId] = blockFilePath
 		}
 
@@ -208,7 +208,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
 func (g *Gitdb) GenerateId(m Model) int64 {
 	var id int64
-	idFile := idFilePath(m)
+	idFile := g.idFilePath(m)
 	//check if id file exists
 	_, err := os.Stat(idFile)
 	if err != nil {
@@ -232,7 +232,7 @@ func (g *Gitdb) GenerateId(m Model) int64 {
 
 func (g *Gitdb) updateId(m Model) error {
 	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
-		return ioutil.WriteFile(idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
+		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
 	}
 
 	return nil

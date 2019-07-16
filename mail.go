@@ -16,6 +16,7 @@ type mail struct {
 
 type Mail struct {
 	privateMail *mail
+	dbConn      *Gitdb
 }
 
 // Implement json.Unmarshaller
@@ -23,8 +24,11 @@ func (m *Mail) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &m.privateMail)
 }
 
-func newMail(subject string, body string) *Mail {
-	return &Mail{privateMail: &mail{Subject: subject, Body: body, Date: time.Now()}}
+func newMail(dbConn *Gitdb, subject string, body string) *Mail {
+	return &Mail{
+		privateMail: &mail{Subject: subject, Body: body, Date: time.Now()},
+		dbConn:      dbConn,
+	}
 }
 
 func (m *Mail) GetSubject() string {
@@ -41,8 +45,8 @@ func (m *Mail) GetDate() time.Time {
 
 func (m *Mail) send() error {
 
-	if _, err := os.Stat(mailDir()); err != nil {
-		os.MkdirAll(mailDir(), 0744)
+	if _, err := os.Stat(m.dbConn.mailDir()); err != nil {
+		os.MkdirAll(m.dbConn.mailDir(), 0744)
 	}
 
 	bytes, err := json.Marshal(m.privateMail)
@@ -50,7 +54,7 @@ func (m *Mail) send() error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(mailDir(), time.Now().Format("20060102150405")+".json"), bytes, 0744)
+	err = ioutil.WriteFile(filepath.Join(m.dbConn.mailDir(), time.Now().Format("20060102150405")+".json"), bytes, 0744)
 	if err != nil {
 		log("Could not send notification - " + err.Error())
 	}
@@ -58,10 +62,10 @@ func (m *Mail) send() error {
 	return err
 }
 
-func GetMails() []*mail {
+func (g *Gitdb) GetMails() []*mail {
 
 	var mails []*mail
-	files, err := ioutil.ReadDir(mailDir())
+	files, err := ioutil.ReadDir(g.mailDir())
 	if err != nil {
 		logError(err.Error())
 		return mails
@@ -69,7 +73,7 @@ func GetMails() []*mail {
 
 	var fileName string
 	for _, file := range files {
-		fileName = filepath.Join(mailDir(), file.Name())
+		fileName = filepath.Join(g.mailDir(), file.Name())
 		if filepath.Ext(fileName) == ".json" {
 			data, err := ioutil.ReadFile(fileName)
 			if err != nil {

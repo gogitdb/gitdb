@@ -1,10 +1,10 @@
 package gitdb
 
 import (
-	"os/exec"
 	"errors"
+	"os/exec"
+	"strings"
 )
-
 
 type gitBinary struct {
 	baseGitDriver
@@ -40,17 +40,35 @@ func (g *gitBinary) clone() error {
 
 func (g *gitBinary) addRemote() error {
 
-	cmd := exec.Command("git", "-C", g.absDbPath, "remote", "rm", "origin")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		log(string(out))
-		//return err
+	//check to see if we have origin / online remotes
+	cmd := exec.Command("git", "-C", g.absDbPath, "remote")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		//log(string(out))
+		return err
 	}
 
-	cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)
-	//log.PutInfo(utils.CmdToString(cmd))
-	if out, err := cmd.CombinedOutput(); err != nil {
-		log(string(out))
-		return err
+	remoteStr := string(out)
+	log(remoteStr)
+	hasOriginRemote := strings.Contains(remoteStr, "origin")
+	hasOnlineRemote := strings.Contains(remoteStr, "online")
+
+	if hasOriginRemote {
+		cmd := exec.Command("git", "-C", g.absDbPath, "remote", "rm", "origin")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			log(string(out))
+			//return err
+		}
+	}
+
+	if !hasOnlineRemote {
+		cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)
+		//log.PutInfo(utils.CmdToString(cmd))
+		if out, err := cmd.CombinedOutput(); err != nil {
+			log(string(out))
+			return err
+		}
 	}
 
 	return nil

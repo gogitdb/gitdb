@@ -85,7 +85,7 @@ func (g *Gitdb) flushQueue(m Model) error {
 				println(err.Error())
 				return err
 			}
-			_, err = g.qdel(recordId, g.queueFilePath(m), dataBlock, false)
+			err = g.delById(recordId, model.GetDataFormat(), g.queueFilePath(m), false)
 			if err != nil {
 				return err
 			}
@@ -171,81 +171,61 @@ func (g *Gitdb) writeBlock(blockFile string, data Block, format DataFormat, encr
 	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 
-func (g *Gitdb) Delete(id string) (bool, error) {
-	return g.delImplicit(id, false)
+func (g *Gitdb) Delete(id string) error {
+	return g.delete(id, false)
 }
 
-func (g *Gitdb) DeleteOrFail(id string) (bool, error) {
-	return g.delImplicit(id, true)
+func (g *Gitdb) DeleteOrFail(id string) error {
+	return g.delete(id, true)
 }
 
-func (g *Gitdb) delImplicit(id string, failNotFound bool) (bool, error) {
+func (g *Gitdb) delete(id string, failNotFound bool) error {
 
 	dataDir, _, _, err := g.ParseId(id)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	model := g.getModelFromCache(dataDir)
 
 	blockFilePath := g.blockFilePath(model)
-	deleted, err := g.del(id, model.GetDataFormat(), blockFilePath, failNotFound)
+	err = g.delById(id, model.GetDataFormat(), blockFilePath, failNotFound)
 
 	if err == nil {
 		logTest("sending delete event to loop")
 		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath)
 	}
 
-	return deleted, err
+	return err
 }
 
-func (g *Gitdb) del(id string, format DataFormat, blockFile string, failIfNotFound bool) (bool, error) {
+func (g *Gitdb) delById(id string, format DataFormat, blockFile string, failIfNotFound bool) error {
 
 	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {
-			return false, errors.New("Could not delete [" + id + "]: record does not exist")
+			return errors.New("Could not delete [" + id + "]: record does not exist")
 		}
-		return true, nil
+		return nil
 	}
 
 	dataBlock := Block{}
 	err := g.readBlock(blockFile, format, dataBlock)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return g.qdel(id, blockFile, dataBlock, failIfNotFound)
-}
-
-func (g *Gitdb) qdel(id string, blockFile string, blockData Block, failIfNotFound bool) (bool, error) {
-
-	deleteRecordFound := false
-
-	for recordId := range blockData {
-		if recordId == id {
-			delete(blockData, recordId)
-			deleteRecordFound = true
-		}
-	}
-
-	if deleteRecordFound {
-
-		out, err := json.MarshalIndent(blockData, "", "\t")
-		if err != nil {
-			return false, err
-		}
-
-		//write undeleted records back to block file
-		err = ioutil.WriteFile(blockFile, out, 0744)
-		if err != nil {
-			return false, err
-		}
-		return true, nil
-	} else {
+	if err := dataBlock.Delete(id); err != nil {
 		if failIfNotFound {
-			return false, errors.New("Could not delete [" + id + "]: record does not exist")
+			return errors.New("Could not delete [" + id + "]: record does not exist")
 		}
-
-		return true, nil
+		return nil
 	}
+
+	out, err := json.MarshalIndent(dataBlock, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	//write undeleted records back to block file
+	return ioutil.WriteFile(blockFile, out, 0744)
 }

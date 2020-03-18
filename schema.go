@@ -1,13 +1,13 @@
 package gitdb
 
 import (
-	"path/filepath"
 	"encoding/json"
-	"fmt"
-	"os"
-	"io/ioutil"
-	"strings"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 type StringFunc func() string
@@ -52,7 +52,7 @@ func (a *Schema) Indexes() map[string]interface{} {
 
 func NewAutoBlock(db *Gitdb, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
 	currentBlock := -1
-	return func () string {
+	return func() string {
 
 		//don't bother figuring out the block id if model also has been assigned an id
 		//simply parse it and return right block
@@ -112,7 +112,7 @@ type IDParser struct {
 func (i *IDParser) Parse(id string) *IDParser {
 	recordMeta := strings.Split(id, "/")
 	if len(recordMeta) != 3 {
-		i.err = errors.New("Invalid record id: "+id)
+		i.err = errors.New("Invalid record id: " + id)
 	} else {
 		i.dataset = recordMeta[0]
 		i.block = recordMeta[1]
@@ -147,9 +147,11 @@ func NewIDParser(id string) *IDParser {
 }
 
 type Block map[string]string
-func (d Block) Add(key string, value string){
+
+func (d Block) Add(key string, value string) {
 	d[key] = value
 }
+
 func (d Block) Get(key string) (string, error) {
 	if _, ok := d[key]; ok {
 		return d[key], nil
@@ -157,7 +159,17 @@ func (d Block) Get(key string) (string, error) {
 
 	return "", errors.New("key does not exist")
 }
-func (d Block) Reset(){
+
+func (d Block) Delete(key string) error {
+	if _, ok := d[key]; ok {
+		delete(d, key)
+		return nil
+	}
+
+	return errors.New("key does not exist")
+}
+
+func (d Block) Reset() {
 	for k := range d {
 		delete(d, k)
 	}

@@ -195,6 +195,8 @@ func (g *Gitdb) delImplicit(id string, failNotFound bool) (bool, error) {
 		logTest("sending delete event to loop")
 		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath)
 	}
+
+	return deleted, err
 }
 
 func (g *Gitdb) del(id string, format DataFormat, blockFile string, failIfNotFound bool) (bool, error) {

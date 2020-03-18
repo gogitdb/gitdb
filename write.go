@@ -3,12 +3,12 @@ package gitdb
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
-	"gopkg.in/mgo.v2/bson"
-	"fmt"
-)
 
+	"gopkg.in/mgo.v2/bson"
+)
 
 func (g *Gitdb) Insert(m Model) error {
 
@@ -22,14 +22,14 @@ func (g *Gitdb) Insert(m Model) error {
 		return errors.New("Model is not valid")
 	}
 
-	if g.getLock(){
+	if g.getLock() {
 		if err := g.flushQueue(m); err != nil {
 			log(err.Error())
 		}
 		err := g.write(m)
 		g.releaseLock()
 		return err
-	}else{
+	} else {
 		return g.queue(m)
 	}
 }
@@ -42,7 +42,7 @@ func (g *Gitdb) InsertMany(models []Model) error {
 
 	tx := g.NewTransaction("InsertMany")
 	for _, m := range models {
-		tx.AddOperation(func() error {return g.Insert(m)})
+		tx.AddOperation(func() error { return g.Insert(m) })
 	}
 	return tx.Commit()
 }
@@ -76,7 +76,7 @@ func (g *Gitdb) flushQueue(m Model) error {
 		//todo optimize: this will open and close file for each write operation
 		model := g.config.Factory(m.GetSchema().Name())
 		for recordId, record := range dataBlock {
-			log("Flushing: "+recordId)
+			log("Flushing: " + recordId)
 
 			g.MakeModelFromString(record, model)
 
@@ -85,7 +85,7 @@ func (g *Gitdb) flushQueue(m Model) error {
 				println(err.Error())
 				return err
 			}
-			_, err = g.qdel(recordId, g.queueFilePath(m), dataBlock,false)
+			_, err = g.qdel(recordId, g.queueFilePath(m), dataBlock, false)
 			if err != nil {
 				return err
 			}
@@ -140,9 +140,8 @@ func (g *Gitdb) write(m Model) error {
 	g.updateIndexes([]Model{m})
 
 	//what is the effect of this on InsertMany?
-	return	g.updateId(m)
+	return g.updateId(m)
 }
-
 
 func (g *Gitdb) writeBlock(blockFile string, data Block, format DataFormat, encryptData bool) error {
 
@@ -173,14 +172,14 @@ func (g *Gitdb) writeBlock(blockFile string, data Block, format DataFormat, encr
 }
 
 func (g *Gitdb) Delete(id string) (bool, error) {
-	return g.delImplicit(id,false)
+	return g.delImplicit(id, false)
 }
 
 func (g *Gitdb) DeleteOrFail(id string) (bool, error) {
 	return g.delImplicit(id, true)
 }
 
-func (g *Gitdb) delImplicit(id string, failNotFound bool) (bool, error){
+func (g *Gitdb) delImplicit(id string, failNotFound bool) (bool, error) {
 
 	dataDir, _, _, err := g.ParseId(id)
 	if err != nil {
@@ -189,8 +188,13 @@ func (g *Gitdb) delImplicit(id string, failNotFound bool) (bool, error){
 
 	model := g.getModelFromCache(dataDir)
 
-	dataFilePath := g.blockFilePath(model)
-	return g.del(id, model.GetDataFormat(), dataFilePath, failNotFound)
+	blockFilePath := g.blockFilePath(model)
+	deleted, err := g.del(id, model.GetDataFormat(), blockFilePath, failNotFound)
+
+	if err == nil {
+		logTest("sending delete event to loop")
+		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath)
+	}
 }
 
 func (g *Gitdb) del(id string, format DataFormat, blockFile string, failIfNotFound bool) (bool, error) {

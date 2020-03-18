@@ -17,7 +17,7 @@ func (g *gitBinary) name() string {
 func (g *gitBinary) init() error {
 
 	cmd := exec.Command("git", "-C", g.absDbPath, "init")
-	//log.PutInfo(utils.CmdToString(cmd))
+	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log(string(out))
 		return err
@@ -64,7 +64,7 @@ func (g *gitBinary) addRemote() error {
 
 	if !hasOnlineRemote {
 		cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)
-		//log.PutInfo(utils.CmdToString(cmd))
+		//log(utils.CmdToString(cmd))
 		if out, err := cmd.CombinedOutput(); err != nil {
 			log(string(out))
 			return err
@@ -76,7 +76,7 @@ func (g *gitBinary) addRemote() error {
 
 func (g *gitBinary) pull() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "pull", "online", "master")
-	//log.PutInfo(utils.CmdToString(cmd))
+	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		logError("Failed to pull data from online remote.")
 		logError(string(out))
@@ -89,7 +89,7 @@ func (g *gitBinary) pull() error {
 
 func (g *gitBinary) push() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "push", "online", "master")
-	//log.PutInfo(utils.CmdToString(cmd))
+	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		logError("Failed to push data to online remotes.")
 		logError(string(out))
@@ -100,15 +100,29 @@ func (g *gitBinary) push() error {
 }
 
 func (g *gitBinary) commit(filePath string, msg string, user *DbUser) error {
-	cmd := exec.Command("git", "-C", g.absDbPath, "add", filePath)
-	//log.PutInfo(utils.CmdToString(cmd))
+	cmd := exec.Command("git", "-C", g.absDbPath, "config", "user.email", user.Email)
+	//log(utils.CmdToString(cmd))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		println(string(out))
+		return err
+	}
+
+	cmd = exec.Command("git", "-C", g.absDbPath, "config", "user.name", user.Name)
+	//log(utils.CmdToString(cmd))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		logError(string(out))
+		return err
+	}
+
+	cmd = exec.Command("git", "-C", g.absDbPath, "add", filePath)
+	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		logError(string(out))
 		return err
 	}
 
 	cmd = exec.Command("git", "-C", g.absDbPath, "commit", "-am", msg, "--author=\""+user.AuthorName()+"\"")
-	//log.PutInfo(utils.CmdToString(cmd))
+	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		logError(string(out))
 		return err
@@ -120,7 +134,7 @@ func (g *gitBinary) commit(filePath string, msg string, user *DbUser) error {
 
 func (g *gitBinary) undo() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "checkout", ".")
-	//log.PutInfo(utils.CmdToString(cmd))
+	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		logError(string(out))
 		return err

@@ -121,7 +121,7 @@ func (g *gitBinary) commit(filePath string, msg string, user *DbUser) error {
 		return err
 	}
 
-	cmd = exec.Command("git", "-C", g.absDbPath, "commit", "-am", msg, "--author=\""+user.AuthorName()+"\"")
+	cmd = exec.Command("git", "-C", g.absDbPath, "commit", "-am", msg)
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		logError(string(out))

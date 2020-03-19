@@ -1,20 +1,20 @@
 package gitdb
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"gopkg.in/mgo.v2/bson"
-	"fmt"
 	"sync"
-	"bufio"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
-
-func (g *Gitdb) loadBlock(blockFile string, format DataFormat) (Block, error){
+func (g *Gitdb) loadBlock(blockFile string, format DataFormat) (Block, error) {
 
 	if len(g.loadedBlocks) == 0 {
 		g.loadedBlocks = map[string]Block{}
@@ -34,7 +34,7 @@ func (g *Gitdb) loadBlock(blockFile string, format DataFormat) (Block, error){
 	return g.loadedBlocks[blockFile], nil
 }
 
-func (g *Gitdb) readBlock(blockFile string, dataFormat DataFormat, result Block) (error) {
+func (g *Gitdb) readBlock(blockFile string, dataFormat DataFormat, result Block) error {
 
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
@@ -58,7 +58,7 @@ func (g *Gitdb) readBlock(blockFile string, dataFormat DataFormat, result Block)
 }
 
 //EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result Block) (error) {
+func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result Block) error {
 
 	bf, err := os.Open(blockFile)
 	if err != nil {
@@ -73,7 +73,7 @@ func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result Block)
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line != "{" &&  line != "}" {
+		if line != "{" && line != "}" {
 			kv = strings.Split(strings.Trim(line, ","), ": ")
 			if len(kv[0]) <= 0 || len(kv[1]) <= 0 {
 				return errors.New("invalid block file")
@@ -81,7 +81,7 @@ func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result Block)
 
 			//unescape and unqoute string
 			v := make([]byte, 0, len(kv[1]))
-			for i := 1; i < len(kv[1]) - 1; i++ {
+			for i := 1; i < len(kv[1])-1; i++ {
 				if kv[1][i] != '\\' {
 					v = append(v, kv[1][i])
 				}
@@ -94,8 +94,6 @@ func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result Block)
 
 	return err
 }
-
-
 
 //For Get and Exist, ideally we want to use a bufio.NewScanner instead
 //of reading the entire block file into memory (i.e ioutil.ReadFile) and looking for
@@ -124,10 +122,9 @@ func (g *Gitdb) Get(id string, result Model) error {
 	if err != nil {
 		return err
 	}
-	return g.MakeModelFromString(record, result)
 
 	g.events <- newReadEvent("...", id)
-	return errors.New("Record " + id + " not found in " + dataDir)
+	return g.MakeModelFromString(record, result)
 }
 
 func (g *Gitdb) Exists(id string) error {

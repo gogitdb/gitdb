@@ -78,7 +78,7 @@ func (g *Gitdb) flushQueue(m Model) error {
 		for recordId, record := range dataBlock {
 			log("Flushing: " + recordId)
 
-			g.MakeModelFromString(record, model)
+			record.Hydrate(model)
 
 			err = g.write(model)
 			if err != nil {
@@ -125,7 +125,10 @@ func (g *Gitdb) write(m Model) error {
 
 	logTest(commitMsg)
 
-	dataBlock[m.GetSchema().RecordId()] = string(newRecordBytes)
+	dataBlock[m.GetSchema().RecordId()] = record(newRecordBytes)
+
+	b := Block{}
+	b.Add(m.GetSchema().RecordId(), string(newRecordBytes))
 
 	g.events <- newWriteBeforeEvent("...", blockFilePath)
 	writeErr := g.writeBlock(blockFilePath, dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
@@ -137,7 +140,7 @@ func (g *Gitdb) write(m Model) error {
 
 	logTest("sending write event to loop")
 	g.events <- newWriteEvent(commitMsg, blockFilePath)
-	g.updateIndexes([]Model{m})
+	g.updateIndexes(b, m.GetSchema().Name())
 
 	//what is the effect of this on InsertMany?
 	return g.updateId(m)
@@ -148,7 +151,7 @@ func (g *Gitdb) writeBlock(blockFile string, data Block, format DataFormat, encr
 	//encrypt data if need be
 	if encryptData {
 		for k, v := range data {
-			data[k] = encrypt(g.config.EncryptionKey, v)
+			data[k] = record(encrypt(g.config.EncryptionKey, string(v)))
 		}
 	}
 

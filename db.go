@@ -1,16 +1,15 @@
 package gitdb
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
-	"sort"
 	"strconv"
+	"strings"
 	"sync"
-	"bytes"
 )
 
 type SearchMode int
@@ -34,24 +33,21 @@ type SearchParam struct {
 }
 
 type Gitdb struct {
-
 	mu sync.Mutex
 	//use this for special optimizations :)
 	buf bytes.Buffer
 
-	locked      chan bool
-	events      chan *dbEvent
-	lastIds     map[string]int64
-	config      *Config
-	GitDriver   gitDriver
+	locked    chan bool
+	events    chan *dbEvent
+	lastIds   map[string]int64
+	config    *Config
+	GitDriver gitDriver
 
-
-	autoCommit  bool //default to true
-	loopStarted bool
+	autoCommit   bool //default to true
+	loopStarted  bool
 	indexUpdated bool
 
-
-	indexCache gdbIndexCache
+	indexCache   gdbIndexCache
 	loadedBlocks map[string]Block
 	loadedModels map[string]Model
 }
@@ -103,14 +99,14 @@ func (g *Gitdb) Configure(cfg *Config) {
 	g.GitDriver.configure(g)
 }
 
-func (g *Gitdb) SetUser(user *DbUser){
+func (g *Gitdb) SetUser(user *DbUser) {
 	g.config.User = user
 }
 
 func (g *Gitdb) ParseId(id string) (dataDir string, block string, record string, err error) {
 	recordMeta := strings.Split(id, "/")
 	if len(recordMeta) != 3 {
-		err = errors.New("Invalid record id: "+id)
+		err = errors.New("Invalid record id: " + id)
 	} else {
 		dataDir = recordMeta[0]
 		block = recordMeta[1]
@@ -133,32 +129,32 @@ func (g *Gitdb) MakeModelFromString(jsonString string, out Model) error {
 	return json.Unmarshal([]byte(jsonString), out)
 }
 
-func (g *Gitdb) MakeModels(dataset string, dataBlock Block, result *[]Model) error {
+// func (g *Gitdb) MakeModels(dataset string, dataBlock Block, result *[]Model) error {
 
-	var mutex = &sync.Mutex{}
-	for _, v := range dataBlock {
+// 	var mutex = &sync.Mutex{}
+// 	for _, v := range dataBlock {
 
-		model := g.config.Factory(dataset)
+// 		model := g.config.Factory(dataset)
 
-		if model.ShouldEncrypt() {
-			log("decrypting record")
-			v = decrypt(g.config.EncryptionKey, v)
-		}
+// 		if model.ShouldEncrypt() {
+// 			log("decrypting record")
+// 			v = decrypt(g.config.EncryptionKey, v)
+// 		}
 
-		err := json.Unmarshal([]byte(v), model)
-		if err != nil {
-			log(err.Error())
-			return badRecordError
-		}
-		mutex.Lock()
-		*result = append(*result, model)
-		mutex.Unlock()
-	}
+// 		err := json.Unmarshal([]byte(v), model)
+// 		if err != nil {
+// 			log(err.Error())
+// 			return badRecordError
+// 		}
+// 		mutex.Lock()
+// 		*result = append(*result, model)
+// 		mutex.Unlock()
+// 	}
 
-	sort.Sort(collection(*result))
+// 	sort.Sort(collection(*result))
 
-	return nil
-}
+// 	return nil
+// }
 
 //todo add revert logic if migrate fails mid way
 func (g *Gitdb) Migrate(from Model, to Model) error {
@@ -181,7 +177,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 			oldBlocks[blockId] = blockFilePath
 		}
 
-		err = g.MakeModelFromString(record, to)
+		err = record.Hydrate(to)
 		if err != nil {
 			return err
 		}
@@ -194,7 +190,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 
 	//remove all block files
 	for _, blockFilePath := range oldBlocks {
-		log("Removing old block: "+blockFilePath)
+		log("Removing old block: " + blockFilePath)
 		err := os.Remove(blockFilePath)
 		if err != nil {
 			return err
@@ -238,7 +234,7 @@ func (g *Gitdb) updateId(m Model) error {
 	return nil
 }
 
-func (g *Gitdb) setLastId(m Model, id int64){
+func (g *Gitdb) setLastId(m Model, id int64) {
 	g.lastIds[m.GetSchema().Name()] = id
 }
 
@@ -280,4 +276,3 @@ func (g *Gitdb) getModelFromCache(dataset string) Model {
 
 	return g.loadedModels[dataset]
 }
-

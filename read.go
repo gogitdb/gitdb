@@ -54,6 +54,9 @@ func (g *Gitdb) readBlock(blockFile string, dataFormat DataFormat, result Block)
 	if fmtErr != nil {
 		return badBlockError
 	}
+
+	//check if decryption is required
+
 	return err
 }
 
@@ -124,7 +127,7 @@ func (g *Gitdb) Get(id string, result Model) error {
 	}
 
 	g.events <- newReadEvent("...", id)
-	return g.MakeModelFromString(record, result)
+	return record.Hydrate(result)
 }
 
 func (g *Gitdb) Exists(id string) error {
@@ -156,17 +159,15 @@ func (g *Gitdb) Exists(id string) error {
 	return errors.New("Record " + id + " not found in " + dataDir)
 }
 
-func (g *Gitdb) Fetch(dataDir string) ([]Model, error) {
+func (g *Gitdb) Fetch(dataDir string) (Block, error) {
 
-	var records []Model
 	dataBlock, err := g.FetchRaw(dataDir)
 	if err != nil {
-		return records, err
+		return dataBlock, err
 	}
 
-	g.MakeModels(dataDir, dataBlock, &records)
-	log(fmt.Sprintf("%d records found in %s", len(records), dataDir))
-	return records, nil
+	log(fmt.Sprintf("%d records found in %s", len(dataBlock), dataDir))
+	return dataBlock, nil
 }
 
 func (g *Gitdb) FetchRaw(dataDir string) (Block, error) {
@@ -208,17 +209,16 @@ func (g *Gitdb) fetch(dataDir string, format DataFormat, dataBlock Block) error 
 }
 
 //EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *Gitdb) FetchMt(dataset string) ([]Model, error) {
+func (g *Gitdb) FetchMt(dataset string) (Block, error) {
 
 	dataBlock := Block{}
-	var records []Model
 
 	fullPath := filepath.Join(g.dbDir(), dataset)
 	//events <- newReadEvent("...", fullPath)
 	log("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
 	if err != nil {
-		return records, err
+		return dataBlock, err
 	}
 
 	model := g.getModelFromCache(dataset)
@@ -241,12 +241,11 @@ func (g *Gitdb) FetchMt(dataset string) ([]Model, error) {
 	}
 	wg.Wait()
 
-	g.MakeModels(dataset, dataBlock, &records)
-	log(fmt.Sprintf("%d records found in %s", len(records), fullPath))
-	return records, nil
+	log(fmt.Sprintf("%d records found in %s", len(dataBlock), fullPath))
+	return dataBlock, nil
 }
 
-func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]Model, error) {
+func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) (Block, error) {
 
 	query := &searchQuery{
 		dataset:      dataDir,
@@ -254,7 +253,6 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 		mode:         searchMode,
 	}
 
-	var records []Model
 	matchingRecords := make(map[string]string)
 	for _, searchParam := range query.searchParams {
 		indexFile := filepath.Join(g.indexDir(), query.dataset, searchParam.Index+".json")
@@ -290,18 +288,19 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 
 	}
 
+	dataBlock := Block{}
+
 	//filter out the blocks that we need to search
 	searchBlocks := map[string]string{}
 	for recordId := range matchingRecords {
 		_, block, _, err := g.ParseId(recordId)
 		if err != nil {
-			return records, err
+			return dataBlock, err
 		}
 
 		searchBlocks[block] = block
 	}
 
-	dataBlock := Block{}
 	model := g.getModelFromCache(query.dataset)
 	var blockFile string
 	for _, block := range searchBlocks {
@@ -309,23 +308,10 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 		blockFile = filepath.Join(g.dbDir(), query.dataset, block+"."+string(model.GetDataFormat()))
 		err := g.readBlock(blockFile, model.GetDataFormat(), dataBlock)
 		if err != nil {
-			return records, err
+			return dataBlock, err
 		}
-
-		for recordId, record := range dataBlock {
-			if _, ok := matchingRecords[recordId]; ok {
-				model := g.config.Factory(query.dataset)
-				err := g.MakeModelFromString(record, model)
-				if err != nil {
-					return records, nil
-				}
-				records = append(records, model)
-			}
-		}
-
-		dataBlock.Reset()
 	}
 
 	//log.PutInfo(fmt.Sprintf("Found %d results in %s namespace by %s for '%s'", len(records), query.DataDir, query.Index, strings.Join(query.Values, ",")))
-	return records, nil
+	return dataBlock, nil
 }

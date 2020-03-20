@@ -146,13 +146,23 @@ func NewIDParser(id string) *IDParser {
 	return new(IDParser).Parse(id)
 }
 
-type Block map[string]string
+type record string
 
-func (d Block) Add(key string, value string) {
-	d[key] = value
+func (r record) bytes() []byte {
+	return []byte(string(r))
 }
 
-func (d Block) Get(key string) (string, error) {
+func (r record) Hydrate(model Model) error {
+	return json.Unmarshal(r.bytes(), model)
+}
+
+type Block map[string]record
+
+func (d Block) Add(key string, value string) {
+	d[key] = record(value)
+}
+
+func (d Block) Get(key string) (record, error) {
 	if _, ok := d[key]; ok {
 		return d[key], nil
 	}

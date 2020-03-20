@@ -21,8 +21,8 @@ func (g *Gitdb) fullPath(m Model) string {
 	return filepath.Join(g.dbDir(), m.GetSchema().Name())
 }
 
-func (g *Gitdb) blockFilePath(m Model) string{
-	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc() + "." + string(m.GetDataFormat()))
+func (g *Gitdb) blockFilePath(m Model) string {
+	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc()+"."+string(m.GetDataFormat()))
 }
 
 func (g *Gitdb) queueDir() string {
@@ -30,13 +30,12 @@ func (g *Gitdb) queueDir() string {
 }
 
 func (g *Gitdb) queueFilePath(m Model) string {
-	return filepath.Join(g.queueDir(), m.GetSchema().Name() + "." + string(m.GetDataFormat()))
+	return filepath.Join(g.queueDir(), m.GetSchema().Name()+"."+string(m.GetDataFormat()))
 }
 
 func (g *Gitdb) lockDir(m Model) string {
 	return filepath.Join(g.fullPath(m), "Lock")
 }
-
 
 func (g *Gitdb) idDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "id")

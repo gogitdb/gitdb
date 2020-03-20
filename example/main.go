@@ -122,7 +122,7 @@ func fetch() {
 	} else {
 		for _, r := range rows {
 			b := &booking.BookingModel{}
-			dbconn.MakeModelFromString(r, b)
+			r.Hydrate(b)
 			fmt.Println(b.CustomerId)
 		}
 	}

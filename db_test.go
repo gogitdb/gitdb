@@ -210,7 +210,7 @@ func TestFetch(t *testing.T) {
 	got := len(messages)
 	want := got
 	if got > 0 {
-		want = checkFetchResult(messages[0])
+		want = checkFetchResult(messages)
 		if got != want {
 			t.Fail()
 		}
@@ -219,8 +219,16 @@ func TestFetch(t *testing.T) {
 	t.Logf("Want: %d, Got: %d", want, got)
 }
 
-func checkFetchResult(m db.Model) int {
-	dataset := m.GetSchema().Name()
+//count the number of records in fetched block
+func checkFetchResult(block db.Block) int {
+
+	dataset := ""
+	for id, _ := range block {
+		parser := db.NewIDParser(id)
+		dataset = parser.Dataset()
+		break
+	}
+
 	datasetPath := getConfig().DbPath + "/data/" + dataset + "/"
 
 	cmd := exec.Command("bash", "-c", "grep "+dataset+" "+datasetPath+"*.json | wc -l | awk '{print $1}'")
@@ -250,7 +258,7 @@ func TestFetchMultithreaded(t *testing.T) {
 	got := len(messages)
 	want := 0
 	if got > 0 {
-		want = checkFetchResult(messages[0])
+		want = checkFetchResult(messages)
 	}
 
 	if got != want {

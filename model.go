@@ -33,7 +33,7 @@ type BaseModel struct {
 	ID        string
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	errors []error
+	errors    []error
 }
 
 func (m *BaseModel) Id() string {
@@ -89,16 +89,4 @@ func (m *BaseModel) GetDataFormat() DataFormat {
 
 func (m *BaseModel) GetValidationErrors() []error {
 	return m.errors
-}
-
-type collection []Model
-
-func (c collection) Len() int {
-	return len(c)
-}
-func (c collection) Less(i, j int) bool {
-	return c[i].GetCreatedDate().Before(c[j].GetCreatedDate())
-}
-func (c collection) Swap(i, j int) {
-	c[i], c[j] = c[j], c[i]
 }

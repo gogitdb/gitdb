@@ -116,14 +116,17 @@ func search() {
 }
 
 func fetch() {
-	rows, err := dbconn.FetchRaw("Booking")
+	rows, err := dbconn.Fetch("Booking")
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
+		bookings := []*booking.BookingModel{}
 		for _, r := range rows {
 			b := &booking.BookingModel{}
 			r.Hydrate(b)
-			fmt.Println(b.CustomerId)
+			bookings = append(bookings, b)
+
+			fmt.Println(fmt.Sprintf("%s-%s", b.ID, b.CreatedAt))
 		}
 	}
 }

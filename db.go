@@ -2,7 +2,6 @@ package gitdb
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -48,7 +47,7 @@ type Gitdb struct {
 	indexUpdated bool
 
 	indexCache   gdbIndexCache
-	loadedBlocks map[string]Block
+	loadedBlocks map[string]*Block
 	loadedModels map[string]Model
 }
 
@@ -116,64 +115,22 @@ func (g *Gitdb) ParseId(id string) (dataDir string, block string, record string,
 	return dataDir, block, record, err
 }
 
-func (g *Gitdb) MakeModel(in interface{}, out interface{}) error {
-	j, err := json.Marshal(in)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(j, out)
-}
-
-func (g *Gitdb) MakeModelFromString(jsonString string, out Model) error {
-	return json.Unmarshal([]byte(jsonString), out)
-}
-
-// func (g *Gitdb) MakeModels(dataset string, dataBlock Block, result *[]Model) error {
-
-// 	var mutex = &sync.Mutex{}
-// 	for _, v := range dataBlock {
-
-// 		model := g.config.Factory(dataset)
-
-// 		if model.ShouldEncrypt() {
-// 			log("decrypting record")
-// 			v = decrypt(g.config.EncryptionKey, v)
-// 		}
-
-// 		err := json.Unmarshal([]byte(v), model)
-// 		if err != nil {
-// 			log(err.Error())
-// 			return badRecordError
-// 		}
-// 		mutex.Lock()
-// 		*result = append(*result, model)
-// 		mutex.Unlock()
-// 	}
-
-// 	sort.Sort(collection(*result))
-
-// 	return nil
-// }
-
 //todo add revert logic if migrate fails mid way
 func (g *Gitdb) Migrate(from Model, to Model) error {
-
-	var records Block
-	dataset := from.GetSchema().Name()
-	err := g.fetch(dataset, from.GetDataFormat(), records)
+	block := NewBlock(from.GetSchema().Name())
+	err := g.fetch(block)
 	if err != nil {
 		return err
 	}
 
 	oldBlocks := map[string]string{}
-	for recordId, record := range records {
+	for recordId, record := range block.records {
 
 		_, blockId, _, _ := g.ParseId(recordId)
 		if _, ok := oldBlocks[blockId]; !ok {
 			blockFile := blockId + "." + string(from.GetDataFormat())
 			println(blockFile)
-			blockFilePath := filepath.Join(g.dbDir(), dataset, blockFile)
+			blockFilePath := filepath.Join(g.dbDir(), block.dataset, blockFile)
 			oldBlocks[blockId] = blockFilePath
 		}
 

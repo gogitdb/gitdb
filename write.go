@@ -49,12 +49,12 @@ func (g *Gitdb) InsertMany(models []Model) error {
 
 func (g *Gitdb) queue(m Model) error {
 
-	dataBlock, err := g.loadBlock(g.queueFilePath(m), m.GetDataFormat())
+	dataBlock, err := g.loadBlock(g.queueFilePath(m), m.GetSchema().Name())
 	if err != nil {
 		return err
 	}
 
-	writeErr := g.writeBlock(g.queueFilePath(m), dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	writeErr := g.writeBlock(g.queueFilePath(m), dataBlock)
 	if writeErr != nil {
 		return writeErr
 	}
@@ -67,15 +67,15 @@ func (g *Gitdb) flushQueue(m Model) error {
 	if _, err := os.Stat(g.queueFilePath(m)); err == nil {
 
 		log("flushing queue")
-		dataBlock := Block{}
-		err := g.readBlock(g.queueFilePath(m), m.GetDataFormat(), dataBlock)
+		dataBlock := NewBlock(m.GetSchema().Name())
+		err := g.readBlock(g.queueFilePath(m), dataBlock)
 		if err != nil {
 			return err
 		}
 
-		//todo optimize: this will open and close file for each write operation
+		//todo optimize: this will open and close block file to delete each record it flushes
 		model := g.config.Factory(m.GetSchema().Name())
-		for recordId, record := range dataBlock {
+		for recordId, record := range dataBlock.records {
 			log("Flushing: " + recordId)
 
 			record.Hydrate(model)
@@ -85,7 +85,7 @@ func (g *Gitdb) flushQueue(m Model) error {
 				println(err.Error())
 				return err
 			}
-			err = g.delById(recordId, model.GetDataFormat(), g.queueFilePath(m), false)
+			err = g.delById(recordId, m.GetSchema().Name(), g.queueFilePath(m), false)
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func (g *Gitdb) write(m Model) error {
 	blockFilePath := g.blockFilePath(m)
 	commitMsg := "Inserting " + m.Id() + " into " + blockFilePath
 
-	dataBlock, err := g.loadBlock(blockFilePath, m.GetDataFormat())
+	dataBlock, err := g.loadBlock(blockFilePath, m.GetSchema().Name())
 	if err != nil {
 		return err
 	}
@@ -119,19 +119,17 @@ func (g *Gitdb) write(m Model) error {
 		return err
 	}
 
-	if _, ok := dataBlock[m.Id()]; ok {
+	if _, err := dataBlock.Get(m.Id()); err == nil {
 		commitMsg = "Updating " + m.Id() + " in " + blockFilePath
 	}
 
 	logTest(commitMsg)
 
-	dataBlock[m.GetSchema().RecordId()] = record(newRecordBytes)
-
-	b := Block{}
-	b.Add(m.GetSchema().RecordId(), string(newRecordBytes))
+	newRecordStr := string(newRecordBytes)
+	dataBlock.Add(m.GetSchema().RecordId(), newRecordStr)
 
 	g.events <- newWriteBeforeEvent("...", blockFilePath)
-	writeErr := g.writeBlock(blockFilePath, dataBlock, m.GetDataFormat(), m.ShouldEncrypt())
+	writeErr := g.writeBlock(blockFilePath, dataBlock)
 	if writeErr != nil {
 		return writeErr
 	}
@@ -140,30 +138,32 @@ func (g *Gitdb) write(m Model) error {
 
 	logTest("sending write event to loop")
 	g.events <- newWriteEvent(commitMsg, blockFilePath)
-	g.updateIndexes(b, m.GetSchema().Name())
+	g.updateIndexes(m.GetSchema().Name(), record(newRecordStr))
 
 	//what is the effect of this on InsertMany?
 	return g.updateId(m)
 }
 
-func (g *Gitdb) writeBlock(blockFile string, data Block, format DataFormat, encryptData bool) error {
+func (g *Gitdb) writeBlock(blockFile string, block *Block) error {
+
+	model := g.getModelFromCache(block.dataset)
 
 	//encrypt data if need be
-	if encryptData {
-		for k, v := range data {
-			data[k] = record(encrypt(g.config.EncryptionKey, string(v)))
+	if model.ShouldEncrypt() {
+		for k, v := range block.records {
+			block.Add(k, encrypt(g.config.EncryptionKey, string(v)))
 		}
 	}
 
 	//determine which format we need to write data in
 	var blockBytes []byte
 	var fmtErr error
-	switch format {
+	switch model.GetDataFormat() {
 	case JSON:
-		blockBytes, fmtErr = json.MarshalIndent(data, "", "\t")
+		blockBytes, fmtErr = json.MarshalIndent(block.records, "", "\t")
 		break
 	case BSON:
-		blockBytes, fmtErr = bson.Marshal(data)
+		blockBytes, fmtErr = bson.Marshal(block.records)
 		break
 	}
 
@@ -192,7 +192,7 @@ func (g *Gitdb) delete(id string, failNotFound bool) error {
 	model := g.getModelFromCache(dataDir)
 
 	blockFilePath := g.blockFilePath(model)
-	err = g.delById(id, model.GetDataFormat(), blockFilePath, failNotFound)
+	err = g.delById(id, dataDir, blockFilePath, failNotFound)
 
 	if err == nil {
 		logTest("sending delete event to loop")
@@ -202,7 +202,7 @@ func (g *Gitdb) delete(id string, failNotFound bool) error {
 	return err
 }
 
-func (g *Gitdb) delById(id string, format DataFormat, blockFile string, failIfNotFound bool) error {
+func (g *Gitdb) delById(id string, dataset string, blockFile string, failIfNotFound bool) error {
 
 	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {
@@ -211,8 +211,8 @@ func (g *Gitdb) delById(id string, format DataFormat, blockFile string, failIfNo
 		return nil
 	}
 
-	dataBlock := Block{}
-	err := g.readBlock(blockFile, format, dataBlock)
+	dataBlock := NewBlock(dataset)
+	err := g.readBlock(blockFile, dataBlock)
 	if err != nil {
 		return err
 	}
@@ -224,11 +224,6 @@ func (g *Gitdb) delById(id string, format DataFormat, blockFile string, failIfNo
 		return nil
 	}
 
-	out, err := json.MarshalIndent(dataBlock, "", "\t")
-	if err != nil {
-		return err
-	}
-
 	//write undeleted records back to block file
-	return ioutil.WriteFile(blockFile, out, 0744)
+	return g.writeBlock(blockFile, dataBlock)
 }

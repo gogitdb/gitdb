@@ -11,17 +11,18 @@ import (
 type gdbIndex map[string]interface{}
 type gdbIndexCache map[string]gdbIndex
 
-func (g *Gitdb) updateIndexes(records Block, dataSet string) {
+func (g *Gitdb) updateIndexes(dataSet string, records ...record) {
 	g.indexUpdated = true
 	m := g.getModelFromCache(dataSet)
-	for id, _ := range records {
+	for _, record := range records {
 		indexPath := g.indexPath(m)
 		for name, value := range m.GetSchema().Indexes() {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)
 			}
-			g.indexCache[indexFile][id] = value
+			//TODO figure out a smarter way to get record id without json.unmarshall
+			g.indexCache[indexFile][record.Id()] = value
 		}
 	}
 }
@@ -82,7 +83,7 @@ func (g *Gitdb) buildIndex() {
 			continue
 		}
 
-		g.updateIndexes(records, dataSet)
+		g.updateIndexes(dataSet, records...)
 	}
 	log("Building index complete")
 }

@@ -1,11 +1,11 @@
 package gitdb
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
-	"errors"
 )
 
 var mu sync.Mutex
@@ -31,7 +31,7 @@ func Start(cfg *Config) *Gitdb {
 	err := conns[cfg.ConnectionName].boot()
 	if err != nil {
 		log("Db booted - with errors")
-	}else{
+	} else {
 		log("Db booted fine")
 	}
 
@@ -79,7 +79,7 @@ func GetConn(name string) *Gitdb {
 
 func (g *Gitdb) boot() error {
 	g.lastIds = make(map[string]int64)
-	log("Booting up db using "+g.GitDriver.name()+" driver")
+	log("Booting up db using " + g.GitDriver.name() + " driver")
 
 	var err error
 
@@ -114,7 +114,7 @@ func (g *Gitdb) boot() error {
 
 	// if .db directory does not exist and create it and attempt
 	// to do a git pull from remote
-	dataDir :=  g.dbDir()
+	dataDir := g.dbDir()
 	dotGitDir := filepath.Join(dataDir, ".git")
 	if _, err := os.Stat(dataDir); err != nil {
 		log("database not initialized")
@@ -134,7 +134,7 @@ func (g *Gitdb) boot() error {
 			if err != nil {
 				return err
 			}
-		}else{
+		} else {
 			err = g.gitInit()
 			if err != nil {
 				return err
@@ -143,7 +143,7 @@ func (g *Gitdb) boot() error {
 	} else if _, err := os.Stat(dotGitDir); err != nil {
 		log(err.Error())
 		return errors.New(g.config.DbPath + " is not a git repository")
-	}else if len(g.config.OnlineRemote) > 0 { //TODO Review this properly
+	} else if len(g.config.OnlineRemote) > 0 { //TODO Review this properly
 		//if remote is configured i.e stat .git/refs/remotes/online
 		//if remote dir does not exist add remotes
 		remotesPath := filepath.Join(dataDir, ".git", "refs", "remotes", "online")
@@ -163,4 +163,3 @@ func (g *Gitdb) boot() error {
 
 	return nil
 }
-

@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 )
 
 type StringFunc func() string
@@ -152,35 +154,98 @@ func (r record) bytes() []byte {
 	return []byte(string(r))
 }
 
+func (r record) string() string {
+	return string(r)
+}
+
 func (r record) Hydrate(model Model) error {
+	return r.hydrate(model)
+}
+
+func (r record) hydrate(model interface{}) error {
 	return json.Unmarshal(r.bytes(), model)
 }
 
-type Block map[string]record
+func (r record) Id() string {
+	var m struct{ ID string }
+	r.hydrate(&m)
 
-func (d Block) Add(key string, value string) {
-	d[key] = record(value)
+	return m.ID
 }
 
-func (d Block) Get(key string) (record, error) {
-	if _, ok := d[key]; ok {
-		return d[key], nil
+func (r record) createdDate() time.Time {
+	var m struct{ CreatedAt time.Time }
+	r.hydrate(&m)
+
+	return m.CreatedAt
+}
+
+type Block struct {
+	records map[string]record
+	dataset string
+}
+
+func NewBlock(dataset string) *Block {
+	block := &Block{dataset: dataset}
+	block.records = map[string]record{}
+	return block
+}
+
+func (d *Block) Add(key string, value string) {
+	d.records[key] = record(value)
+}
+
+func (d *Block) Get(key string) (record, error) {
+	if _, ok := d.records[key]; ok {
+		return d.records[key], nil
 	}
 
 	return "", errors.New("key does not exist")
 }
 
-func (d Block) Delete(key string) error {
-	if _, ok := d[key]; ok {
-		delete(d, key)
+func (d *Block) Delete(key string) error {
+	if _, ok := d.records[key]; ok {
+		delete(d.records, key)
 		return nil
 	}
 
 	return errors.New("key does not exist")
 }
 
-func (d Block) Reset() {
-	for k := range d {
-		delete(d, k)
+func (d *Block) Reset() {
+	for k := range d.records {
+		delete(d.records, k)
 	}
+}
+
+func (d *Block) Size() int {
+	return len(d.records)
+}
+
+func (d *Block) Records() []record {
+
+	var records []record
+	for _, v := range d.records {
+		records = append(records, v)
+	}
+
+	sort.Sort(collection(records))
+
+	return records
+}
+
+func (d *Block) Dataset() string {
+	return d.dataset
+}
+
+type collection []record
+
+func (c collection) Len() int {
+	return len(c)
+}
+func (c collection) Less(i, j int) bool {
+	return c[i].createdDate().Before(c[j].createdDate())
+}
+func (c collection) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
 }

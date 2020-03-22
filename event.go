@@ -1,9 +1,10 @@
 package gitdb
 
 import (
-	"time"
-	"github.com/distatus/battery"
 	"fmt"
+	"time"
+
+	"github.com/distatus/battery"
 )
 
 type eventType string
@@ -57,14 +58,14 @@ func (g *Gitdb) startEventLoop() {
 				log("event shutdown")
 				return
 			default:
-				log("No handler found for "+string(e.Type)+" event")
+				log("No handler found for " + string(e.Type) + " event")
 			}
 		}
 	}
 }
 
 //use this for testing go MockSyncClock(..)
-func MockSyncClock(db *Gitdb){
+func MockSyncClock(db *Gitdb) {
 	ticker := time.NewTicker(db.config.SyncInterval)
 	for {
 		logTest("tick! tock!")
@@ -98,6 +99,10 @@ func (g *Gitdb) startSyncClock() {
 				if err1 != nil || err2 != nil {
 					log("Database sync failed")
 				}
+
+				//reset loaded blocks
+				g.loadedBlocks = map[string]Block{}
+
 				g.buildIndex()
 				g.releaseLock()
 			} else if !getLock {

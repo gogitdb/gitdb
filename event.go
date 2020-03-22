@@ -101,7 +101,7 @@ func (g *Gitdb) startSyncClock() {
 				}
 
 				//reset loaded blocks
-				g.loadedBlocks = map[string]Block{}
+				g.loadedBlocks = map[string]*Block{}
 
 				g.buildIndex()
 				g.releaseLock()

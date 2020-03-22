@@ -138,7 +138,7 @@ func (g *Gitdb) write(m Model) error {
 
 	logTest("sending write event to loop")
 	g.events <- newWriteEvent(commitMsg, blockFilePath)
-	g.updateIndexes(m.GetSchema().Name(), record(newRecordStr))
+	g.updateIndexes(m.GetSchema().Name(), newRecord(m.Id(), newRecordStr))
 
 	//what is the effect of this on InsertMany?
 	return g.updateId(m)
@@ -150,8 +150,8 @@ func (g *Gitdb) writeBlock(blockFile string, block *Block) error {
 
 	//encrypt data if need be
 	if model.ShouldEncrypt() {
-		for k, v := range block.records {
-			block.Add(k, encrypt(g.config.EncryptionKey, string(v)))
+		for k, record := range block.records {
+			block.Add(k, encrypt(g.config.EncryptionKey, record.data))
 		}
 	}
 
@@ -160,10 +160,10 @@ func (g *Gitdb) writeBlock(blockFile string, block *Block) error {
 	var fmtErr error
 	switch model.GetDataFormat() {
 	case JSON:
-		blockBytes, fmtErr = json.MarshalIndent(block.records, "", "\t")
+		blockBytes, fmtErr = json.MarshalIndent(block.data(), "", "\t")
 		break
 	case BSON:
-		blockBytes, fmtErr = bson.Marshal(block.records)
+		blockBytes, fmtErr = bson.Marshal(block.data())
 		break
 	}
 

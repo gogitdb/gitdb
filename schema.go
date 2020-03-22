@@ -24,7 +24,7 @@ type Schema struct {
 	indexesFunc  IndexFunction
 }
 
-func NewSchema(name StringFunc, block StringFunc, record StringFunc, indexes IndexFunction) *Schema {
+func NewSchema(name, block, record StringFunc, indexes IndexFunction) *Schema {
 	return &Schema{name, block, record, indexes}
 }
 
@@ -148,32 +148,28 @@ func NewIDParser(id string) *IDParser {
 	return new(IDParser).Parse(id)
 }
 
-type record string
-
-func (r record) bytes() []byte {
-	return []byte(string(r))
+type record struct {
+	id   string
+	data string
 }
 
-func (r record) string() string {
-	return string(r)
+func newRecord(id, data string) *record {
+	return &record{id, data}
 }
 
-func (r record) Hydrate(model Model) error {
+func (r *record) bytes() []byte {
+	return []byte(r.data)
+}
+
+func (r *record) Hydrate(model Model) error {
 	return r.hydrate(model)
 }
 
-func (r record) hydrate(model interface{}) error {
+func (r *record) hydrate(model interface{}) error {
 	return json.Unmarshal(r.bytes(), model)
 }
 
-func (r record) Id() string {
-	var m struct{ ID string }
-	r.hydrate(&m)
-
-	return m.ID
-}
-
-func (r record) createdDate() time.Time {
+func (r *record) createdDate() time.Time {
 	var m struct{ CreatedAt time.Time }
 	r.hydrate(&m)
 
@@ -181,51 +177,61 @@ func (r record) createdDate() time.Time {
 }
 
 type Block struct {
-	records map[string]record
-	dataset string
+	//records used to provide hydration and sorting
+	records map[string]*record
+	//rawRecords used for reading from block files
+	rawRecords map[string]string
+	dataset    string
 }
 
 func NewBlock(dataset string) *Block {
 	block := &Block{dataset: dataset}
-	block.records = map[string]record{}
+	block.records = map[string]*record{}
+	block.rawRecords = map[string]string{}
 	return block
 }
 
-func (d *Block) Add(key string, value string) {
-	d.records[key] = record(value)
+func (b *Block) Add(key string, value string) {
+	b.records[key] = newRecord(key, value)
+	b.rawRecords[key] = value
 }
 
-func (d *Block) Get(key string) (record, error) {
-	if _, ok := d.records[key]; ok {
-		return d.records[key], nil
+func (b *Block) Get(key string) (*record, error) {
+	b.fill()
+	if _, ok := b.records[key]; ok {
+		return b.records[key], nil
 	}
 
-	return "", errors.New("key does not exist")
+	return nil, errors.New("key does not exist")
 }
 
-func (d *Block) Delete(key string) error {
-	if _, ok := d.records[key]; ok {
-		delete(d.records, key)
+func (b *Block) Delete(key string) error {
+	b.fill()
+	if _, ok := b.records[key]; ok {
+		delete(b.records, key)
+		delete(b.rawRecords, key)
 		return nil
 	}
 
 	return errors.New("key does not exist")
 }
 
-func (d *Block) Reset() {
-	for k := range d.records {
-		delete(d.records, k)
+func (b *Block) Reset() {
+	for k := range b.records {
+		delete(b.records, k)
+		delete(b.rawRecords, k)
 	}
 }
 
-func (d *Block) Size() int {
-	return len(d.records)
+func (b *Block) Size() int {
+	b.fill()
+	return len(b.records)
 }
 
-func (d *Block) Records() []record {
-
-	var records []record
-	for _, v := range d.records {
+func (b *Block) Records() []*record {
+	b.fill()
+	var records []*record
+	for _, v := range b.records {
 		records = append(records, v)
 	}
 
@@ -234,11 +240,17 @@ func (d *Block) Records() []record {
 	return records
 }
 
-func (d *Block) Dataset() string {
-	return d.dataset
+func (b *Block) data() map[string]string {
+	return b.rawRecords
 }
 
-type collection []record
+func (b *Block) fill() {
+	for k, v := range b.rawRecords {
+		b.records[k] = newRecord(k, v)
+	}
+}
+
+type collection []*record
 
 func (c collection) Len() int {
 	return len(c)

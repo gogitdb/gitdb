@@ -11,7 +11,7 @@ import (
 type gdbIndex map[string]interface{}
 type gdbIndexCache map[string]gdbIndex
 
-func (g *Gitdb) updateIndexes(dataSet string, records ...record) {
+func (g *Gitdb) updateIndexes(dataSet string, records ...*record) {
 	g.indexUpdated = true
 	m := g.getModelFromCache(dataSet)
 	for _, record := range records {
@@ -21,8 +21,7 @@ func (g *Gitdb) updateIndexes(dataSet string, records ...record) {
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)
 			}
-			//TODO figure out a smarter way to get record id without json.unmarshall
-			g.indexCache[indexFile][record.Id()] = value
+			g.indexCache[indexFile][record.id] = value
 		}
 	}
 }

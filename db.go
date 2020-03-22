@@ -57,6 +57,9 @@ func NewGitdb() *Gitdb {
 }
 
 func (g *Gitdb) Shutdown() error {
+	//TODO detect if db is already shutdown
+	//to avoid panic caused by closing a closed channel
+
 	logTest("Shutting down gitdb")
 	err := g.flushDb()
 	if err != nil {

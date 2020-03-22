@@ -20,10 +20,10 @@ func (g *Gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
 		g.loadedBlocks = map[string]*Block{}
 	}
 
-	//if block file exist, read it and load into map
-	if _, err := os.Stat(blockFile); err == nil {
-		if _, ok := g.loadedBlocks[blockFile]; !ok {
-			g.loadedBlocks[blockFile] = NewBlock(dataset)
+	//if block file exist, read it and load into map else return an empty block
+	if _, ok := g.loadedBlocks[blockFile]; !ok {
+		g.loadedBlocks[blockFile] = NewBlock(dataset)
+		if _, err := os.Stat(blockFile); err == nil {
 			err := g.readBlock(blockFile, g.loadedBlocks[blockFile])
 			if err != nil {
 				return g.loadedBlocks[blockFile], err
@@ -45,10 +45,10 @@ func (g *Gitdb) readBlock(blockFile string, block *Block) error {
 	var fmtErr error
 	switch model.GetDataFormat() {
 	case JSON:
-		fmtErr = json.Unmarshal(data, &block.records)
+		fmtErr = json.Unmarshal(data, &block.rawRecords)
 		break
 	case BSON:
-		fmtErr = bson.Unmarshal(data, &block.records)
+		fmtErr = bson.Unmarshal(data, &block.rawRecords)
 		break
 	}
 
@@ -59,8 +59,8 @@ func (g *Gitdb) readBlock(blockFile string, block *Block) error {
 	//check if decryption is required
 	if model.ShouldEncrypt() {
 		log("decrypting record")
-		for k, v := range block.records {
-			block.Add(k, decrypt(g.config.EncryptionKey, string(v)))
+		for k, record := range block.records {
+			block.Add(k, decrypt(g.config.EncryptionKey, record.data))
 		}
 	}
 
@@ -105,24 +105,24 @@ func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result *Block
 	return err
 }
 
-func (g *Gitdb) get(id string) (record, error) {
+func (g *Gitdb) get(id string) (*record, error) {
 
 	dataDir, block, _, err := g.ParseId(id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	model := g.getModelFromCache(dataDir)
 	dataFilePath := filepath.Join(g.dbDir(), dataDir, block+"."+string(model.GetDataFormat()))
 	if _, err := os.Stat(dataFilePath); err != nil {
-		return "", errors.New(dataDir + " Not Found - " + id)
+		return nil, errors.New(dataDir + " Not Found - " + id)
 	}
 
 	dataBlock := NewBlock(dataDir)
 	err = g.readBlock(dataFilePath, dataBlock)
 	if err != nil {
 		logError(err.Error())
-		return "", errors.New("Record " + id + " not found in " + dataDir)
+		return nil, errors.New("Record " + id + " not found in " + dataDir)
 	}
 
 	record, err := dataBlock.Get(id)
@@ -157,7 +157,7 @@ func (g *Gitdb) Exists(id string) error {
 	return err
 }
 
-func (g *Gitdb) Fetch(dataDir string) ([]record, error) {
+func (g *Gitdb) Fetch(dataDir string) ([]*record, error) {
 
 	dataBlock := NewBlock(dataDir)
 	err := g.fetch(dataBlock)
@@ -197,7 +197,7 @@ func (g *Gitdb) fetch(dataBlock *Block) error {
 }
 
 //EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *Gitdb) FetchMt(dataset string) ([]record, error) {
+func (g *Gitdb) FetchMt(dataset string) ([]*record, error) {
 
 	dataBlock := NewBlock(dataset)
 
@@ -233,7 +233,7 @@ func (g *Gitdb) FetchMt(dataset string) ([]record, error) {
 	return dataBlock.Records(), nil
 }
 
-func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]record, error) {
+func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error) {
 
 	query := &searchQuery{
 		dataset:      dataDir,

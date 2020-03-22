@@ -131,7 +131,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 
 		_, blockId, _, _ := g.ParseId(recordId)
 		if _, ok := oldBlocks[blockId]; !ok {
-			blockFile := blockId + "." + string(from.GetDataFormat())
+			blockFile := blockId + ".json"
 			println(blockFile)
 			blockFilePath := filepath.Join(g.dbDir(), block.dataset, blockFile)
 			oldBlocks[blockId] = blockFilePath

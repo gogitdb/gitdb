@@ -22,7 +22,7 @@ func doInsert(m db.Model, benchmark bool) error {
 		//check that block file exist
 		idParser := db.NewIDParser(m.Id())
 		cfg := getConfig()
-		blockFile := filepath.Join(cfg.DbPath, "data", idParser.BlockId()+"."+string(m.GetDataFormat()))
+		blockFile := filepath.Join(cfg.DbPath, "data", idParser.BlockId()+".json")
 		if _, err := os.Stat(blockFile); err != nil {
 			return err
 		} else {

@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"gopkg.in/mgo.v2/bson"
 )
 
 func (g *Gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
@@ -42,17 +40,7 @@ func (g *Gitdb) readBlock(blockFile string, block *Block) error {
 		return err
 	}
 
-	var fmtErr error
-	switch model.GetDataFormat() {
-	case JSON:
-		fmtErr = json.Unmarshal(data, &block.rawRecords)
-		break
-	case BSON:
-		fmtErr = bson.Unmarshal(data, &block.rawRecords)
-		break
-	}
-
-	if fmtErr != nil {
+	if err := json.Unmarshal(data, &block.rawRecords); err != nil {
 		return badBlockError
 	}
 
@@ -112,8 +100,7 @@ func (g *Gitdb) get(id string) (*record, error) {
 		return nil, err
 	}
 
-	model := g.getModelFromCache(dataDir)
-	dataFilePath := filepath.Join(g.dbDir(), dataDir, block+"."+string(model.GetDataFormat()))
+	dataFilePath := filepath.Join(g.dbDir(), dataDir, block+".json")
 	if _, err := os.Stat(dataFilePath); err != nil {
 		return nil, errors.New(dataDir + " Not Found - " + id)
 	}
@@ -180,12 +167,10 @@ func (g *Gitdb) fetch(dataBlock *Block) error {
 		return err
 	}
 
-	model := g.getModelFromCache(dataset)
-
 	var fileName string
 	for _, file := range files {
 		fileName = filepath.Join(fullPath, file.Name())
-		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
+		if filepath.Ext(fileName) == ".json" {
 			err := g.readBlock(fileName, dataBlock)
 			if err != nil {
 				return err
@@ -209,12 +194,10 @@ func (g *Gitdb) FetchMt(dataset string) ([]*record, error) {
 		return nil, err
 	}
 
-	model := g.getModelFromCache(dataset)
 	wg := sync.WaitGroup{}
-
 	for _, file := range files {
 		fileName := filepath.Join(fullPath, file.Name())
-		if filepath.Ext(fileName) == "."+string(model.GetDataFormat()) {
+		if filepath.Ext(fileName) == ".json" {
 			wg.Add(1)
 			go func() {
 				err := g.readBlock(fileName, dataBlock)
@@ -289,11 +272,10 @@ func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 		searchBlocks[block] = block
 	}
 
-	model := g.getModelFromCache(query.dataset)
 	var blockFile string
 	for _, block := range searchBlocks {
 
-		blockFile = filepath.Join(g.dbDir(), query.dataset, block+"."+string(model.GetDataFormat()))
+		blockFile = filepath.Join(g.dbDir(), query.dataset, block+".json")
 		err := g.readBlock(blockFile, dataBlock)
 		if err != nil {
 			return nil, err

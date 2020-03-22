@@ -22,7 +22,7 @@ func (g *Gitdb) fullPath(m Model) string {
 }
 
 func (g *Gitdb) blockFilePath(m Model) string {
-	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc()+"."+string(m.GetDataFormat()))
+	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc()+".json")
 }
 
 func (g *Gitdb) queueDir() string {
@@ -30,7 +30,7 @@ func (g *Gitdb) queueDir() string {
 }
 
 func (g *Gitdb) queueFilePath(m Model) string {
-	return filepath.Join(g.queueDir(), m.GetSchema().Name()+"."+string(m.GetDataFormat()))
+	return filepath.Join(g.queueDir(), m.GetSchema().Name()+".json")
 }
 
 func (g *Gitdb) lockDir(m Model) string {

@@ -25,7 +25,6 @@ type Model interface {
 	SetCreatedDate(time.Time)
 	SetUpdatedDate(time.Time)
 	ShouldEncrypt() bool
-	GetDataFormat() DataFormat
 	GetValidationErrors() []error
 }
 
@@ -81,10 +80,6 @@ func (m *BaseModel) GetLockFileNames() []string {
 
 func (m *BaseModel) ShouldEncrypt() bool {
 	return false
-}
-
-func (m *BaseModel) GetDataFormat() DataFormat {
-	return JSON
 }
 
 func (m *BaseModel) GetValidationErrors() []error {

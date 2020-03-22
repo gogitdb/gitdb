@@ -70,7 +70,7 @@ func NewAutoBlock(db *Gitdb, model Model, maxBlockSize int64, recordsPerBlock in
 		if err == nil {
 			for _, currentBlockFile = range files {
 				currentBlockFileName = filepath.Join(fullPath, currentBlockFile.Name())
-				if filepath.Ext(currentBlockFileName) == "."+string(model.GetDataFormat()) {
+				if filepath.Ext(currentBlockFileName) == ".json" {
 					currentBlock++
 				}
 			}

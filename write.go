@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	"gopkg.in/mgo.v2/bson"
 )
 
 func (g *Gitdb) Insert(m Model) error {
@@ -155,18 +153,7 @@ func (g *Gitdb) writeBlock(blockFile string, block *Block) error {
 		}
 	}
 
-	//determine which format we need to write data in
-	var blockBytes []byte
-	var fmtErr error
-	switch model.GetDataFormat() {
-	case JSON:
-		blockBytes, fmtErr = json.MarshalIndent(block.data(), "", "\t")
-		break
-	case BSON:
-		blockBytes, fmtErr = bson.Marshal(block.data())
-		break
-	}
-
+	blockBytes, fmtErr := json.MarshalIndent(block.data(), "", "\t")
 	if fmtErr != nil {
 		return fmtErr
 	}

@@ -16,7 +16,7 @@ type mail struct {
 
 type Mail struct {
 	privateMail *mail
-	dbConn      *gdb
+	db          *gdb
 }
 
 // Implement json.Unmarshaller
@@ -24,10 +24,10 @@ func (m *Mail) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &m.privateMail)
 }
 
-func newMail(dbConn *gdb, subject string, body string) *Mail {
+func newMail(db *gdb, subject string, body string) *Mail {
 	return &Mail{
 		privateMail: &mail{Subject: subject, Body: body, Date: time.Now()},
-		dbConn:      dbConn,
+		db:          db,
 	}
 }
 
@@ -45,8 +45,8 @@ func (m *Mail) GetDate() time.Time {
 
 func (m *Mail) send() error {
 
-	if _, err := os.Stat(m.dbConn.mailDir()); err != nil {
-		os.MkdirAll(m.dbConn.mailDir(), 0744)
+	if _, err := os.Stat(m.db.mailDir()); err != nil {
+		os.MkdirAll(m.db.mailDir(), 0744)
 	}
 
 	bytes, err := json.Marshal(m.privateMail)
@@ -54,7 +54,7 @@ func (m *Mail) send() error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(m.dbConn.mailDir(), time.Now().Format("20060102150405")+".json"), bytes, 0744)
+	err = ioutil.WriteFile(filepath.Join(m.db.mailDir(), time.Now().Format("20060102150405")+".json"), bytes, 0744)
 	if err != nil {
 		log("Could not send notification - " + err.Error())
 	}

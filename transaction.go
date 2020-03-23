@@ -5,7 +5,7 @@ type operation func() error
 type transaction struct {
 	name       string
 	operations []operation
-	db         *gdb
+	db         *gitdb
 }
 
 func (t *transaction) Commit() error {

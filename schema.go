@@ -52,7 +52,7 @@ func (a *Schema) Indexes() map[string]interface{} {
 	return a.indexesFunc()
 }
 
-func NewAutoBlock(db *gdb, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
+func NewAutoBlock(db *gitdb, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
 	currentBlock := -1
 	return func() string {
 

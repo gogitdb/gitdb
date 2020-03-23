@@ -14,7 +14,7 @@ import (
 // generateSSHKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func (g *gdb) generateSSHKeyPair() error {
+func (g *gitdb) generateSSHKeyPair() error {
 
 	if _, err := os.Stat(g.privateKeyFilePath()); err == nil {
 
@@ -58,7 +58,7 @@ func (g *gdb) generateSSHKeyPair() error {
 	return g.generatePublicKey(privateKey)
 }
 
-func (g *gdb) generatePrivateKey(pk *rsa.PrivateKey) error {
+func (g *gitdb) generatePrivateKey(pk *rsa.PrivateKey) error {
 	// generate and write private key as PEM
 	privateKeyFile, err := os.OpenFile(g.privateKeyFilePath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0400)
 	defer privateKeyFile.Close()
@@ -73,7 +73,7 @@ func (g *gdb) generatePrivateKey(pk *rsa.PrivateKey) error {
 	return nil
 }
 
-func (g *gdb) generatePublicKey(pk *rsa.PrivateKey) error {
+func (g *gitdb) generatePublicKey(pk *rsa.PrivateKey) error {
 	// generate and write public key
 	pub, err := ssh.NewPublicKey(&pk.PublicKey)
 	if err != nil {

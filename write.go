@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func (g *gdb) insert(m Model) error {
+func (g *gitdb) insert(m Model) error {
 
 	stamp(m)
 
@@ -32,7 +32,7 @@ func (g *gdb) insert(m Model) error {
 	return g.queue(m)
 }
 
-func (g *gdb) queue(m Model) error {
+func (g *gitdb) queue(m Model) error {
 
 	dataBlock, err := g.loadBlock(g.queueFilePath(m), m.GetSchema().Name())
 	if err != nil {
@@ -47,7 +47,7 @@ func (g *gdb) queue(m Model) error {
 	return g.updateId(m)
 }
 
-func (g *gdb) flushQueue(m Model) error {
+func (g *gitdb) flushQueue(m Model) error {
 
 	if _, err := os.Stat(g.queueFilePath(m)); err == nil {
 
@@ -84,11 +84,11 @@ func (g *gdb) flushQueue(m Model) error {
 	return nil
 }
 
-func (g *gdb) flushDb() error {
+func (g *gitdb) flushDb() error {
 	return nil
 }
 
-func (g *gdb) write(m Model) error {
+func (g *gitdb) write(m Model) error {
 
 	blockFilePath := g.blockFilePath(m)
 	commitMsg := "Inserting " + m.Id() + " into " + blockFilePath
@@ -129,7 +129,7 @@ func (g *gdb) write(m Model) error {
 	return g.updateId(m)
 }
 
-func (g *gdb) writeBlock(blockFile string, block *Block) error {
+func (g *gitdb) writeBlock(blockFile string, block *Block) error {
 
 	model := g.getModelFromCache(block.dataset)
 
@@ -148,15 +148,15 @@ func (g *gdb) writeBlock(blockFile string, block *Block) error {
 	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 
-func (g *gdb) delete(id string) error {
+func (g *gitdb) delete(id string) error {
 	return g.dodelete(id, false)
 }
 
-func (g *gdb) deleteOrFail(id string) error {
+func (g *gitdb) deleteOrFail(id string) error {
 	return g.dodelete(id, true)
 }
 
-func (g *gdb) dodelete(id string, failNotFound bool) error {
+func (g *gitdb) dodelete(id string, failNotFound bool) error {
 
 	dataDir, _, _, err := ParseId(id)
 	if err != nil {
@@ -176,7 +176,7 @@ func (g *gdb) dodelete(id string, failNotFound bool) error {
 	return err
 }
 
-func (g *gdb) delById(id string, dataset string, blockFile string, failIfNotFound bool) error {
+func (g *gitdb) delById(id string, dataset string, blockFile string, failIfNotFound bool) error {
 
 	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {

@@ -5,22 +5,22 @@ import (
 )
 
 type Connection struct {
-	gitdb       *gdb
+	gitdb       *gitdb
 	loopStarted bool
 	closed      bool
 }
 
 func newConnection() *Connection {
 	//autocommit defaults to true
-	gitdb := &gdb{autoCommit: true, indexCache: make(gdbIndexCache)}
+	db := &gitdb{autoCommit: true, indexCache: make(gdbIndexCache)}
 	//initialize channels
-	gitdb.events = make(chan *dbEvent, 1)
-	gitdb.locked = make(chan bool, 1)
+	db.events = make(chan *dbEvent, 1)
+	db.locked = make(chan bool, 1)
 
-	return &Connection{gitdb: gitdb}
+	return &Connection{gitdb: db}
 }
 
-func (c *Connection) db() *gdb {
+func (c *Connection) db() *gitdb {
 	db, err := c.dbWithError()
 	if err != nil {
 		panic(err.Error())
@@ -28,7 +28,7 @@ func (c *Connection) db() *gdb {
 	return db
 }
 
-func (c *Connection) dbWithError() (*gdb, error) {
+func (c *Connection) dbWithError() (*gitdb, error) {
 	if c.closed {
 		return nil, connectionClosedError
 	}

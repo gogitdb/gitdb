@@ -81,7 +81,7 @@ func GetConn(name string) *Connection {
 	return conns[name]
 }
 
-func (g *gdb) boot() error {
+func (g *gitdb) boot() error {
 	g.lastIds = make(map[string]int64)
 	log("Booting up db using " + g.gitDriver.name() + " driver")
 

@@ -16,7 +16,7 @@ type mail struct {
 
 type Mail struct {
 	privateMail *mail
-	db          *gdb
+	db          *gitdb
 }
 
 // Implement json.Unmarshaller
@@ -24,7 +24,7 @@ func (m *Mail) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &m.privateMail)
 }
 
-func newMail(db *gdb, subject string, body string) *Mail {
+func newMail(db *gitdb, subject string, body string) *Mail {
 	return &Mail{
 		privateMail: &mail{Subject: subject, Body: body, Date: time.Now()},
 		db:          db,

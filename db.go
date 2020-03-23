@@ -30,7 +30,7 @@ type SearchParam struct {
 	Value string
 }
 
-type gdb struct {
+type gitdb struct {
 	mu sync.Mutex
 	//use this for special optimizations :)
 	buf bytes.Buffer
@@ -49,7 +49,7 @@ type gdb struct {
 	loadedModels map[string]Model
 }
 
-func (g *gdb) shutdown() error {
+func (g *gitdb) shutdown() error {
 	logTest("Shutting down gitdb")
 	err := g.flushDb()
 	if err != nil {
@@ -69,7 +69,7 @@ func (g *gdb) shutdown() error {
 	return nil
 }
 
-func (g *gdb) configure(cfg *Config) {
+func (g *gitdb) configure(cfg *Config) {
 	g.config = cfg
 	g.config.sshKey = g.privateKeyFilePath()
 
@@ -88,7 +88,7 @@ func (g *gdb) configure(cfg *Config) {
 }
 
 //todo add revert logic if migrate fails mid way
-func (g *gdb) Migrate(from Model, to Model) error {
+func (g *gitdb) Migrate(from Model, to Model) error {
 	block := NewBlock(from.GetSchema().Name())
 	err := g.dofetch(block)
 	if err != nil {
@@ -131,7 +131,7 @@ func (g *gdb) Migrate(from Model, to Model) error {
 
 //TODO make this method more robust to handle cases where the id file is deleted
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
-func (g *gdb) generateId(m Model) int64 {
+func (g *gitdb) generateId(m Model) int64 {
 	var id int64
 	idFile := g.idFilePath(m)
 	//check if id file exists
@@ -155,7 +155,7 @@ func (g *gdb) generateId(m Model) int64 {
 	return id
 }
 
-func (g *gdb) updateId(m Model) error {
+func (g *gitdb) updateId(m Model) error {
 	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
 		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
 	}
@@ -163,15 +163,15 @@ func (g *gdb) updateId(m Model) error {
 	return nil
 }
 
-func (g *gdb) setLastId(m Model, id int64) {
+func (g *gitdb) setLastId(m Model, id int64) {
 	g.lastIds[m.GetSchema().Name()] = id
 }
 
-func (g *gdb) getLastId(m Model) int64 {
+func (g *gitdb) getLastId(m Model) int64 {
 	return g.lastIds[m.GetSchema().Name()]
 }
 
-func (g *gdb) getLock() bool {
+func (g *gitdb) getLock() bool {
 	select {
 	case locked := <-g.locked:
 		g.locked <- locked
@@ -182,7 +182,7 @@ func (g *gdb) getLock() bool {
 	}
 }
 
-func (g *gdb) releaseLock() bool {
+func (g *gitdb) releaseLock() bool {
 	<-g.locked
 	g.locked <- false
 	return true
@@ -190,7 +190,7 @@ func (g *gdb) releaseLock() bool {
 
 //use this function to get meta data about a model
 //e.g indexes, shouldEncrypt and paths
-func (g *gdb) getModelFromCache(dataset string) Model {
+func (g *gitdb) getModelFromCache(dataset string) Model {
 
 	if len(g.loadedModels) <= 0 {
 		g.loadedModels = make(map[string]Model)

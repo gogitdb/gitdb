@@ -11,7 +11,7 @@ import (
 type gdbIndex map[string]interface{}
 type gdbIndexCache map[string]gdbIndex
 
-func (g *gdb) updateIndexes(dataSet string, records ...*record) {
+func (g *gitdb) updateIndexes(dataSet string, records ...*record) {
 	g.indexUpdated = true
 	m := g.getModelFromCache(dataSet)
 	for _, record := range records {
@@ -26,7 +26,7 @@ func (g *gdb) updateIndexes(dataSet string, records ...*record) {
 	}
 }
 
-func (g *gdb) flushIndex() error {
+func (g *gitdb) flushIndex() error {
 	if g.indexUpdated {
 		logTest("flushing index")
 		for indexFile, data := range g.indexCache {
@@ -58,7 +58,7 @@ func (g *gdb) flushIndex() error {
 	return nil
 }
 
-func (g *gdb) readIndex(indexFile string) gdbIndex {
+func (g *gitdb) readIndex(indexFile string) gdbIndex {
 	rMap := make(gdbIndex)
 	if _, err := os.Stat(indexFile); err == nil {
 		data, err := ioutil.ReadFile(indexFile)
@@ -73,7 +73,7 @@ func (g *gdb) readIndex(indexFile string) gdbIndex {
 	return rMap
 }
 
-func (g *gdb) buildIndex() {
+func (g *gitdb) buildIndex() {
 	dataSets := getDatasets(g.dbDir())
 	for _, dataSet := range dataSets {
 		log("Building index for Dataset: " + dataSet)

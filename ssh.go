@@ -1,19 +1,20 @@
 package gitdb
 
 import (
-	"crypto/rsa"
-	"os"
-	"encoding/pem"
-	"crypto/x509"
 	"crypto/rand"
-	"golang.org/x/crypto/ssh"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"io/ioutil"
+	"os"
+
+	"golang.org/x/crypto/ssh"
 )
 
 // generateSSHKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func (g *Gitdb) generateSSHKeyPair() error {
+func (g *gdb) generateSSHKeyPair() error {
 
 	if _, err := os.Stat(g.privateKeyFilePath()); err == nil {
 
@@ -57,7 +58,7 @@ func (g *Gitdb) generateSSHKeyPair() error {
 	return g.generatePublicKey(privateKey)
 }
 
-func (g *Gitdb) generatePrivateKey(pk *rsa.PrivateKey) error {
+func (g *gdb) generatePrivateKey(pk *rsa.PrivateKey) error {
 	// generate and write private key as PEM
 	privateKeyFile, err := os.OpenFile(g.privateKeyFilePath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0400)
 	defer privateKeyFile.Close()
@@ -72,7 +73,7 @@ func (g *Gitdb) generatePrivateKey(pk *rsa.PrivateKey) error {
 	return nil
 }
 
-func (g *Gitdb) generatePublicKey(pk *rsa.PrivateKey) error {
+func (g *gdb) generatePublicKey(pk *rsa.PrivateKey) error {
 	// generate and write public key
 	pub, err := ssh.NewPublicKey(&pk.PublicKey)
 	if err != nil {

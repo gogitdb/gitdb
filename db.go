@@ -2,7 +2,6 @@ package gitdb
 
 import (
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,7 +30,7 @@ type SearchParam struct {
 	Value string
 }
 
-type Gitdb struct {
+type gdb struct {
 	mu sync.Mutex
 	//use this for special optimizations :)
 	buf bytes.Buffer
@@ -40,10 +39,9 @@ type Gitdb struct {
 	events    chan *dbEvent
 	lastIds   map[string]int64
 	config    *Config
-	GitDriver gitDriver
+	gitDriver dbDriver
 
 	autoCommit   bool //default to true
-	loopStarted  bool
 	indexUpdated bool
 
 	indexCache   gdbIndexCache
@@ -51,15 +49,7 @@ type Gitdb struct {
 	loadedModels map[string]Model
 }
 
-func NewGitdb() *Gitdb {
-	//autocommit defaults to true
-	return &Gitdb{autoCommit: true, indexCache: make(gdbIndexCache)}
-}
-
-func (g *Gitdb) Shutdown() error {
-	//TODO detect if db is already shutdown
-	//to avoid panic caused by closing a closed channel
-
+func (g *gdb) shutdown() error {
 	logTest("Shutting down gitdb")
 	err := g.flushDb()
 	if err != nil {
@@ -79,49 +69,28 @@ func (g *Gitdb) Shutdown() error {
 	return nil
 }
 
-func (g *Gitdb) Configure(cfg *Config) {
+func (g *gdb) configure(cfg *Config) {
 	g.config = cfg
 	g.config.sshKey = g.privateKeyFilePath()
 
 	switch cfg.GitDriver {
 	case GitDriverGoGit:
-		g.GitDriver = &goGit{}
+		g.gitDriver = &goGit{}
 		break
 	case GitDriverBinary:
-		g.GitDriver = &gitBinary{}
+		g.gitDriver = &gitBinary{}
 		break
 	default:
-		g.GitDriver = &gitBinary{}
+		g.gitDriver = &gitBinary{}
 	}
 
-	//initialize channels
-	g.events = make(chan *dbEvent, 1)
-	g.locked = make(chan bool, 1)
-
-	g.GitDriver.configure(g)
-}
-
-func (g *Gitdb) SetUser(user *DbUser) {
-	g.config.User = user
-}
-
-func (g *Gitdb) ParseId(id string) (dataDir string, block string, record string, err error) {
-	recordMeta := strings.Split(id, "/")
-	if len(recordMeta) != 3 {
-		err = errors.New("Invalid record id: " + id)
-	} else {
-		dataDir = recordMeta[0]
-		block = recordMeta[1]
-		record = recordMeta[2]
-	}
-
-	return dataDir, block, record, err
+	g.gitDriver.configure(g)
 }
 
 //todo add revert logic if migrate fails mid way
-func (g *Gitdb) Migrate(from Model, to Model) error {
+func (g *gdb) Migrate(from Model, to Model) error {
 	block := NewBlock(from.GetSchema().Name())
-	err := g.fetch(block)
+	err := g.dofetch(block)
 	if err != nil {
 		return err
 	}
@@ -129,7 +98,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 	oldBlocks := map[string]string{}
 	for recordId, record := range block.records {
 
-		_, blockId, _, _ := g.ParseId(recordId)
+		_, blockId, _, _ := ParseId(recordId)
 		if _, ok := oldBlocks[blockId]; !ok {
 			blockFile := blockId + ".json"
 			println(blockFile)
@@ -142,7 +111,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 			return err
 		}
 
-		err = g.Insert(to)
+		err = g.insert(to)
 		if err != nil {
 			return err
 		}
@@ -162,7 +131,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 
 //TODO make this method more robust to handle cases where the id file is deleted
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
-func (g *Gitdb) GenerateId(m Model) int64 {
+func (g *gdb) generateId(m Model) int64 {
 	var id int64
 	idFile := g.idFilePath(m)
 	//check if id file exists
@@ -186,7 +155,7 @@ func (g *Gitdb) GenerateId(m Model) int64 {
 	return id
 }
 
-func (g *Gitdb) updateId(m Model) error {
+func (g *gdb) updateId(m Model) error {
 	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
 		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
 	}
@@ -194,15 +163,15 @@ func (g *Gitdb) updateId(m Model) error {
 	return nil
 }
 
-func (g *Gitdb) setLastId(m Model, id int64) {
+func (g *gdb) setLastId(m Model, id int64) {
 	g.lastIds[m.GetSchema().Name()] = id
 }
 
-func (g *Gitdb) getLastId(m Model) int64 {
+func (g *gdb) getLastId(m Model) int64 {
 	return g.lastIds[m.GetSchema().Name()]
 }
 
-func (g *Gitdb) getLock() bool {
+func (g *gdb) getLock() bool {
 	select {
 	case locked := <-g.locked:
 		g.locked <- locked
@@ -213,13 +182,15 @@ func (g *Gitdb) getLock() bool {
 	}
 }
 
-func (g *Gitdb) releaseLock() bool {
+func (g *gdb) releaseLock() bool {
 	<-g.locked
 	g.locked <- false
 	return true
 }
 
-func (g *Gitdb) getModelFromCache(dataset string) Model {
+//use this function to get meta data about a model
+//e.g indexes, shouldEncrypt and paths
+func (g *gdb) getModelFromCache(dataset string) Model {
 
 	if len(g.loadedModels) <= 0 {
 		g.loadedModels = make(map[string]Model)

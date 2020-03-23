@@ -43,19 +43,25 @@ func newShutdownEvent() *dbEvent {
 	return &dbEvent{Type: s}
 }
 
-func (g *Gitdb) startEventLoop() {
+func (c *Connection) startEventLoop() {
+	db, err := c.dbWithError()
+	if err != nil {
+		logTest(err.Error())
+		return
+	}
 	for {
 		logTest("looping...")
 		select {
-		case e := <-g.events:
+		case e := <-db.events:
 			switch e.Type {
 			case w, d:
-				if g.autoCommit {
+				if db.autoCommit {
 					logTest("handling write event for " + e.Dataset)
-					g.gitCommit(e.Dataset, e.Description, g.config.User)
+					db.gitCommit(e.Dataset, e.Description, db.config.User)
 				}
 			case s:
 				log("event shutdown")
+				logTest("shutting down event loop")
 				return
 			default:
 				log("No handler found for " + string(e.Type) + " event")
@@ -65,12 +71,21 @@ func (g *Gitdb) startEventLoop() {
 }
 
 //use this for testing go MockSyncClock(..)
-func MockSyncClock(db *Gitdb) {
+func MockSyncClock(c *Connection) {
+	db, err := c.dbWithError()
+	if err != nil {
+		logTest(err.Error())
+		return
+	}
 	ticker := time.NewTicker(db.config.SyncInterval)
 	for {
 		logTest("tick! tock!")
 		select {
 		case <-ticker.C:
+			if c.closed {
+				logTest("shutting down sync clock")
+				return
+			}
 			getLock := db.getLock()
 			if getLock && hasSufficientBatteryPower() {
 				logTest("MOCK: Syncing database...")
@@ -86,11 +101,16 @@ func MockSyncClock(db *Gitdb) {
 	}
 }
 
-func (g *Gitdb) startSyncClock() {
+func (c *Connection) startSyncClock() {
+	g := c.db()
 	ticker := time.NewTicker(g.config.SyncInterval)
 	for {
 		select {
 		case <-ticker.C:
+			if c.closed {
+				logTest("shutting down sync clock")
+				return
+			}
 			getLock := g.getLock()
 			if getLock && hasSufficientBatteryPower() {
 				log("Syncing database...")
@@ -114,8 +134,8 @@ func (g *Gitdb) startSyncClock() {
 	}
 }
 
-func (g *Gitdb) GetLastCommitTime() (time.Time, error) {
-	return g.gitLastCommitTime()
+func (c *Connection) GetLastCommitTime() (time.Time, error) {
+	return c.db().gitLastCommitTime()
 }
 
 func hasSufficientBatteryPower() bool {

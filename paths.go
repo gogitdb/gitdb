@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 )
 
-func (g *Gitdb) absDbPath() string {
+func (g *gdb) absDbPath() string {
 	absDbPath, err := filepath.Abs(g.config.DbPath)
 	if err != nil {
 		panic(err)
@@ -13,66 +13,66 @@ func (g *Gitdb) absDbPath() string {
 	return absDbPath
 }
 
-func (g *Gitdb) dbDir() string {
+func (g *gdb) dbDir() string {
 	return filepath.Join(g.absDbPath(), "data")
 }
 
-func (g *Gitdb) fullPath(m Model) string {
+func (g *gdb) fullPath(m Model) string {
 	return filepath.Join(g.dbDir(), m.GetSchema().Name())
 }
 
-func (g *Gitdb) blockFilePath(m Model) string {
+func (g *gdb) blockFilePath(m Model) string {
 	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc()+".json")
 }
 
-func (g *Gitdb) queueDir() string {
+func (g *gdb) queueDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "queue")
 }
 
-func (g *Gitdb) queueFilePath(m Model) string {
+func (g *gdb) queueFilePath(m Model) string {
 	return filepath.Join(g.queueDir(), m.GetSchema().Name()+".json")
 }
 
-func (g *Gitdb) lockDir(m Model) string {
+func (g *gdb) lockDir(m Model) string {
 	return filepath.Join(g.fullPath(m), "Lock")
 }
 
-func (g *Gitdb) idDir() string {
+func (g *gdb) idDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "id")
 }
 
 //db/.db/Id/ModelName
-func (g *Gitdb) idFilePath(m Model) string {
+func (g *gdb) idFilePath(m Model) string {
 	return filepath.Join(g.idDir(), m.GetSchema().Name())
 }
 
 //index path
-func (g *Gitdb) indexDir() string {
+func (g *gdb) indexDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "index")
 }
 
-func (g *Gitdb) indexPath(m Model) string {
+func (g *gdb) indexPath(m Model) string {
 	return filepath.Join(g.indexDir(), m.GetSchema().Name())
 }
 
 //ssh paths
-func (g *Gitdb) sshDir() string {
+func (g *gdb) sshDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "ssh")
 }
 
 //ssh paths
-func (g *Gitdb) mailDir() string {
+func (g *gdb) mailDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "mail")
 }
 
-func (g *Gitdb) publicKeyFilePath() string {
+func (g *gdb) publicKeyFilePath() string {
 	return filepath.Join(g.sshDir(), "gitdb.pub")
 }
 
-func (g *Gitdb) privateKeyFilePath() string {
+func (g *gdb) privateKeyFilePath() string {
 	return filepath.Join(g.sshDir(), "gitdb")
 }
 
-func (g *Gitdb) internalDirName() string {
+func (g *gdb) internalDirName() string {
 	return ".gitdb" //todo rename
 }

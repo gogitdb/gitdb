@@ -5,6 +5,6 @@ example/example
 .idea
 vendor
 *.test
-cover
+cover.out
 prof.cpu
 prof.mem

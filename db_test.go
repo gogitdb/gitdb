@@ -11,21 +11,26 @@ import (
 	db "github.com/fobilow/gitdb"
 )
 
-var testDb *db.Gitdb
+var testDb *db.Connection
 var messageId int
+var syncClock bool
 
 func init() {
 	db.SetLogLevel(db.LOGLEVEL_TEST)
-	//db.SetLogLevel(db.LOGLEVEL_NONE)
+	db.SetLogLevel(db.LOGLEVEL_ERROR)
 }
 
 func setup() {
 	testDb = db.Start(getConfig())
-	go db.MockSyncClock(testDb)
+	if !syncClock {
+		go db.MockSyncClock(testDb)
+		syncClock = true
+	}
+
 	messageId = 0
 }
 
-func getDbConn() *db.Gitdb {
+func getDbConn() *db.Connection {
 	return db.Start(getConfig())
 }
 
@@ -137,7 +142,7 @@ func checkFetchResult(dataset string) int {
 
 func TestParseId(t *testing.T) {
 	testId := "DatasetName/Block/RecordId"
-	ds, block, recordId, err := testDb.ParseId(testId)
+	ds, block, recordId, err := db.ParseId(testId)
 
 	passed := ds == "DatasetName" && block == "Block" && recordId == "RecordId" && err == nil
 	if !passed {
@@ -148,7 +153,7 @@ func TestParseId(t *testing.T) {
 func BenchmarkParseId(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
-		testDb.ParseId("DatasetName/Block/RecordId")
+		db.ParseId("DatasetName/Block/RecordId")
 	}
 }
 

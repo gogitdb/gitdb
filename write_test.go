@@ -54,7 +54,7 @@ func doInsert(m db.Model, benchmark bool) error {
 
 func TestInsert(t *testing.T) {
 	setup()
-	//defer testDb.Shutdown()
+	defer testDb.Close()
 	m := getTestMessage()
 	err := doInsert(m, false)
 	if err != nil {
@@ -63,23 +63,23 @@ func TestInsert(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	b.ReportAllocs()
 	setup()
-	defer testDb.Shutdown()
-	go db.MockSyncClock(testDb)
+	b.ReportAllocs()
+
+	defer testDb.Close()
 	var m db.Model
 	for i := 0; i <= b.N; i++ {
 		m = getTestMessage()
 		err := doInsert(m, true)
 		if err != nil {
-			println(err.Error())
+			fmt.Println(err.Error())
 		}
 	}
 }
 
 func TestDelete(t *testing.T) {
 	setup()
-	// defer testDb.Shutdown()
+	defer testDb.Close()
 
 	m := getTestMessage()
 	err := testDb.Delete(m.GetSchema().RecordId())
@@ -90,7 +90,7 @@ func TestDelete(t *testing.T) {
 
 func TestDeleteOrFail(t *testing.T) {
 	setup()
-	// defer testDb.Shutdown()
+	defer testDb.Close()
 	err := testDb.DeleteOrFail("non_existent_id")
 	if err == nil {
 		t.Errorf("Error: %s", err.Error())

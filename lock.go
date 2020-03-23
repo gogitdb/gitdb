@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (g *Gitdb) Lock(m Model) error {
+func (g *gdb) lock(m Model) error {
 
 	stamp(m)
 
@@ -52,7 +52,7 @@ func (g *Gitdb) Lock(m Model) error {
 	return nil
 }
 
-func (g *Gitdb) UnLock(m Model) error {
+func (g *gdb) unlock(m Model) error {
 
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
@@ -78,7 +78,7 @@ func (g *Gitdb) UnLock(m Model) error {
 	return nil
 }
 
-func (g *Gitdb) deleteLockFiles(files []string) error {
+func (g *gdb) deleteLockFiles(files []string) error {
 	var err error
 	var failedDeletes []string
 	if len(files) > 0 {

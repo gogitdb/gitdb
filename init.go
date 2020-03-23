@@ -9,9 +9,9 @@ import (
 )
 
 var mu sync.Mutex
-var conns map[string]*Gitdb
+var conns map[string]*Connection
 
-func Start(cfg *Config) *Gitdb {
+func Start(cfg *Config) *Connection {
 	logger = cfg.Logger
 
 	if len(cfg.ConnectionName) == 0 {
@@ -19,38 +19,42 @@ func Start(cfg *Config) *Gitdb {
 	}
 
 	if conns == nil {
-		conns = make(map[string]*Gitdb)
+		conns = make(map[string]*Connection)
 	}
 
-	if _, ok := conns[cfg.ConnectionName]; !ok {
-		conns[cfg.ConnectionName] = NewGitdb()
+	var conn *Connection
+	conn, ok := conns[cfg.ConnectionName]
+	if !ok {
+		conn = newConnection()
 	}
 
-	conns[cfg.ConnectionName].Configure(cfg)
+	conn.db().configure(cfg)
 
-	err := conns[cfg.ConnectionName].boot()
+	err := conn.db().boot()
+	logMsg := "Db booted fine"
 	if err != nil {
-		log("Db booted - with errors")
-	} else {
-		log("Db booted fine")
+		logMsg = "Db booted - with errors"
 	}
+
+	logTest(logMsg)
 
 	//if boot() returned an error do not start event loop
-	if err == nil && !conns[cfg.ConnectionName].loopStarted {
-		go conns[cfg.ConnectionName].startEventLoop()
-		if len(conns[cfg.ConnectionName].config.OnlineRemote) > 0 {
-			go conns[cfg.ConnectionName].startSyncClock()
+	if err == nil && !conn.loopStarted {
+		go conn.startEventLoop()
+		if len(conn.db().config.OnlineRemote) > 0 {
+			go conn.startSyncClock()
 		} else {
 			log("Syncing disabled: online remote is not set")
 		}
-		conns[cfg.ConnectionName].loopStarted = true
+		conn.loopStarted = true
 	}
 
+	conns[cfg.ConnectionName] = conn
 	return conns[cfg.ConnectionName]
 }
 
 //At the moment this method will return the last connected started by Start(*Config)
-func Conn() *Gitdb {
+func Conn() *Connection {
 
 	if len(conns) > 1 {
 		panic("Multiple gitdb connections found. Use GetConn function instead")
@@ -69,7 +73,7 @@ func Conn() *Gitdb {
 	return conns[connName]
 }
 
-func GetConn(name string) *Gitdb {
+func GetConn(name string) *Connection {
 	if _, ok := conns[name]; !ok {
 		panic("No gitdb connection found")
 	}
@@ -77,9 +81,9 @@ func GetConn(name string) *Gitdb {
 	return conns[name]
 }
 
-func (g *Gitdb) boot() error {
+func (g *gdb) boot() error {
 	g.lastIds = make(map[string]int64)
-	log("Booting up db using " + g.GitDriver.name() + " driver")
+	log("Booting up db using " + g.gitDriver.name() + " driver")
 
 	var err error
 

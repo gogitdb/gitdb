@@ -1,11 +1,11 @@
 package gitdb
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
-	"io/ioutil"
-	"encoding/json"
 )
 
 type mail struct {
@@ -16,7 +16,7 @@ type mail struct {
 
 type Mail struct {
 	privateMail *mail
-	dbConn      *Gitdb
+	dbConn      *gdb
 }
 
 // Implement json.Unmarshaller
@@ -24,7 +24,7 @@ func (m *Mail) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &m.privateMail)
 }
 
-func newMail(dbConn *Gitdb, subject string, body string) *Mail {
+func newMail(dbConn *gdb, subject string, body string) *Mail {
 	return &Mail{
 		privateMail: &mail{Subject: subject, Body: body, Date: time.Now()},
 		dbConn:      dbConn,
@@ -62,8 +62,8 @@ func (m *Mail) send() error {
 	return err
 }
 
-func (g *Gitdb) GetMails() []*mail {
-
+func (c *Connection) GetMails() []*mail {
+	g := c.db()
 	var mails []*mail
 	files, err := ioutil.ReadDir(g.mailDir())
 	if err != nil {

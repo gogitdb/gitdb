@@ -3,16 +3,16 @@ package gitdb
 type operation func() error
 
 type transaction struct {
-	name string
+	name       string
 	operations []operation
-	db *Gitdb
+	db         *gdb
 }
 
 func (t *transaction) Commit() error {
 	t.db.autoCommit = false
 	for _, o := range t.operations {
 		if err := o(); err != nil {
-			log("Reverting transaction: "+err.Error())
+			log("Reverting transaction: " + err.Error())
 			t.db.gitUndo()
 			t.db.autoCommit = true
 			return err
@@ -29,6 +29,6 @@ func (t *transaction) AddOperation(o operation) {
 	t.operations = append(t.operations, o)
 }
 
-func (g *Gitdb) NewTransaction(name string) *transaction {
-	return &transaction{name: name, db: g}
+func (c *Connection) NewTransaction(name string) *transaction {
+	return &transaction{name: name, db: c.db()}
 }

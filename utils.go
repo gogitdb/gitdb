@@ -1,7 +1,9 @@
 package gitdb
 
 import (
+	"errors"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -22,4 +24,17 @@ func stamp(m Model) {
 	m.SetUpdatedDate(stampTime)
 
 	m.SetId(m.GetSchema().RecordId())
+}
+
+func ParseId(id string) (dataDir string, block string, record string, err error) {
+	recordMeta := strings.Split(id, "/")
+	if len(recordMeta) != 3 {
+		err = errors.New("Invalid record id: " + id)
+	} else {
+		dataDir = recordMeta[0]
+		block = recordMeta[1]
+		record = recordMeta[2]
+	}
+
+	return dataDir, block, record, err
 }

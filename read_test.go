@@ -68,7 +68,7 @@ func TestFetchMultithreaded(t *testing.T) {
 
 func BenchmarkFetch(b *testing.B) {
 	setup()
-	//defer testDb.Shutdown()
+	defer testDb.Close()
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
 		testDb.Fetch("Message")
@@ -77,7 +77,7 @@ func BenchmarkFetch(b *testing.B) {
 
 func BenchmarkFetchMultithreaded(b *testing.B) {
 	setup()
-	//defer testDb.Shutdown()
+	defer testDb.Close()
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
 		testDb.FetchMt("Message")

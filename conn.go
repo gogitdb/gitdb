@@ -97,6 +97,10 @@ func (c *Connection) SetUser(user *DbUser) {
 	c.db().config.User = user
 }
 
+func (c *Connection) Migrate(from Model, to Model) error {
+	return c.db().migrate(from, to)
+}
+
 func (c *Connection) Close() error {
 
 	if c.closed {

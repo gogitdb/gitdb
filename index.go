@@ -14,8 +14,9 @@ type gdbIndexCache map[string]gdbIndex
 func (g *gitdb) updateIndexes(dataSet string, records ...*record) {
 	g.indexUpdated = true
 	m := g.getModelFromCache(dataSet)
+	indexPath := g.indexPath(m)
 	for _, record := range records {
-		indexPath := g.indexPath(m)
+		record.Hydrate(m)
 		for name, value := range m.GetSchema().Indexes() {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {

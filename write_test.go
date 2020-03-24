@@ -71,10 +71,11 @@ func TestInsert(t *testing.T) {
 }
 
 func TestInsertMany(t *testing.T) {
+	truncateDb()
 	setup()
 	defer testDb.Close()
 	msgs := []gitdb.Model{}
-	for i := 0; i <= 10; i++ {
+	for i := 0; i < 10; i++ {
 		m := getTestMessage()
 		msgs = append(msgs, m)
 	}

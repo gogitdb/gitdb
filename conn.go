@@ -51,9 +51,14 @@ func (c *Connection) InsertMany(models []Model) error {
 	}
 
 	tx := c.NewTransaction("InsertMany")
-	for _, m := range models {
-
-		tx.AddOperation(func() error { return c.Insert(m) })
+	var model Model
+	for _, model = range models {
+		//create a new variable to pass to function to avoid
+		//passing pointer which will end up inserting the same
+		//model multiple times
+		m := model
+		f := func() error { return c.Insert(m) }
+		tx.AddOperation(f)
 	}
 	return tx.Commit()
 }

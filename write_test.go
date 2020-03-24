@@ -13,6 +13,14 @@ import (
 	"github.com/fobilow/gitdb"
 )
 
+func insert(count int) {
+	fmt.Printf("inserting %d records\n", count)
+	for i := 0; i < count; i++ {
+		testDb.Insert(getTestMessage())
+	}
+	fmt.Println("done inserting")
+}
+
 func doInsert(m gitdb.Model, benchmark bool) error {
 	if err := testDb.Insert(m); err != nil {
 		return err
@@ -110,4 +118,33 @@ func TestDeleteOrFail(t *testing.T) {
 	if err == nil {
 		t.Errorf("Error: %s", err.Error())
 	}
+}
+
+func TestLock(t *testing.T) {
+	setup()
+	defer testDb.Close()
+	m := getTestMessage()
+	err := testDb.Lock(m)
+	if err == nil {
+		t.Errorf("testDb.Lock returned - %s", err)
+	}
+
+}
+
+func TestUnlock(t *testing.T) {
+	setup()
+	defer testDb.Close()
+	m := getTestMessage()
+	err := testDb.Unlock(m)
+	if err == nil {
+		t.Errorf("testDb.Unlock returned - %s", err)
+	}
+}
+
+func TestGenerateId(t *testing.T) {
+	setup()
+	defer testDb.Close()
+	m := getTestMessage()
+	testDb.GenerateId(m)
+
 }

@@ -2,6 +2,8 @@ package gitdb_test
 
 import (
 	"testing"
+
+	"github.com/fobilow/gitdb"
 )
 
 func TestGet(t *testing.T) {
@@ -64,6 +66,30 @@ func TestFetchMultithreaded(t *testing.T) {
 	}
 
 	t.Logf("Want: %d, Got: %d", want, got)
+}
+
+func TestSearch(t *testing.T) {
+	truncateDb()
+	setup()
+	defer testDb.Close()
+
+	count := 5
+	insert(count)
+
+	sp := &gitdb.SearchParam{
+		Index: "From",
+		Value: "alice@example.com",
+	}
+
+	results, err := testDb.Search("Message", []*gitdb.SearchParam{sp}, gitdb.SEARCH_MODE_EQUALS)
+	if err != nil {
+		t.Errorf("search failed with error - %s", err)
+	}
+
+	if len(results) != count {
+		t.Errorf("search result count wrong. want: %d, got: %d", count, len(results))
+	}
+
 }
 
 func BenchmarkFetch(b *testing.B) {

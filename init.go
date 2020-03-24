@@ -33,7 +33,7 @@ func Start(cfg *Config) *Connection {
 	err := conn.db().boot()
 	logMsg := "Db booted fine"
 	if err != nil {
-		logMsg = "Db booted - with errors"
+		logMsg = fmt.Sprintf("Db booted with errors - %s", err)
 	}
 
 	logTest(logMsg)

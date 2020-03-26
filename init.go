@@ -90,13 +90,6 @@ func (g *gitdb) boot() error {
 		return err
 	}
 
-	//create queue dir
-	err = os.MkdirAll(g.queueDir(), 0755)
-	if err != nil {
-		log(err.Error())
-		return err
-	}
-
 	//create mail dir
 	err = os.MkdirAll(g.mailDir(), 0755)
 	if err != nil {

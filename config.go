@@ -1,6 +1,7 @@
 package gitdb
 
 import (
+	"errors"
 	golog "log"
 	"time"
 )
@@ -18,10 +19,19 @@ type Config struct {
 	User           *DbUser
 }
 
+var defaultSyncInterval = time.Second * 5
+
 func NewConfig(dbPath string) *Config {
 	return &Config{
 		DbPath:       dbPath,
-		SyncInterval: time.Second * 5,
-		GitDriver:    GitDriverBinary,
+		SyncInterval: defaultSyncInterval,
 	}
+}
+
+func (c *Config) Validate() error {
+	if len(c.DbPath) <= 0 {
+		return errors.New("Config.DbPath must be set")
+	}
+
+	return nil
 }

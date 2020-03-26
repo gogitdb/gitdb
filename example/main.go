@@ -33,7 +33,12 @@ func init() {
 		}
 	}
 
-	dbconn = db.Start(cfg)
+	var err error
+	dbconn, err = db.Open(cfg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func main() {

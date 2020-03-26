@@ -1,0 +1,10 @@
+language: go
+go_import_path: github.com/fobilow/github
+
+sudo: false
+
+go:
+- 1.14
+
+script:
+- make test

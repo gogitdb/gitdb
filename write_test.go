@@ -104,7 +104,7 @@ func TestDelete(t *testing.T) {
 
 	insert(1)
 
-	m := getTestMessage()
+	m := getTestMessageWithId(0)
 	err := testDb.Delete(m.GetSchema().RecordId())
 	if err != nil {
 		t.Errorf("Error: %s", err.Error())

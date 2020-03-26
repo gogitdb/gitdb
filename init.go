@@ -11,7 +11,12 @@ import (
 var mu sync.Mutex
 var conns map[string]*Connection
 
-func Start(cfg *Config) *Connection {
+func Open(cfg *Config) (*Connection, error) {
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
 	logger = cfg.Logger
 
 	if len(cfg.ConnectionName) == 0 {
@@ -22,12 +27,7 @@ func Start(cfg *Config) *Connection {
 		conns = make(map[string]*Connection)
 	}
 
-	var conn *Connection
-	conn, ok := conns[cfg.ConnectionName]
-	if !ok {
-		conn = newConnection()
-	}
-
+	conn := newConnection()
 	conn.db().configure(cfg)
 
 	err := conn.db().boot()
@@ -36,17 +36,21 @@ func Start(cfg *Config) *Connection {
 		logMsg = fmt.Sprintf("Db booted with errors - %s", err)
 	}
 
-	logTest(logMsg)
+	log(logMsg)
+
+	if err != nil {
+		return nil, err
+	}
 
 	//if boot() returned an error do not start event loop
-	if err == nil && !conn.loopStarted {
-		go conn.startEventLoop()
-		go conn.startSyncClock()
+	if !conn.loopStarted {
+		conn.startEventLoop()
+		conn.startSyncClock()
 		conn.loopStarted = true
 	}
 
 	conns[cfg.ConnectionName] = conn
-	return conns[cfg.ConnectionName]
+	return conn, nil
 }
 
 //At the moment this method will return the last connected started by Start(*Config)

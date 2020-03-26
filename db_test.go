@@ -32,7 +32,9 @@ func truncateDb() {
 }
 
 func getDbConn() *Connection {
-	return Start(getConfig())
+	//TODO proper error handling
+	conn, _ := Open(getConfig())
+	return conn
 }
 
 func getConfig() *Config {
@@ -43,14 +45,19 @@ func getConfig() *Config {
 }
 
 func getTestMessage() *Message {
+	m := getTestMessageWithId(messageId)
+	messageId++
+
+	return m
+}
+
+func getTestMessageWithId(messageId int) *Message {
 	m := &Message{
 		MessageId: messageId,
 		From:      "alice@example.com",
 		To:        "bob@example.com",
 		Body:      "Hello",
 	}
-
-	messageId++
 
 	return m
 }

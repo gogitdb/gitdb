@@ -71,6 +71,11 @@ func (g *gitdb) shutdown() error {
 }
 
 func (g *gitdb) configure(cfg *Config) {
+
+	if int64(cfg.SyncInterval) == 0 {
+		cfg.SyncInterval = defaultSyncInterval
+	}
+
 	g.config = cfg
 	g.config.sshKey = g.privateKeyFilePath()
 

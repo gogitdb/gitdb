@@ -15,6 +15,7 @@ const (
 type Model interface {
 	Id() string
 	SetId(string)
+	SetMetaData(m *metaData)
 	String() string
 	Validate() bool
 	IsLockable() bool
@@ -28,8 +29,14 @@ type Model interface {
 	GetValidationErrors() []error
 }
 
+type metaData struct {
+	Indexes   map[string]interface{}
+	Encrypted bool
+}
+
 type BaseModel struct {
 	ID        string
+	Meta      *metaData
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	errors    []error
@@ -44,6 +51,10 @@ func (m *BaseModel) Id() string {
 
 func (m *BaseModel) SetId(id string) {
 	m.ID = id
+}
+
+func (m *BaseModel) SetMetaData(md *metaData) {
+	m.Meta = md
 }
 
 func (m *BaseModel) GetCreatedDate() time.Time {

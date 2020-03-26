@@ -21,7 +21,7 @@ func init() {
 		OnlineRemote:  os.Getenv("GITDB_REPO"),
 		Factory:       make,
 		SyncInterval:  time.Second * 5,
-		EncryptionKey: "put_your_encryption_key_here",
+		EncryptionKey: "XVlBzgbaiCMRAjWwhTHctcuAxhxKQFDa", //this has to be 32 bytes to select AES-256
 		User:          db.NewUser("dev", "dev@gitdb.io"),
 		GitDriver:     db.GitDriverBinary,
 		//gitDriver: db.GitDriverGoGit,
@@ -38,7 +38,9 @@ func init() {
 }
 
 func main() {
-	testWrite()
+	defer dbconn.Close()
+	write()
+	fetch()
 }
 
 func testTransaction() {

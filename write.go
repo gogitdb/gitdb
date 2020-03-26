@@ -59,7 +59,7 @@ func (g *gitdb) flushQueue(m Model) error {
 		}
 
 		//todo optimize: this will open and close block file to delete each record it flushes
-		model := g.config.Factory(m.GetSchema().Name())
+		model := g.getModelFromCache(m.GetSchema().Name())
 		for recordId, record := range dataBlock.records {
 			log("Flushing: " + recordId)
 
@@ -111,6 +111,11 @@ func (g *gitdb) write(m Model) error {
 	logTest(commitMsg)
 
 	newRecordStr := string(newRecordBytes)
+	//encrypt data if need be
+	if m.ShouldEncrypt() {
+		newRecordStr = encrypt(g.config.EncryptionKey, newRecordStr)
+	}
+
 	dataBlock.Add(m.GetSchema().RecordId(), newRecordStr)
 
 	g.events <- newWriteBeforeEvent("...", blockFilePath)
@@ -130,15 +135,6 @@ func (g *gitdb) write(m Model) error {
 
 func (g *gitdb) writeBlock(blockFile string, block *Block) error {
 
-	model := g.getModelFromCache(block.dataset)
-
-	//encrypt data if need be
-	if model.ShouldEncrypt() {
-		for k, record := range block.records {
-			block.Add(k, encrypt(g.config.EncryptionKey, record.data))
-		}
-	}
-
 	blockBytes, fmtErr := json.MarshalIndent(block.data(), "", "\t")
 	if fmtErr != nil {
 		return fmtErr
@@ -157,15 +153,13 @@ func (g *gitdb) deleteOrFail(id string) error {
 
 func (g *gitdb) dodelete(id string, failNotFound bool) error {
 
-	dataDir, _, _, err := ParseId(id)
+	dataset, block, _, err := ParseId(id)
 	if err != nil {
 		return err
 	}
 
-	model := g.getModelFromCache(dataDir)
-
-	blockFilePath := g.blockFilePath(model)
-	err = g.delById(id, dataDir, blockFilePath, failNotFound)
+	blockFilePath := g.blockFilePath2(dataset, block)
+	err = g.delById(id, dataset, blockFilePath, failNotFound)
 
 	if err == nil {
 		logTest("sending delete event to loop")

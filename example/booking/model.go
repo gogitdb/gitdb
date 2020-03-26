@@ -23,7 +23,7 @@ type BookingModel struct {
 	UserId       string
 	NextOfKin    string
 	Purpose      string
-	AutoId int64
+	AutoId       int64
 }
 
 func NewBookingModel() *BookingModel {
@@ -87,5 +87,5 @@ func (b *BookingModel) Validate() bool {
 }
 
 func (b *BookingModel) ShouldEncrypt() bool {
-	return false
+	return true
 }

@@ -25,6 +25,10 @@ func (g *gitdb) blockFilePath(m Model) string {
 	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc()+".json")
 }
 
+func (g *gitdb) blockFilePath2(dataset, block string) string {
+	return filepath.Join(g.dbDir(), dataset, block+".json")
+}
+
 func (g *gitdb) queueDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "queue")
 }
@@ -51,8 +55,8 @@ func (g *gitdb) indexDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "index")
 }
 
-func (g *gitdb) indexPath(m Model) string {
-	return filepath.Join(g.indexDir(), m.GetSchema().Name())
+func (g *gitdb) indexPath(dataset string) string {
+	return filepath.Join(g.indexDir(), dataset)
 }
 
 //ssh paths

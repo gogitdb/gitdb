@@ -188,23 +188,3 @@ func (g *gitdb) releaseLock() bool {
 	g.locked <- false
 	return true
 }
-
-//use this function to get meta data about a model
-//e.g indexes, shouldEncrypt and paths
-func (g *gitdb) getModelFromCache(dataset string) Model {
-
-	if len(g.loadedModels) <= 0 {
-		g.loadedModels = make(map[string]Model)
-	}
-
-	if _, ok := g.loadedModels[dataset]; !ok {
-		g.loadedModels[dataset] = nil
-	}
-
-	if g.loadedModels[dataset] == nil {
-		model := g.config.Factory(dataset)
-		g.loadedModels[dataset] = model
-	}
-
-	return g.loadedModels[dataset]
-}

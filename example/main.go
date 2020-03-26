@@ -19,7 +19,6 @@ func init() {
 	cfg := &db.Config{
 		DbPath:        "./data",
 		OnlineRemote:  os.Getenv("GITDB_REPO"),
-		Factory:       make,
 		SyncInterval:  time.Second * 5,
 		EncryptionKey: "XVlBzgbaiCMRAjWwhTHctcuAxhxKQFDa", //this has to be 32 bytes to select AES-256
 		User:          db.NewUser("dev", "dev@gitdb.io"),
@@ -138,14 +137,4 @@ func mail() {
 	for _, m := range mails {
 		fmt.Println(m.Body)
 	}
-}
-
-func make(modelName string) db.Model {
-	var m db.Model
-	switch modelName {
-	case "Booking":
-		m = &booking.BookingModel{}
-	}
-
-	return m
 }

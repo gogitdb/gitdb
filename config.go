@@ -1,8 +1,8 @@
 package gitdb
 
 import (
-	"time"
 	golog "log"
+	"time"
 )
 
 type Config struct {
@@ -12,17 +12,15 @@ type Config struct {
 	sshKey         string
 	EncryptionKey  string
 	SyncInterval   time.Duration
-	Factory        func(string) Model
 	Verbose        LogLevel //flag for displaying messages useful for debugging. defaults to false
 	Logger         *golog.Logger
 	GitDriver      dbDriverName
 	User           *DbUser
 }
 
-func NewConfig(dbPath string, factory func(string) Model) *Config {
+func NewConfig(dbPath string) *Config {
 	return &Config{
 		DbPath:       dbPath,
-		Factory:      factory,
 		SyncInterval: time.Second * 5,
 		GitDriver:    GitDriverBinary,
 	}

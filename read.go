@@ -34,7 +34,6 @@ func (g *gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
 
 func (g *gitdb) readBlock(blockFile string, block *Block) error {
 
-	model := g.getModelFromCache(block.dataset)
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
 		return err
@@ -42,14 +41,6 @@ func (g *gitdb) readBlock(blockFile string, block *Block) error {
 
 	if err := json.Unmarshal(data, &block.rawRecords); err != nil {
 		return badBlockError
-	}
-
-	//check if decryption is required
-	if model.ShouldEncrypt() {
-		log("decrypting record")
-		for k, record := range block.records {
-			block.Add(k, decrypt(g.config.EncryptionKey, record.data))
-		}
 	}
 
 	return err

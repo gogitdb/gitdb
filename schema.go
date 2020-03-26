@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 )
 
 type StringFunc func() string
@@ -162,18 +161,39 @@ func (r *record) bytes() []byte {
 }
 
 func (r *record) Hydrate(model Model) error {
-	return r.hydrate(model)
+
+	r2 := *r
+	//check if decryption is required
+	if model.ShouldEncrypt() {
+		//TODO find a better way to get encryption key. Maybe a global encryption key is better
+		key := Conn().db().config.EncryptionKey
+		logTest("decrypting with: " + key)
+		r2.data = decrypt(key, r2.data)
+	}
+
+	return r2.hydrate(model)
 }
 
 func (r *record) hydrate(model interface{}) error {
-	return json.Unmarshal(r.bytes(), model)
+
+	err := json.Unmarshal(r.bytes(), model)
+	if err != nil {
+		//try decrypting
+		key := Conn().db().config.EncryptionKey
+		logTest("decrypting with: " + key)
+		r2 := *r
+		r2.data = decrypt(key, r2.data)
+		return json.Unmarshal(r2.bytes(), model)
+	}
+
+	return err
 }
 
-func (r *record) createdDate() time.Time {
-	var m struct{ CreatedAt time.Time }
+func (r *record) model() *BaseModel {
+	var m *BaseModel
 	r.hydrate(&m)
 
-	return m.CreatedAt
+	return m
 }
 
 type Block struct {
@@ -256,7 +276,7 @@ func (c collection) Len() int {
 	return len(c)
 }
 func (c collection) Less(i, j int) bool {
-	return c[i].createdDate().Before(c[j].createdDate())
+	return c[i].model().CreatedAt.Before(c[j].model().CreatedAt)
 }
 func (c collection) Swap(i, j int) {
 	c[i], c[j] = c[j], c[i]

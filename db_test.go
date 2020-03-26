@@ -38,7 +38,7 @@ func getDbConn() *Connection {
 }
 
 func getConfig() *Config {
-	config := NewConfig("/tmp/data", dbFactory)
+	config := NewConfig("/tmp/data")
 	config.SyncInterval = time.Second * 120
 	config.User = NewUser("Tester", "tester@io")
 	return config
@@ -60,16 +60,6 @@ func getTestMessageWithId(messageId int) *Message {
 	}
 
 	return m
-}
-
-func dbFactory(name string) Model {
-	switch name {
-	case "Message":
-	default:
-		return &Message{}
-	}
-
-	return &Message{}
 }
 
 type Message struct {

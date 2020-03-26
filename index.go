@@ -11,13 +11,11 @@ import (
 type gdbIndex map[string]interface{}
 type gdbIndexCache map[string]gdbIndex
 
-func (g *gitdb) updateIndexes(dataSet string, records ...*record) {
+func (g *gitdb) updateIndexes(dataset string, records ...*record) {
 	g.indexUpdated = true
-	m := g.getModelFromCache(dataSet)
-	indexPath := g.indexPath(m)
+	indexPath := g.indexPath(dataset)
 	for _, record := range records {
-		record.Hydrate(m)
-		for name, value := range m.GetSchema().Indexes() {
+		for name, value := range record.model().Meta.Indexes {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)

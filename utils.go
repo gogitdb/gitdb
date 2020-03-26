@@ -27,6 +27,13 @@ func stamp(m Model) {
 	m.SetUpdatedDate(stampTime)
 
 	m.SetId(m.GetSchema().RecordId())
+
+	metadata := &metaData{}
+	metadata.Indexes = m.GetSchema().Indexes()
+	metadata.Encrypted = m.ShouldEncrypt()
+
+	m.SetMetaData(metadata)
+
 }
 
 func ParseId(id string) (dataDir string, block string, record string, err error) {

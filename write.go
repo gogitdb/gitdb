@@ -82,7 +82,12 @@ func (g *gitdb) write(m Model) error {
 	}
 
 	newRecordStr := string(newRecordBytes)
-	dataBlock.Add(m.Id(), newRecordStr)
+	//encrypt data if need be
+	if m.ShouldEncrypt() {
+		newRecordStr = encrypt(g.config.EncryptionKey, newRecordStr)
+	}
+
+	dataBlock.Add(m.GetSchema().RecordId(), newRecordStr)
 
 	g.events <- newWriteBeforeEvent("...", m.Id())
 	if err := g.writeBlock(blockFilePath, dataBlock); err != nil {
@@ -111,15 +116,6 @@ func (g *gitdb) waitForCommit(wait bool) {
 
 func (g *gitdb) writeBlock(blockFile string, block *Block) error {
 
-	model := g.getModelFromCache(block.dataset)
-
-	//encrypt data if need be
-	if model.ShouldEncrypt() {
-		for k, record := range block.records {
-			block.Add(k, encrypt(g.config.EncryptionKey, record.data))
-		}
-	}
-
 	blockBytes, fmtErr := json.MarshalIndent(block.data(), "", "\t")
 	if fmtErr != nil {
 		return fmtErr
@@ -138,15 +134,13 @@ func (g *gitdb) deleteOrFail(id string) error {
 
 func (g *gitdb) dodelete(id string, failNotFound bool) error {
 
-	dataDir, _, _, err := ParseId(id)
+	dataset, block, _, err := ParseId(id)
 	if err != nil {
 		return err
 	}
 
-	model := g.getModelFromCache(dataDir)
-
-	blockFilePath := g.blockFilePath(model)
-	err = g.delById(id, dataDir, blockFilePath, failNotFound)
+	blockFilePath := g.blockFilePath2(dataset, block)
+	err = g.delById(id, dataset, blockFilePath, failNotFound)
 
 	if err == nil {
 		logTest("sending delete event to loop")

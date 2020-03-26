@@ -13,7 +13,6 @@ type Config struct {
 	sshKey         string
 	EncryptionKey  string
 	SyncInterval   time.Duration
-	Factory        func(string) Model
 	Verbose        LogLevel //flag for displaying messages useful for debugging. defaults to false
 	Logger         *golog.Logger
 	GitDriver      dbDriverName
@@ -22,10 +21,9 @@ type Config struct {
 
 var defaultSyncInterval = time.Second * 5
 
-func NewConfig(dbPath string, factory func(string) Model) *Config {
+func NewConfig(dbPath string) *Config {
 	return &Config{
 		DbPath:       dbPath,
-		Factory:      factory,
 		SyncInterval: defaultSyncInterval,
 	}
 }
@@ -33,10 +31,6 @@ func NewConfig(dbPath string, factory func(string) Model) *Config {
 func (c *Config) Validate() error {
 	if len(c.DbPath) <= 0 {
 		return errors.New("Config.DbPath must be set")
-	}
-
-	if c.Factory == nil {
-		return errors.New("Config.Factory must be set")
 	}
 
 	return nil

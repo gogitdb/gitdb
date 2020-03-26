@@ -67,6 +67,10 @@ func (c *Connection) Get(id string, result Model) error {
 	return c.db().get(id, result)
 }
 
+func (c *Connection) Exists(id string) error {
+	return c.db().exists(id)
+}
+
 func (c *Connection) Fetch(dataset string) ([]*record, error) {
 	return c.db().fetch(dataset)
 }

@@ -1,10 +1,7 @@
 package gitdb
 
 import (
-	"fmt"
 	"time"
-
-	"github.com/distatus/battery"
 )
 
 type eventType string
@@ -70,84 +67,56 @@ func (c *Connection) startEventLoop() {
 	}
 }
 
-//use this for testing go MockSyncClock(..)
-func MockSyncClock(c *Connection) {
+func (c *Connection) startSyncClock() {
 	db, err := c.dbWithError()
 	if err != nil {
 		logTest(err.Error())
 		return
 	}
+
+	if c.closed {
+		logTest("shutting down sync clock")
+		return
+	}
+
+	if len(db.config.OnlineRemote) <= 0 {
+		log("Syncing disabled: online remote is not set")
+		return
+	}
+
 	ticker := time.NewTicker(db.config.SyncInterval)
 	for {
-		logTest("tick! tock!")
 		select {
 		case <-ticker.C:
+			//check if db is closed, just in case db is closed after goroutine has started
 			if c.closed {
 				logTest("shutting down sync clock")
 				return
 			}
-			getLock := db.getLock()
-			if getLock && hasSufficientBatteryPower() {
-				logTest("MOCK: Syncing database...")
 
-				db.buildIndex()
-				db.releaseLock()
-			} else if !getLock {
-				logTest("MOCK: Syncing disabled: db is locked by app")
-			} else {
-				logTest("MOCK: Syncing disabled: insufficient battery power")
-			}
-		}
-	}
-}
-
-func (c *Connection) startSyncClock() {
-	g := c.db()
-	ticker := time.NewTicker(g.config.SyncInterval)
-	for {
-		select {
-		case <-ticker.C:
-			if c.closed {
-				logTest("shutting down sync clock")
-				return
-			}
-			getLock := g.getLock()
-			if getLock && hasSufficientBatteryPower() {
-				log("Syncing database...")
-				err1 := g.gitPull()
-				err2 := g.gitPush()
-				if err1 != nil || err2 != nil {
-					log("Database sync failed")
-				}
-
-				//reset loaded blocks
-				g.loadedBlocks = map[string]*Block{}
-
-				g.buildIndex()
-				g.releaseLock()
-			} else if !getLock {
+			if !db.getLock() {
 				log("Syncing disabled: db is locked by app")
-			} else {
-				log("Syncing disabled: insufficient battery power")
+				return
 			}
+
+			//if client PC has at least 20% battery life
+			if !hasSufficientBatteryPower(20) {
+				log("Syncing disabled: insufficient battery power")
+				return
+			}
+
+			log("Syncing database...")
+			err1 := db.gitPull()
+			err2 := db.gitPush()
+			if err1 != nil || err2 != nil {
+				log("Database sync failed")
+			}
+
+			//reset loaded blocks
+			db.loadedBlocks = map[string]*Block{}
+
+			db.buildIndex()
+			db.releaseLock()
 		}
 	}
-}
-
-func (c *Connection) GetLastCommitTime() (time.Time, error) {
-	return c.db().gitLastCommitTime()
-}
-
-func hasSufficientBatteryPower() bool {
-	batt, err := battery.Get(0)
-	if err != nil {
-		return false
-	}
-
-	percentageCharge := batt.Current / batt.Full * 100
-
-	log(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
-
-	//if client PC has at least 20% battery life
-	return percentageCharge >= 20
 }

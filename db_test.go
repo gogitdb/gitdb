@@ -1,32 +1,24 @@
-package gitdb_test
+package gitdb
 
 import (
 	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
-	"testing"
 	"time"
-
-	"github.com/fobilow/gitdb"
 )
 
-var testDb *gitdb.Connection
+var testDb *Connection
 var messageId int
-var syncClock bool
 
 func init() {
-	gitdb.SetLogLevel(gitdb.LOGLEVEL_TEST)
-	// gitdb.SetLogLevel(gitdb.LOGLEVEL_ERROR)
+	SetLogLevel(LOGLEVEL_TEST)
+	// SetLogLevel(LOGLEVEL_ERROR)
 }
 
 func setup() {
-	testDb = gitdb.Start(getConfig())
-	if !syncClock {
-		go gitdb.MockSyncClock(testDb)
-		syncClock = true
-	}
-
+	truncateDb()
+	testDb = getDbConn()
 	messageId = 0
 }
 
@@ -39,20 +31,15 @@ func truncateDb() {
 	}
 }
 
-func getDbConn() *gitdb.Connection {
-	return gitdb.Start(getConfig())
+func getDbConn() *Connection {
+	return Start(getConfig())
 }
 
-func getConfig() *gitdb.Config {
-	return &gitdb.Config{
-		DbPath:        "/tmp/data",
-		OnlineRemote:  "",
-		SyncInterval:  time.Second * 120,
-		EncryptionKey: "",
-		GitDriver:     gitdb.GitDriverBinary,
-		Factory:       dbFactory,
-		User:          gitdb.NewUser("Tester", "tester@gitdb.io"),
-	}
+func getConfig() *Config {
+	config := NewConfig("/tmp/data", dbFactory)
+	config.SyncInterval = time.Second * 120
+	config.User = NewUser("Tester", "tester@io")
+	return config
 }
 
 func getTestMessage() *Message {
@@ -68,7 +55,7 @@ func getTestMessage() *Message {
 	return m
 }
 
-func dbFactory(name string) gitdb.Model {
+func dbFactory(name string) Model {
 	switch name {
 	case "Message":
 	default:
@@ -79,7 +66,7 @@ func dbFactory(name string) gitdb.Model {
 }
 
 type Message struct {
-	gitdb.BaseModel
+	BaseModel
 	MessageId int
 	From      string
 	To        string
@@ -91,10 +78,10 @@ func (m *Message) Zero() {
 	m.From = ""
 	m.To = ""
 	m.Body = ""
-	m.BaseModel = gitdb.BaseModel{}
+	m.BaseModel = BaseModel{}
 }
 
-func (m *Message) GetSchema() *gitdb.Schema {
+func (m *Message) GetSchema() *Schema {
 	//Name of schema
 	name := func() string {
 		return "Message"
@@ -120,11 +107,7 @@ func (m *Message) GetSchema() *gitdb.Schema {
 		return indexes
 	}
 
-	return gitdb.NewSchema(name, block, record, indexes)
-}
-
-func (m *Message) String() string {
-	return fmt.Sprint(m.MessageId, m.From, m.To, m.Body)
+	return NewSchema(name, block, record, indexes)
 }
 
 //count the number of records in fetched block
@@ -147,51 +130,4 @@ func checkFetchResult(dataset string) int {
 	}
 
 	return want
-}
-
-func TestSetUser(t *testing.T) {
-	setup()
-
-	testDb.SetUser(gitdb.NewUser("test", "tester@gitdb.io"))
-
-}
-
-func TestParseId(t *testing.T) {
-	testId := "DatasetName/Block/RecordId"
-	ds, block, recordId, err := gitdb.ParseId(testId)
-
-	passed := ds == "DatasetName" && block == "Block" && recordId == "RecordId" && err == nil
-	if !passed {
-		t.Errorf("want: DatasetName|Block|RecordId, Got:%s|%s|%s", ds, block, recordId)
-	}
-}
-
-func TestIDParser(t *testing.T) {
-	id := gitdb.NewIDParser("DatasetName/Block/RecordId")
-
-	if id.Dataset() != "DatasetName" {
-		t.Errorf("id.Dataset() returned - %s", id.Dataset())
-	}
-
-	if id.Block() != "Block" {
-		t.Errorf("id.Record() returned - %s", id.Record())
-	}
-
-	if id.Record() != "DatasetName" {
-		t.Errorf("id.Record() returned - %s", id.Record())
-	}
-}
-
-func BenchmarkParseId(b *testing.B) {
-	b.ReportAllocs()
-	for i := 0; i <= b.N; i++ {
-		gitdb.ParseId("DatasetName/Block/RecordId")
-	}
-}
-
-func BenchmarkIDParserParseId(b *testing.B) {
-	b.ReportAllocs()
-	for i := 0; i <= b.N; i++ {
-		gitdb.NewIDParser("DatasetName/Block/RecordId")
-	}
 }

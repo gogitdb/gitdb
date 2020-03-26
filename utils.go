@@ -2,9 +2,12 @@ package gitdb
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/distatus/battery"
 )
 
 func RandStr(n int) string {
@@ -37,4 +40,18 @@ func ParseId(id string) (dataDir string, block string, record string, err error)
 	}
 
 	return dataDir, block, record, err
+}
+
+func hasSufficientBatteryPower(threshold float64) bool {
+	batt, err := battery.Get(0)
+	if err != nil {
+		return false
+	}
+
+	percentageCharge := batt.Current / batt.Full * 100
+
+	log(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
+
+	//return true if battery life is above threshold
+	return percentageCharge >= threshold
 }

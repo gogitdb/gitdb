@@ -1,6 +1,7 @@
 package gitdb
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -123,5 +124,13 @@ func (g *gitdb) gitLastCommitTime() (time.Time, error) {
 	}
 
 	timeString := string(out)
-	return time.Parse("2006-01-02 15:04:05", timeString[:19])
+	if len(timeString) >= 19 {
+		return time.Parse("2006-01-02 15:04:05", timeString[:19])
+	}
+
+	return t, errors.New("no commit history in repo")
+}
+
+func (c *Connection) GetLastCommitTime() (time.Time, error) {
+	return c.db().gitLastCommitTime()
 }

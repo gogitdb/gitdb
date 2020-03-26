@@ -1,4 +1,4 @@
-package gitdb_test
+package gitdb
 
 import (
 	"encoding/json"
@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/fobilow/gitdb"
 )
 
 func insert(count int) {
@@ -21,14 +19,14 @@ func insert(count int) {
 	fmt.Println("done inserting")
 }
 
-func doInsert(m gitdb.Model, benchmark bool) error {
+func doInsert(m Model, benchmark bool) error {
 	if err := testDb.Insert(m); err != nil {
 		return err
 	}
 
 	if !benchmark {
 		//check that block file exist
-		idParser := gitdb.NewIDParser(m.Id())
+		idParser := NewIDParser(m.Id())
 		cfg := getConfig()
 		blockFile := filepath.Join(cfg.DbPath, "data", idParser.BlockId()+".json")
 		if _, err := os.Stat(blockFile); err != nil {
@@ -42,7 +40,7 @@ func doInsert(m gitdb.Model, benchmark bool) error {
 			rep := strings.NewReplacer("\n", "", "\\", "", "\t", "", "\"{", "{", "}\"", "}", " ", "")
 			got := rep.Replace(string(b))
 
-			w := map[string]gitdb.Model{
+			w := map[string]Model{
 				idParser.RecordId(): m,
 			}
 
@@ -71,10 +69,9 @@ func TestInsert(t *testing.T) {
 }
 
 func TestInsertMany(t *testing.T) {
-	truncateDb()
 	setup()
 	defer testDb.Close()
-	msgs := []gitdb.Model{}
+	msgs := []Model{}
 	for i := 0; i < 10; i++ {
 		m := getTestMessage()
 		msgs = append(msgs, m)
@@ -91,7 +88,7 @@ func BenchmarkInsert(b *testing.B) {
 	b.ReportAllocs()
 
 	defer testDb.Close()
-	var m gitdb.Model
+	var m Model
 	for i := 0; i <= b.N; i++ {
 		m = getTestMessage()
 		err := doInsert(m, true)
@@ -104,6 +101,8 @@ func BenchmarkInsert(b *testing.B) {
 func TestDelete(t *testing.T) {
 	setup()
 	defer testDb.Close()
+
+	insert(1)
 
 	m := getTestMessage()
 	err := testDb.Delete(m.GetSchema().RecordId())

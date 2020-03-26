@@ -184,7 +184,7 @@ type Block struct {
 	dataset    string
 }
 
-func NewBlock(dataset string) *Block {
+func newBlock(dataset string) *Block {
 	block := &Block{dataset: dataset}
 	block.records = map[string]*record{}
 	block.rawRecords = map[string]string{}

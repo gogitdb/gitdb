@@ -89,7 +89,7 @@ func (g *gitdb) configure(cfg *Config) {
 
 //todo add revert logic if migrate fails mid way
 func (g *gitdb) migrate(from Model, to Model) error {
-	block := NewBlock(from.GetSchema().Name())
+	block := newBlock(from.GetSchema().Name())
 	err := g.dofetch(block)
 	if err != nil {
 		return err

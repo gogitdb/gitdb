@@ -52,7 +52,7 @@ func (g *gitdb) flushQueue(m Model) error {
 	if _, err := os.Stat(g.queueFilePath(m)); err == nil {
 
 		log("flushing queue")
-		dataBlock := NewBlock(m.GetSchema().Name())
+		dataBlock := newBlock(m.GetSchema().Name())
 		err := g.readBlock(g.queueFilePath(m), dataBlock)
 		if err != nil {
 			return err
@@ -114,9 +114,8 @@ func (g *gitdb) write(m Model) error {
 	dataBlock.Add(m.GetSchema().RecordId(), newRecordStr)
 
 	g.events <- newWriteBeforeEvent("...", blockFilePath)
-	writeErr := g.writeBlock(blockFilePath, dataBlock)
-	if writeErr != nil {
-		return writeErr
+	if err := g.writeBlock(blockFilePath, dataBlock); err != nil {
+		return err
 	}
 
 	log(fmt.Sprintf("autoCommit: %v", g.autoCommit))
@@ -185,7 +184,7 @@ func (g *gitdb) delById(id string, dataset string, blockFile string, failIfNotFo
 		return nil
 	}
 
-	dataBlock := NewBlock(dataset)
+	dataBlock := newBlock(dataset)
 	err := g.readBlock(blockFile, dataBlock)
 	if err != nil {
 		return err

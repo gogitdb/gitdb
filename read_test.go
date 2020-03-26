@@ -1,14 +1,13 @@
-package gitdb_test
+package gitdb
 
 import (
 	"testing"
-
-	"github.com/fobilow/gitdb"
 )
 
 func TestGet(t *testing.T) {
 	setup()
-	//defer testDb.Shutdown()
+	defer testDb.Close()
+
 	m := getTestMessage()
 	var err error
 
@@ -29,8 +28,32 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestExists(t *testing.T) {
+	setup()
+	defer testDb.Close()
+
+	m := getTestMessage()
+	var err error
+
+	err = doInsert(m, false)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	recId := m.GetSchema().RecordId()
+	err = testDb.Exists(recId)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}
+
 func TestFetch(t *testing.T) {
 	setup()
+	defer testDb.Close()
+
+	count := 5
+	insert(count)
+
 	dataset := "Message"
 	messages, err := testDb.Fetch(dataset)
 	if err != nil {
@@ -49,6 +72,11 @@ func TestFetch(t *testing.T) {
 
 func TestFetchMultithreaded(t *testing.T) {
 	setup()
+	defer testDb.Close()
+
+	count := 5
+	insert(count)
+
 	dataset := "Message"
 	messages, err := testDb.FetchMt(dataset)
 	if err != nil {
@@ -69,19 +97,18 @@ func TestFetchMultithreaded(t *testing.T) {
 }
 
 func TestSearch(t *testing.T) {
-	truncateDb()
 	setup()
 	defer testDb.Close()
 
 	count := 5
 	insert(count)
 
-	sp := &gitdb.SearchParam{
+	sp := &SearchParam{
 		Index: "From",
 		Value: "alice@example.com",
 	}
 
-	results, err := testDb.Search("Message", []*gitdb.SearchParam{sp}, gitdb.SEARCH_MODE_EQUALS)
+	results, err := testDb.Search("Message", []*SearchParam{sp}, SEARCH_MODE_EQUALS)
 	if err != nil {
 		t.Errorf("search failed with error - %s", err)
 	}

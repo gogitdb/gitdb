@@ -24,6 +24,10 @@ func (m *Mail) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &m.privateMail)
 }
 
+func (m *Mail) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.privateMail)
+}
+
 func newMail(db *gitdb, subject string, body string) *Mail {
 	return &Mail{
 		privateMail: &mail{Subject: subject, Body: body, Date: time.Now()},
@@ -49,7 +53,7 @@ func (m *Mail) send() error {
 		os.MkdirAll(m.db.mailDir(), 0744)
 	}
 
-	bytes, err := json.Marshal(m.privateMail)
+	bytes, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}

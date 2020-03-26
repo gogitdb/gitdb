@@ -20,7 +20,7 @@ func (g *gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
 
 	//if block file exist, read it and load into map else return an empty block
 	if _, ok := g.loadedBlocks[blockFile]; !ok {
-		g.loadedBlocks[blockFile] = NewBlock(dataset)
+		g.loadedBlocks[blockFile] = newBlock(dataset)
 		if _, err := os.Stat(blockFile); err == nil {
 			err := g.readBlock(blockFile, g.loadedBlocks[blockFile])
 			if err != nil {
@@ -105,7 +105,7 @@ func (g *gitdb) doget(id string) (*record, error) {
 		return nil, errors.New(dataDir + " Not Found - " + id)
 	}
 
-	dataBlock := NewBlock(dataDir)
+	dataBlock := newBlock(dataDir)
 	err = g.readBlock(dataFilePath, dataBlock)
 	if err != nil {
 		logError(err.Error())
@@ -135,7 +135,7 @@ func (g *gitdb) get(id string, result Model) error {
 	return record.Hydrate(result)
 }
 
-func (g *gitdb) Exists(id string) error {
+func (g *gitdb) exists(id string) error {
 	_, err := g.doget(id)
 	if err == nil {
 		g.events <- newReadEvent("...", id)
@@ -146,7 +146,7 @@ func (g *gitdb) Exists(id string) error {
 
 func (g *gitdb) fetch(dataDir string) ([]*record, error) {
 
-	dataBlock := NewBlock(dataDir)
+	dataBlock := newBlock(dataDir)
 	err := g.dofetch(dataBlock)
 	if err != nil {
 		return nil, err
@@ -184,7 +184,7 @@ func (g *gitdb) dofetch(dataBlock *Block) error {
 //EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
 func (g *gitdb) fetchMt(dataset string) ([]*record, error) {
 
-	dataBlock := NewBlock(dataset)
+	dataBlock := newBlock(dataset)
 
 	fullPath := filepath.Join(g.dbDir(), dataset)
 	//events <- newReadEvent("...", fullPath)
@@ -259,7 +259,7 @@ func (g *gitdb) search(dataDir string, searchParams []*SearchParam, searchMode S
 
 	}
 
-	dataBlock := NewBlock(dataDir)
+	dataBlock := newBlock(dataDir)
 
 	//filter out the blocks that we need to search
 	searchBlocks := map[string]string{}

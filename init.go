@@ -41,11 +41,7 @@ func Start(cfg *Config) *Connection {
 	//if boot() returned an error do not start event loop
 	if err == nil && !conn.loopStarted {
 		go conn.startEventLoop()
-		if len(conn.db().config.OnlineRemote) > 0 {
-			go conn.startSyncClock()
-		} else {
-			log("Syncing disabled: online remote is not set")
-		}
+		go conn.startSyncClock()
 		conn.loopStarted = true
 	}
 

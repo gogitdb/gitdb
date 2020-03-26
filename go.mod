@@ -3,10 +3,9 @@ module github.com/fobilow/gitdb
 go 1.14
 
 require (
-	github.com/DHowett/go-plist v0.0.0-20180609054337-500bd5b9081b // indirect
 	github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
-	github.com/distatus/battery v0.0.0-20170521010419-916919eb43bd
+	github.com/distatus/battery v0.10.0
 	github.com/emirpasic/gods v1.9.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/gliderlabs/ssh v0.3.0 // indirect

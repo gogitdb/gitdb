@@ -29,14 +29,6 @@ func (g *gitdb) blockFilePath2(dataset, block string) string {
 	return filepath.Join(g.dbDir(), dataset, block+".json")
 }
 
-func (g *gitdb) queueDir() string {
-	return filepath.Join(g.absDbPath(), g.internalDirName(), "queue")
-}
-
-func (g *gitdb) queueFilePath(m Model) string {
-	return filepath.Join(g.queueDir(), m.GetSchema().Name()+".json")
-}
-
 func (g *gitdb) lockDir(m Model) string {
 	return filepath.Join(g.fullPath(m), "Lock")
 }

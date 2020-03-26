@@ -21,7 +21,7 @@ func (g *gitdb) insert(m Model) error {
 	}
 
 	if g.getLock() {
-		if err := g.flushQueue(m); err != nil {
+		if err := g.flushQueue(); err != nil {
 			log(err.Error())
 		}
 		err := g.write(m)
@@ -34,57 +34,28 @@ func (g *gitdb) insert(m Model) error {
 
 func (g *gitdb) queue(m Model) error {
 
-	dataBlock, err := g.loadBlock(g.queueFilePath(m), m.GetSchema().Name())
-	if err != nil {
-		return err
+	if len(g.writeQueue) == 0 {
+		g.writeQueue = map[string]Model{}
 	}
 
-	writeErr := g.writeBlock(g.queueFilePath(m), dataBlock)
-	if writeErr != nil {
-		return writeErr
-	}
-
+	g.writeQueue[m.Id()] = m
 	return g.updateId(m)
 }
 
-func (g *gitdb) flushQueue(m Model) error {
+func (g *gitdb) flushQueue() error {
 
-	if _, err := os.Stat(g.queueFilePath(m)); err == nil {
+	for id, model := range g.writeQueue {
+		log("Flushing: " + id)
 
-		log("flushing queue")
-		dataBlock := newBlock(m.GetSchema().Name())
-		err := g.readBlock(g.queueFilePath(m), dataBlock)
+		err := g.write(model)
 		if err != nil {
+			logError(err.Error())
 			return err
 		}
 
-		//todo optimize: this will open and close block file to delete each record it flushes
-		model := g.getModelFromCache(m.GetSchema().Name())
-		for recordId, record := range dataBlock.records {
-			log("Flushing: " + recordId)
-
-			record.Hydrate(model)
-
-			err = g.write(model)
-			if err != nil {
-				println(err.Error())
-				return err
-			}
-			err = g.delById(recordId, m.GetSchema().Name(), g.queueFilePath(m), false)
-			if err != nil {
-				return err
-			}
-		}
-
-		return os.Remove(g.queueFilePath(m))
+		delete(g.writeQueue, id)
 	}
 
-	log("empty queue :)")
-
-	return nil
-}
-
-func (g *gitdb) flushDb() error {
 	return nil
 }
 

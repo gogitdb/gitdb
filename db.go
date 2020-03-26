@@ -47,11 +47,12 @@ type gitdb struct {
 	indexCache   gdbIndexCache
 	loadedBlocks map[string]*Block
 	loadedModels map[string]Model
+	writeQueue   map[string]Model
 }
 
 func (g *gitdb) shutdown() error {
 	logTest("Shutting down gitdb")
-	err := g.flushDb()
+	err := g.flushQueue()
 	if err != nil {
 		return err
 	}

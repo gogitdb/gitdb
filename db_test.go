@@ -32,7 +32,9 @@ func truncateDb() {
 }
 
 func getDbConn() *Connection {
-	return Start(getConfig())
+	//TODO proper error handling
+	conn, _ := Open(getConfig())
+	return conn
 }
 
 func getConfig() *Config {

@@ -27,12 +27,7 @@ func Open(cfg *Config) (*Connection, error) {
 		conns = make(map[string]*Connection)
 	}
 
-	var conn *Connection
-	conn, ok := conns[cfg.ConnectionName]
-	if !ok {
-		conn = newConnection()
-	}
-
+	conn := newConnection()
 	conn.db().configure(cfg)
 
 	err := conn.db().boot()

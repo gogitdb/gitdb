@@ -4,7 +4,10 @@ go_import_path: github.com/fobilow/github
 sudo: false
 
 go:
-- 1.14
+    - 1.14
 
 script:
-- make test
+    - make test
+
+after_success:
+    - bash <(curl -s https://codecov.io/bash)

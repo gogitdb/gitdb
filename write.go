@@ -62,9 +62,9 @@ func (g *gitdb) flushQueue() error {
 func (g *gitdb) write(m Model) error {
 
 	blockFilePath := g.blockFilePath(m)
-	commitMsg := "Inserting " + m.Id() + " into " + blockFilePath
+	schema := m.GetSchema()
 
-	dataBlock, err := g.loadBlock(blockFilePath, m.GetSchema().Name())
+	dataBlock, err := g.loadBlock(blockFilePath, schema.Name())
 	if err != nil {
 		return err
 	}
@@ -75,28 +75,38 @@ func (g *gitdb) write(m Model) error {
 		return err
 	}
 
+	//construct a commit message
+	commitMsg := "Inserting " + m.Id() + " into " + schema.BlockId()
 	if _, err := dataBlock.Get(m.Id()); err == nil {
-		commitMsg = "Updating " + m.Id() + " in " + blockFilePath
+		commitMsg = "Updating " + m.Id() + " in " + schema.BlockId()
 	}
 
-	logTest(commitMsg)
-
 	newRecordStr := string(newRecordBytes)
-	dataBlock.Add(m.GetSchema().RecordId(), newRecordStr)
+	dataBlock.Add(m.Id(), newRecordStr)
 
-	g.events <- newWriteBeforeEvent("...", blockFilePath)
+	g.events <- newWriteBeforeEvent("...", m.Id())
 	if err := g.writeBlock(blockFilePath, dataBlock); err != nil {
 		return err
 	}
 
 	log(fmt.Sprintf("autoCommit: %v", g.autoCommit))
 
-	logTest("sending write event to loop")
-	g.events <- newWriteEvent(commitMsg, blockFilePath)
-	g.updateIndexes(m.GetSchema().Name(), newRecord(m.Id(), newRecordStr))
+	g.events <- newWriteEvent(commitMsg, blockFilePath, g.autoCommit)
+	logTest("sent write event to loop")
+	g.updateIndexes(schema.Name(), newRecord(m.Id(), newRecordStr))
+
+	//block here until write has been committed
+	g.waitForCommit(g.autoCommit)
 
 	//what is the effect of this on InsertMany?
 	return g.updateId(m)
+}
+
+func (g *gitdb) waitForCommit(wait bool) {
+	if wait {
+		logTest("waiting for gitdb to commit changes")
+		<-g.committed
+	}
 }
 
 func (g *gitdb) writeBlock(blockFile string, block *Block) error {
@@ -140,7 +150,8 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 
 	if err == nil {
 		logTest("sending delete event to loop")
-		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath)
+		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath, g.autoCommit)
+		g.waitForCommit(g.autoCommit)
 	}
 
 	return err

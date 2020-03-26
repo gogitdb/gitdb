@@ -48,9 +48,9 @@ func Open(cfg *Config) (*Connection, error) {
 	}
 
 	//if boot() returned an error do not start event loop
-	if err == nil && !conn.loopStarted {
-		go conn.startEventLoop()
-		go conn.startSyncClock()
+	if !conn.loopStarted {
+		conn.startEventLoop()
+		conn.startSyncClock()
 		conn.loopStarted = true
 	}
 

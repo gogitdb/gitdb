@@ -48,7 +48,7 @@ func (g *gitdb) lock(m Model) error {
 	}
 
 	commitMsg := "Created Lock Files for: " + m.Id()
-	g.events <- newWriteEvent(commitMsg, fullPath)
+	g.events <- newWriteEvent(commitMsg, fullPath, g.autoCommit)
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (g *gitdb) unlock(m Model) error {
 	}
 
 	commitMsg := "Removing Lock Files for: " + m.Id()
-	g.events <- newWriteEvent(commitMsg, fullPath)
+	g.events <- newWriteEvent(commitMsg, fullPath, g.autoCommit)
 	return nil
 }
 

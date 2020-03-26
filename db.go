@@ -35,6 +35,7 @@ type gitdb struct {
 	//use this for special optimizations :)
 	buf bytes.Buffer
 
+	committed chan bool
 	locked    chan bool
 	events    chan *dbEvent
 	lastIds   map[string]int64
@@ -51,21 +52,14 @@ type gitdb struct {
 }
 
 func (g *gitdb) shutdown() error {
-	logTest("Shutting down gitdb")
-	err := g.flushQueue()
-	if err != nil {
+	logTest("shutting down gitdb")
+	if err := g.flushQueue(); err != nil {
 		return err
 	}
 
-	err = g.flushIndex()
-	if err != nil {
+	if err := g.flushIndex(); err != nil {
 		return err
 	}
-
-	//close channels
-	g.events <- newShutdownEvent()
-	close(g.events)
-	close(g.locked)
 
 	return nil
 }

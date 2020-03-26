@@ -18,10 +18,11 @@ type dbEvent struct {
 	Type        eventType
 	Dataset     string
 	Description string
+	Commit      bool
 }
 
-func newWriteEvent(description string, dataset string) *dbEvent {
-	return &dbEvent{Type: w, Description: description, Dataset: dataset}
+func newWriteEvent(description string, dataset string, commit bool) *dbEvent {
+	return &dbEvent{Type: w, Description: description, Dataset: dataset, Commit: commit}
 }
 
 func newWriteBeforeEvent(description string, dataset string) *dbEvent {
@@ -32,8 +33,8 @@ func newReadEvent(description string, dataset string) *dbEvent {
 	return &dbEvent{Type: r, Description: description, Dataset: dataset}
 }
 
-func newDeleteEvent(description string, dataset string) *dbEvent {
-	return &dbEvent{Type: w, Description: description, Dataset: dataset}
+func newDeleteEvent(description string, dataset string, commit bool) *dbEvent {
+	return &dbEvent{Type: w, Description: description, Dataset: dataset, Commit: commit}
 }
 
 func newShutdownEvent() *dbEvent {
@@ -41,82 +42,89 @@ func newShutdownEvent() *dbEvent {
 }
 
 func (c *Connection) startEventLoop() {
-	db, err := c.dbWithError()
-	if err != nil {
-		logTest(err.Error())
-		return
-	}
-	for {
-		logTest("looping...")
-		select {
-		case e := <-db.events:
-			switch e.Type {
-			case w, d:
-				if db.autoCommit {
-					logTest("handling write event for " + e.Dataset)
-					db.gitCommit(e.Dataset, e.Description, db.config.User)
+	go func(c *Connection) {
+		db, err := c.dbWithError()
+		if err != nil {
+			logTest(err.Error())
+			return
+		}
+		c.wg.Add(1)
+		logTest("starting event loop")
+
+		for {
+			select {
+			case e := <-db.events:
+				switch e.Type {
+				case w, d:
+					if e.Commit {
+						db.gitCommit(e.Dataset, e.Description, db.config.User)
+						logTest("handled write event for " + e.Description)
+						db.committed <- true
+					}
+				case s:
+					log("event shutdown")
+					logTest("shutting down event loop")
+					c.wg.Done()
+					return
+				default:
+					log("No handler found for " + string(e.Type) + " event")
 				}
-			case s:
-				log("event shutdown")
-				logTest("shutting down event loop")
-				return
-			default:
-				log("No handler found for " + string(e.Type) + " event")
 			}
 		}
-	}
+	}(c)
+
 }
 
 func (c *Connection) startSyncClock() {
-	db, err := c.dbWithError()
-	if err != nil {
-		logTest(err.Error())
-		return
-	}
 
-	if c.closed {
-		logTest("shutting down sync clock")
-		return
-	}
-
-	if len(db.config.OnlineRemote) <= 0 {
-		log("Syncing disabled: online remote is not set")
-		return
-	}
-
-	ticker := time.NewTicker(db.config.SyncInterval)
-	for {
-		select {
-		case <-ticker.C:
-			//check if db is closed, just in case db is closed after goroutine has started
-			if c.closed {
-				logTest("shutting down sync clock")
-				return
-			}
-
-			if !db.getLock() {
-				log("Syncing disabled: db is locked by app")
-				return
-			}
-
-			//if client PC has at least 20% battery life
-			if !hasSufficientBatteryPower(20) {
-				log("Syncing disabled: insufficient battery power")
-				return
-			}
-
-			log("Syncing database...")
-			err1 := db.gitPull()
-			err2 := db.gitPush()
-			if err1 != nil || err2 != nil {
-				log("Database sync failed")
-			}
-
-			//reset loaded blocks
-			db.loadedBlocks = map[string]*Block{}
-
-			db.buildIndex()
-			db.releaseLock()
+	go func(c *Connection) {
+		db, err := c.dbWithError()
+		if err != nil {
+			logTest(err.Error())
+			return
 		}
-	}
+
+		if len(db.config.OnlineRemote) <= 0 {
+			log("Syncing disabled: online remote is not set")
+			return
+		}
+
+		c.wg.Add(1)
+		ticker := time.NewTicker(db.config.SyncInterval)
+		for {
+			select {
+			case <-ticker.C:
+				//check if db is closed, just in case db is closed after goroutine has started
+				if c.closed {
+					logTest("shutting down sync clock")
+					c.wg.Done()
+					return
+				}
+
+				if !db.getLock() {
+					log("Syncing disabled: db is locked by app")
+					return
+				}
+
+				//if client PC has at least 20% battery life
+				if !hasSufficientBatteryPower(20) {
+					log("Syncing disabled: insufficient battery power")
+					return
+				}
+
+				log("Syncing database...")
+				err1 := db.gitPull()
+				err2 := db.gitPush()
+				if err1 != nil || err2 != nil {
+					log("Database sync failed")
+				}
+
+				//reset loaded blocks
+				db.loadedBlocks = map[string]*Block{}
+
+				db.buildIndex()
+				db.releaseLock()
+			}
+		}
+	}(c)
 }

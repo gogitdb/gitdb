@@ -1,12 +1,12 @@
 GitDB
 =====
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/fobilow/gitdb?style=flat-square)](https://goreportcard.com/report/github.com/etcd-io/bbolt)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fobilow/gitdb?style=flat-square)](https://goreportcard.com/report/github.com/fobilow/gitdb)
 [![Coverage](https://codecov.io/gh/fobilow/gitdb/branch/develop/graph/badge.svg)](https://codecov.io/gh/fobilow/gitdb)
 [![Build Status Travis](https://img.shields.io/travis/fobilow/gitdb.svg?style=flat-square&&branch=master)](https://travis-ci.com/fobilow/gitdb)
-<!-- [![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/etcd-io/bbolt) -->
-<!-- [![Releases](https://img.shields.io/github/release/etcd-io/bbolt/all.svg?style=flat-square)](https://github.com/etcd-io/bbolt/releases) -->
-<!-- [![LICENSE](https://img.shields.io/github/license/etcd-io/bbolt.svg?style=flat-square)](https://github.com/etcd-io/bbolt/blob/master/LICENSE) -->
+<!-- [![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/fobilow/gitdb) -->
+<!-- [![Releases](https://img.shields.io/github/release/fobilow/gitdb/all.svg?style=flat-square)](https://github.com/fobilow/gitdb/releases) -->
+<!-- [![LICENSE](https://img.shields.io/github/license/fobilow/gitdb.svg?style=flat-square)](https://github.com/fobilow/gitdb/blob/master/LICENSE) -->
 
 ## What is GitDB?
 

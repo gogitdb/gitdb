@@ -70,9 +70,8 @@ defer db.Close()
 package main
 
 import (
-	"log"
-
-	"github.com/fobilow/gitdb"
+  "log"
+  "github.com/fobilow/gitdb"
 )
 
 func main() {
@@ -131,8 +130,8 @@ func (b *BankAccount) GetSchema() *db.Schema {
 package main
 
 import (
-	"log"
-	"github.com/fobilow/gitdb"
+  "log"
+  "github.com/fobilow/gitdb"
 )
 
 func main(){
@@ -168,9 +167,8 @@ func main(){
 ```go
 package main
 import (
-	"log"
-
-	"github.com/fobilow/gitdb"
+  "log"
+  "github.com/fobilow/gitdb"
 )
 
 func main(){
@@ -194,8 +192,8 @@ func main(){
 package main
 
 import (
-	"log"
-	"github.com/fobilow/gitdb"
+  "log"
+  "github.com/fobilow/gitdb"
 )
 
 func main(){
@@ -229,9 +227,8 @@ func main(){
 package main
 
 import (
-	"log"
-
-	"github.com/fobilow/gitdb"
+  "log"
+  "github.com/fobilow/gitdb"
 )
 
 func main(){
@@ -257,7 +254,7 @@ package main
 
 import (
   "log"
-	"github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb"
 )
 
 func main(){
@@ -290,9 +287,8 @@ func main(){
 package main
 
 import (
-	"log"
-
-	"github.com/fobilow/gitdb"
+  "log"
+  "github.com/fobilow/gitdb"
 )
 
 func main() {

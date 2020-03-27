@@ -8,3 +8,4 @@ vendor
 cover.out
 prof.cpu
 prof.mem
+bin

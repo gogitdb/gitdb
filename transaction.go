@@ -13,7 +13,10 @@ func (t *transaction) Commit() error {
 	for _, o := range t.operations {
 		if err := o(); err != nil {
 			log("Reverting transaction: " + err.Error())
-			t.db.gitUndo()
+			err := t.db.gitUndo()
+			if err != nil {
+				return err
+			}
 			t.db.autoCommit = true
 			return err
 		}

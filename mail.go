@@ -50,7 +50,10 @@ func (m *Mail) GetDate() time.Time {
 func (m *Mail) send() error {
 
 	if _, err := os.Stat(m.db.mailDir()); err != nil {
-		os.MkdirAll(m.db.mailDir(), 0744)
+		err := os.MkdirAll(m.db.mailDir(), 0744)
+		if err != nil {
+			return err
+		}
 	}
 
 	bytes, err := json.Marshal(m)

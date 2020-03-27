@@ -13,7 +13,10 @@ func (g *gitdb) insert(m Model) error {
 	stamp(m)
 
 	if _, err := os.Stat(g.fullPath(m)); err != nil {
-		os.MkdirAll(g.fullPath(m), 0755)
+		err := os.MkdirAll(g.fullPath(m), 0755)
+		if err != nil {
+			return fmt.Errorf("failed to make dir %s: %w", g.fullPath(m), err)
+		}
 	}
 
 	if !m.Validate() {

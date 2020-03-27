@@ -231,16 +231,12 @@ func (g *gitdb) search(dataDir string, searchParams []*SearchParam, searchMode S
 			switch query.mode {
 			case SEARCH_MODE_EQUALS:
 				addResult = dbValue == queryValue
-				break
 			case SEARCH_MODE_CONTAINS:
 				addResult = strings.Contains(dbValue, queryValue)
-				break
 			case SEARCH_MODE_STARTS_WITH:
 				addResult = strings.HasPrefix(dbValue, queryValue)
-				break
 			case SEARCH_MODE_ENDS_WITH:
 				addResult = strings.HasSuffix(dbValue, queryValue)
-				break
 			}
 
 			if addResult {

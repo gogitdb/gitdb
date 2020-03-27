@@ -25,6 +25,10 @@ func SetLogLevel(l LogLevel) {
 	verbosity = l
 }
 
+func SetLogger(l *golog.Logger) {
+	logger = l
+}
+
 func printlog(message string) {
 	if logger != nil {
 		logger.Println(message)

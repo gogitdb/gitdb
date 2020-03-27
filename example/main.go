@@ -29,7 +29,8 @@ func init() {
 	if logToFile {
 		runLogFile, err := os.OpenFile("./db.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err == nil {
-			cfg.Logger = log.New(runLogFile, "GITDB: ", log.Ldate|log.Ltime|log.Lshortfile)
+			logger := log.New(runLogFile, "GITDB: ", log.Ldate|log.Ltime|log.Lshortfile)
+			db.SetLogger(logger)
 		}
 	}
 

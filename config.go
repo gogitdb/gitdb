@@ -2,7 +2,6 @@ package gitdb
 
 import (
 	"errors"
-	golog "log"
 	"time"
 )
 
@@ -14,7 +13,6 @@ type Config struct {
 	EncryptionKey  string
 	SyncInterval   time.Duration
 	Verbose        LogLevel //flag for displaying messages useful for debugging. defaults to false
-	Logger         *golog.Logger
 	GitDriver      dbDriverName
 	User           *DbUser
 }

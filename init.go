@@ -17,8 +17,6 @@ func Open(cfg *Config) (*Connection, error) {
 		return nil, err
 	}
 
-	logger = cfg.Logger
-
 	if len(cfg.ConnectionName) == 0 {
 		cfg.ConnectionName = "default"
 	}

@@ -77,8 +77,8 @@ import (
 func main() {
   
   config := gitdb.NewConfig("/tmp/data")
-  // Open the my.db data file in your current directory.
-	// It will be created if it doesn't exist.
+  // Open will create or clone down a git repo 
+  // in configured path if it does not exist.
 	db, err := gitdb.Open(cfg)
 	if err != nil {
 		log.Fatal(err)

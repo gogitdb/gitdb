@@ -97,14 +97,14 @@ BaseModel is a sub type provided by gitdb to standardize and simplify the creati
 
 ```go
 type BankAccount struct {
-  db.BaseModel //using BaseModel by composition to simplify code
+  gitdb.BaseModel //using BaseModel by composition to simplify code
   AccountType         string
   AccountNo           string
   Currency            string
   Name                string
 }
 
-func (b *BankAccount) GetSchema() *db.Schema {
+func (b *BankAccount) GetSchema() *gitdb.Schema {
   //Dataset Name
   name := func() string {return "Accounts"}
   //Block ID
@@ -120,7 +120,7 @@ func (b *BankAccount) GetSchema() *db.Schema {
      return indexes
   }
 
-  return db.NewSchema(name, block, record, indexes)
+  return gitdb.NewSchema(name, block, record, indexes)
 }
   
 ```

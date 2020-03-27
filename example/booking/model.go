@@ -3,12 +3,12 @@ package booking
 import (
 	"time"
 
-	db "github.com/fobilow/gitdb"
+	"github.com/fobilow/gitdb"
 )
 
 type BookingModel struct {
 	//extends..
-	db.BaseModel
+	gitdb.BaseModel
 	Type         RoomType
 	CheckInDate  time.Time
 	CheckOutDate time.Time
@@ -30,7 +30,7 @@ func NewBookingModel() *BookingModel {
 	return &BookingModel{}
 }
 
-func (b *BookingModel) GetSchema() *db.Schema {
+func (b *BookingModel) GetSchema() *gitdb.Schema {
 
 	//Name of schema
 	name := func() string {
@@ -59,7 +59,7 @@ func (b *BookingModel) GetSchema() *db.Schema {
 		return indexes
 	}
 
-	return db.NewSchema(name, block, record, indexes)
+	return gitdb.NewSchema(name, block, record, indexes)
 }
 
 func (b *BookingModel) GetLockFileNames() []string {

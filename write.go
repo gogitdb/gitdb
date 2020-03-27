@@ -96,21 +96,22 @@ func (g *gitdb) write(m Model) error {
 
 	log(fmt.Sprintf("autoCommit: %v", g.autoCommit))
 
+	g.commit.Add(1)
 	g.events <- newWriteEvent(commitMsg, blockFilePath, g.autoCommit)
 	logTest("sent write event to loop")
 	g.updateIndexes(schema.Name(), newRecord(m.Id(), newRecordStr))
 
 	//block here until write has been committed
-	g.waitForCommit(g.autoCommit)
+	g.waitForCommit()
 
 	//what is the effect of this on InsertMany?
 	return g.updateId(m)
 }
 
-func (g *gitdb) waitForCommit(wait bool) {
-	if wait {
+func (g *gitdb) waitForCommit() {
+	if g.autoCommit {
 		logTest("waiting for gitdb to commit changes")
-		<-g.committed
+		g.commit.Wait()
 	}
 }
 
@@ -144,8 +145,9 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 
 	if err == nil {
 		logTest("sending delete event to loop")
+		g.commit.Add(1)
 		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath, g.autoCommit)
-		g.waitForCommit(g.autoCommit)
+		g.waitForCommit()
 	}
 
 	return err

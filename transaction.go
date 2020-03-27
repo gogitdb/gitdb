@@ -21,8 +21,9 @@ func (t *transaction) Commit() error {
 
 	t.db.autoCommit = true
 	commitMsg := "Committing transaction: " + t.name
+	t.db.commit.Add(1)
 	t.db.events <- newWriteEvent(commitMsg, ".", t.db.autoCommit)
-	t.db.waitForCommit(true)
+	t.db.waitForCommit()
 	return nil
 }
 

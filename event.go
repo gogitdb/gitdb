@@ -1,6 +1,7 @@
 package gitdb
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -11,7 +12,6 @@ var (
 	wBefore eventType = "writeBefore" //writeBefore
 	d       eventType = "delete"      //delete
 	r       eventType = "read"        //read
-	s       eventType = "shutdown"    //shutdown
 )
 
 type dbEvent struct {
@@ -37,10 +37,6 @@ func newDeleteEvent(description string, dataset string, commit bool) *dbEvent {
 	return &dbEvent{Type: w, Description: description, Dataset: dataset, Commit: commit}
 }
 
-func newShutdownEvent() *dbEvent {
-	return &dbEvent{Type: s}
-}
-
 func (c *Connection) startEventLoop() {
 	go func(c *Connection) {
 		db, err := c.dbWithError()
@@ -48,24 +44,23 @@ func (c *Connection) startEventLoop() {
 			logTest(err.Error())
 			return
 		}
-		c.wg.Add(1)
+
 		logTest("starting event loop")
 
 		for {
 			select {
+			case <-c.shutdown:
+				log("event shutdown")
+				logTest("shutting down event loop")
+				return
 			case e := <-db.events:
 				switch e.Type {
 				case w, d:
 					if e.Commit {
 						db.gitCommit(e.Dataset, e.Description, db.config.User)
 						logTest("handled write event for " + e.Description)
-						db.committed <- true
 					}
-				case s:
-					log("event shutdown")
-					logTest("shutting down event loop")
-					c.wg.Done()
-					return
+					db.commit.Done()
 				default:
 					log("No handler found for " + string(e.Type) + " event")
 				}
@@ -89,18 +84,14 @@ func (c *Connection) startSyncClock() {
 			return
 		}
 
-		c.wg.Add(1)
+		logTest(fmt.Sprintf("starting sync clock @ interval %s", db.config.SyncInterval))
 		ticker := time.NewTicker(db.config.SyncInterval)
 		for {
 			select {
+			case <-c.shutdown:
+				logTest("shutting down sync clock")
+				return
 			case <-ticker.C:
-				//check if db is closed, just in case db is closed after goroutine has started
-				if c.closed {
-					logTest("shutting down sync clock")
-					c.wg.Done()
-					return
-				}
-
 				if !db.getLock() {
 					log("Syncing disabled: db is locked by app")
 					return

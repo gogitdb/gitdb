@@ -2,14 +2,13 @@ package gitdb
 
 import (
 	"errors"
-	"sync"
 )
 
 type Connection struct {
 	gitdb       *gitdb
 	loopStarted bool
 	closed      bool
-	wg          sync.WaitGroup
+	shutdown    chan bool
 }
 
 func newConnection() *Connection {
@@ -18,9 +17,13 @@ func newConnection() *Connection {
 	//initialize channels
 	db.events = make(chan *dbEvent, 1)
 	db.locked = make(chan bool, 1)
-	db.committed = make(chan bool, 1)
 
-	return &Connection{gitdb: db}
+	conn := &Connection{gitdb: db}
+	//initialize shutdown channel with capacity 2
+	//to represent the event loop and sync clock
+	//goroutines
+	conn.shutdown = make(chan bool, 2)
+	return conn
 }
 
 func (c *Connection) db() *gitdb {
@@ -126,9 +129,10 @@ func (c *Connection) Close() error {
 		return err
 	}
 
-	//send shutdown event to event loop
-	c.gitdb.events <- newShutdownEvent()
-	c.wg.Wait()
+	//send shutdown event to event loop and sync clock
+	c.shutdown <- true
+	c.shutdown <- true
+	c.gitdb.waitForCommit()
 
 	//remove cached connection
 	delete(conns, c.gitdb.config.ConnectionName)

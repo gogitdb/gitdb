@@ -35,7 +35,7 @@ type gitdb struct {
 	//use this for special optimizations :)
 	buf bytes.Buffer
 
-	committed chan bool
+	commit    sync.WaitGroup
 	locked    chan bool
 	events    chan *dbEvent
 	lastIds   map[string]int64

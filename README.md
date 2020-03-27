@@ -204,8 +204,6 @@ func main(){
   }
   defer db.Close()
 
-  //model to store result 
-  account := &BankAccount()
   records, err := db.Fetch("Accounts")
   if err != nil {
     log.Print(err)
@@ -239,8 +237,6 @@ func main(){
   }
   defer db.Close()
 
-  //model to store result 
-  account := &BankAccount()
   err := db.Delete("Accounts/202003/0123456789")
   if err != nil {
     log.Print(err)

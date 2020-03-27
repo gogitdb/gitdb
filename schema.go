@@ -89,7 +89,7 @@ func NewAutoBlock(dbConn *Connection, model Model, maxBlockSize int64, recordsPe
 				}
 
 				var records map[string]interface{}
-				err := json.Unmarshal(b, &records)
+				err = json.Unmarshal(b, &records)
 				if err != nil {
 					// todo: update to handle err better but log and return for now
 					logError(err.Error())

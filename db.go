@@ -30,6 +30,7 @@ type SearchParam struct {
 }
 
 type gitdb struct {
+	mu        sync.Mutex
 	commit    sync.WaitGroup
 	locked    chan bool
 	events    chan *dbEvent

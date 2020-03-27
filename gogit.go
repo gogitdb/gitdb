@@ -1,19 +1,20 @@
 package gitdb
 
 import (
+	"path/filepath"
+	"strings"
 	"time"
+
 	"gopkg.in/src-d/go-git.v4"
 	gogitconfig "gopkg.in/src-d/go-git.v4/config"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
-	"strings"
-	"path/filepath"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 type goGit struct {
 	baseGitDriver
-	repo *git.Repository
+	repo    *git.Repository
 	sshAuth *ssh.PublicKeys
 }
 
@@ -57,7 +58,7 @@ func (g *goGit) clone() error {
 		Auth: g.getSshAuth(),
 	})
 
-	if err != nil && err.Error() != "remote repository is empty"{
+	if err != nil && err.Error() != "remote repository is empty" {
 		return err
 	}
 
@@ -106,7 +107,7 @@ func (g *goGit) push() error {
 		return err
 	}
 
-	err = repo.Push(&git.PushOptions{RemoteName:"online", Auth: g.getSshAuth()})
+	err = repo.Push(&git.PushOptions{RemoteName: "online", Auth: g.getSshAuth()})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		logError("Failed to push data to online remotes.")
 		logError(err.Error())

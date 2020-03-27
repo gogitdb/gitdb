@@ -85,7 +85,7 @@ func main() {
   }
   defer db.Close()
 
-	...
+  ...
 }
 ```
 
@@ -149,14 +149,14 @@ func main(){
   account.Currency = "GBP"
   account.Name = "Foo Bar"
 
-  err := db.Insert(account)
+  err = db.Insert(account)
   if err != nil {
     fmt.Println(err)
   }
 
   //update account name
   account.Name = "Bar Foo"
-  err := db.Insert(account)
+  err = db.Insert(account)
   if err != nil {
     log.Error(err)
   }
@@ -181,7 +181,7 @@ func main(){
 
   //model to passed to Get to store result 
   account := &BankAccount()
-  err := db.Get("Accounts/202003/0123456789", account)
+  err = db.Get("Accounts/202003/0123456789", account)
   if err != nil {
     log.Error(err)
   }
@@ -295,17 +295,17 @@ func main() {
   }
   defer db.Close()
 
-  func accountUpgradeFuncOne() error  { println("accountUpgradeFuncOne..."); return nil }
-  func accountUpgradeFuncTwo() error    { println("accountUpgradeFuncTwo..."); return errors.New("accountUpgradeFuncTwo failed") }
+  func accountUpgradeFuncOne() error { println("accountUpgradeFuncOne..."); return nil }
+  func accountUpgradeFuncTwo() error { println("accountUpgradeFuncTwo..."); return errors.New("accountUpgradeFuncTwo failed") }
   func accountUpgradeFuncThree() error { println("accountUpgradeFuncThree"); return nil }
 
   t := db.NewTransaction("AccountUpgrade")
-  t.AddOperation(updateAccountType)
-  t.AddOperation(lockRoom)
-  t.AddOperation(saveBooking)
-  err := t.Commit()
-  if err != nil {
-    log.Print(err)
+  t.AddOperation(accountUpgradeFuncOne)
+  t.AddOperation(accountUpgradeFuncTwo)
+  t.AddOperation(accountUpgradeFuncThree)
+  terr := t.Commit()
+  if terr != nil {
+    log.Print(terr)
   }
 }
 ```

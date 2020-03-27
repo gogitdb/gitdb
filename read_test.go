@@ -90,10 +90,8 @@ func TestFetchMultithreaded(t *testing.T) {
 	}
 
 	if got != want {
-		t.Fail()
+		t.Errorf("Want: %d, Got: %d", want, got)
 	}
-
-	t.Logf("Want: %d, Got: %d", want, got)
 }
 
 func TestSearch(t *testing.T) {

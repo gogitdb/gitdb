@@ -79,11 +79,11 @@ func main() {
   config := gitdb.NewConfig("/tmp/data")
   // Open will create or clone down a git repo 
   // in configured path if it does not exist.
-	db, err := gitdb.Open(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer db.Close()
 
 	...
 }

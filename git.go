@@ -110,8 +110,10 @@ func (g *gitdb) gitCommit(filePath string, msg string, user *DbUser) {
 	mu.Lock()
 	defer mu.Unlock()
 	err := g.gitDriver.commit(filePath, msg, user)
-	// todo: update to return this error but for now at least log it
-	logError(err.Error())
+	if err != nil {
+		// todo: update to return this error but for now at least log it
+		logError(err.Error())
+	}
 }
 
 func (g *gitdb) gitUndo() error {

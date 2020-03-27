@@ -132,16 +132,15 @@ package main
 
 import (
 	"log"
-
 	"github.com/fobilow/gitdb"
 )
 
 func main(){
   config := gitdb.NewConfig("/tmp/data")
-	db, err := gitdb.Open(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
   defer db.Close()
 
   //populate model
@@ -160,7 +159,7 @@ func main(){
   account.Name = "Bar Foo"
   err := db.Insert(account)
   if err != nil {
-    fmt.Println(err)
+    log.Error(err)
   }
 }
 ```
@@ -176,17 +175,17 @@ import (
 
 func main(){
   config := gitdb.NewConfig("/tmp/data")
-	db, err := gitdb.Open(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
   defer db.Close()
 
   //model to passed to Get to store result 
   account := &BankAccount()
   err := db.Get("Accounts/202003/0123456789", account)
   if err != nil {
-
+    log.Error(err)
   }
 }
 ```
@@ -196,23 +195,22 @@ package main
 
 import (
 	"log"
-
 	"github.com/fobilow/gitdb"
 )
 
 func main(){
   config := gitdb.NewConfig("/tmp/data")
-	db, err := gitdb.Open(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
   defer db.Close()
 
   //model to store result 
   account := &BankAccount()
   records, err := db.Fetch("Accounts")
   if err != nil {
-    log.Error(err)
+    log.Print(err)
     return
   }
 
@@ -221,7 +219,7 @@ func main(){
     b := &BankAccount{}
     r.Hydrate(b)
     accounts = append(accounts, b)
-    fmt.Println(fmt.Sprintf("%s-%s", b.ID, b.CreatedAt))
+    log.Print(fmt.Sprintf("%s-%s", b.ID, b.CreatedAt))
   }
 }
 
@@ -238,20 +236,19 @@ import (
 
 func main(){
   config := gitdb.NewConfig("/tmp/data")
-	db, err := gitdb.Open(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
   defer db.Close()
 
   //model to store result 
   account := &BankAccount()
   err := db.Delete("Accounts/202003/0123456789")
   if err != nil {
-    log.Error(err)
+    log.Print(err)
   }
 }
-
 ```
 
 ### Search for records
@@ -259,33 +256,31 @@ func main(){
 package main
 
 import (
-  "fmt"
   "log"
 	"github.com/fobilow/gitdb"
 )
 
 func main(){
-
   config := gitdb.NewConfig("/tmp/data")
-	db, err := gitdb.Open(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
   defer db.Close()
 
   searchParam := &db.SearchParam{Index: "AccountType", Value: "Savings"}
-	records, err := dbconn.Search("Accounts", []*db.SearchParam{searchParam}, db.SEARCH_MODE_EQUALS)
-	if err != nil {
+  records, err := dbconn.Search("Accounts", []*db.SearchParam{searchParam}, db.SEARCH_MODE_EQUALS)
+  if err != nil {
     fmt.Println(err.Error())
     return
   } 
-  
+
   accounts := []*BankAccount{}
   for _, r := range records {
     b := &BankAccount{}
     r.Hydrate(b)
     accounts = append(accounts, b)
-    fmt.Println(fmt.Sprintf("%s-%s", b.ID, b.CreatedAt))
+    log.Print(fmt.Sprintf("%s-%s", b.ID, b.CreatedAt))
   }
 }
 ```
@@ -301,25 +296,24 @@ import (
 )
 
 func main() {
-
   config := gitdb.NewConfig("/tmp/data")
-	db, err := gitdb.Open(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
   defer db.Close()
 
   func accountUpgradeFuncOne() error  { println("accountUpgradeFuncOne..."); return nil }
   func accountUpgradeFuncTwo() error    { println("accountUpgradeFuncTwo..."); return errors.New("accountUpgradeFuncTwo failed") }
   func accountUpgradeFuncThree() error { println("accountUpgradeFuncThree"); return nil }
 
-	t := db.NewTransaction("AccountUpgrade")
-	t.AddOperation(updateAccountType)
-	t.AddOperation(lockRoom)
-	t.AddOperation(saveBooking)
+  t := db.NewTransaction("AccountUpgrade")
+  t.AddOperation(updateAccountType)
+  t.AddOperation(lockRoom)
+  t.AddOperation(saveBooking)
   err := t.Commit()
   if err != nil {
-    log.Error(err)
+    log.Print(err)
   }
 }
 ```

@@ -30,7 +30,7 @@ type SearchParam struct {
 }
 
 type gitdb struct {
-	mu        sync.Mutex
+	writeMu   sync.Mutex
 	commit    sync.WaitGroup
 	locked    chan bool
 	events    chan *dbEvent
@@ -164,19 +164,19 @@ func (g *gitdb) getLastId(m Model) int64 {
 	return g.lastIds[m.GetSchema().Name()]
 }
 
-func (g *gitdb) getLock() bool {
-	select {
-	case locked := <-g.locked:
-		g.locked <- locked
-		return !locked
-	default:
-		g.locked <- true
-		return true
-	}
-}
+// func (g *gitdb) getLock() bool {
+// 	select {
+// 	case locked := <-g.locked:
+// 		g.locked <- locked
+// 		return !locked
+// 	default:
+// 		g.locked <- true
+// 		return true
+// 	}
+// }
 
-func (g *gitdb) releaseLock() bool {
-	<-g.locked
-	g.locked <- false
-	return true
-}
+// func (g *gitdb) releaseLock() bool {
+// 	<-g.locked
+// 	g.locked <- false
+// 	return true
+// }

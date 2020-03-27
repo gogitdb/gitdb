@@ -23,16 +23,13 @@ func (g *gitdb) insert(m Model) error {
 		return errors.New("Model is not valid")
 	}
 
-	if g.getLock() {
-		if err := g.flushQueue(); err != nil {
-			log(err.Error())
-		}
-		err := g.write(m)
-		g.releaseLock()
-		return err
-	}
+	g.writeMu.Lock()
+	defer g.writeMu.Unlock()
 
-	return g.queue(m)
+	if err := g.flushQueue(); err != nil {
+		log(err.Error())
+	}
+	return g.write(m)
 }
 
 func (g *gitdb) queue(m Model) error {

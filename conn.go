@@ -2,6 +2,7 @@ package gitdb
 
 import (
 	"errors"
+	"sync"
 )
 
 type Connection struct {
@@ -9,6 +10,7 @@ type Connection struct {
 	loopStarted bool
 	closed      bool
 	shutdown    chan bool
+	mu          sync.Mutex
 }
 
 func newConnection() *Connection {
@@ -35,6 +37,8 @@ func (c *Connection) db() *gitdb {
 }
 
 func (c *Connection) dbWithError() (*gitdb, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.closed {
 		return nil, connectionClosedError
 	}
@@ -117,6 +121,8 @@ func (c *Connection) Migrate(from Model, to Model) error {
 }
 
 func (c *Connection) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	logTest("closing gitdb connection")
 	if c.closed {
 		logTest("connection already closed")

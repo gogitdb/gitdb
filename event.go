@@ -92,11 +92,7 @@ func (c *Connection) startSyncClock() {
 				logTest("shutting down sync clock")
 				return
 			case <-ticker.C:
-				if !db.getLock() {
-					log("Syncing disabled: db is locked by app")
-					return
-				}
-
+				db.writeMu.Lock()
 				//if client PC has at least 20% battery life
 				if !hasSufficientBatteryPower(20) {
 					log("Syncing disabled: insufficient battery power")
@@ -114,7 +110,7 @@ func (c *Connection) startSyncClock() {
 				db.loadedBlocks = map[string]*Block{}
 
 				db.buildIndex()
-				db.releaseLock()
+				db.writeMu.Unlock()
 			}
 		}
 	}(c)

@@ -20,7 +20,10 @@ func (g *gitdb) lock(m Model) error {
 
 	fullPath := g.lockDir(m)
 	if _, err := os.Stat(fullPath); err != nil {
-		os.MkdirAll(fullPath, 0755)
+		err := os.MkdirAll(fullPath, 0755)
+		if err != nil {
+			return err
+		}
 	}
 
 	lockFiles := m.GetLockFileNames()

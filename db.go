@@ -1,7 +1,6 @@
 package gitdb
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,10 +30,7 @@ type SearchParam struct {
 }
 
 type gitdb struct {
-	mu sync.Mutex
-	//use this for special optimizations :)
-	buf bytes.Buffer
-
+	mu        sync.Mutex
 	commit    sync.WaitGroup
 	locked    chan bool
 	events    chan *dbEvent
@@ -47,7 +43,6 @@ type gitdb struct {
 
 	indexCache   gdbIndexCache
 	loadedBlocks map[string]*Block
-	loadedModels map[string]Model
 	writeQueue   map[string]Model
 }
 
@@ -76,10 +71,8 @@ func (g *gitdb) configure(cfg *Config) {
 	switch cfg.GitDriver {
 	case GitDriverGoGit:
 		g.gitDriver = &goGit{}
-		break
 	case GitDriverBinary:
 		g.gitDriver = &gitBinary{}
-		break
 	default:
 		g.gitDriver = &gitBinary{}
 	}

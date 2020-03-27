@@ -89,7 +89,12 @@ func NewAutoBlock(dbConn *Connection, model Model, maxBlockSize int64, recordsPe
 				}
 
 				var records map[string]interface{}
-				json.Unmarshal(b, &records)
+				err = json.Unmarshal(b, &records)
+				if err != nil {
+					// todo: update to handle err better but log and return for now
+					logError(err.Error())
+					return ""
+				}
 				if len(records) >= recordsPerBlock {
 					currentBlock++
 				}
@@ -176,18 +181,17 @@ func (r *record) Hydrate(model Model) error {
 }
 
 func (r *record) hydrate(model interface{}) error {
-
 	err := json.Unmarshal(r.bytes(), model)
-	if err != nil {
-		//try decrypting
-		key := Conn().db().config.EncryptionKey
-		logTest("decrypting with: " + key)
-		r2 := *r
-		r2.data = decrypt(key, r2.data)
-		return json.Unmarshal(r2.bytes(), model)
+	if err == nil {
+		return err
 	}
 
-	return err
+	//try decrypting
+	key := Conn().db().config.EncryptionKey
+	logTest("decrypting with: " + key)
+	r2 := *r
+	r2.data = decrypt(key, r2.data)
+	return json.Unmarshal(r2.bytes(), model)
 }
 
 func (r *record) model() *BaseModel {

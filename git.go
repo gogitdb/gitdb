@@ -69,7 +69,10 @@ func (g *gitdb) gitClone() error {
 
 			logTest(notification)
 
-			newMail(g, "Database Setup Error", notification).send()
+			err = newMail(g, "Database Setup Error", notification).send()
+			if err != nil {
+				return err
+			}
 		}
 
 		os.RemoveAll(g.dbDir())
@@ -106,7 +109,11 @@ func (g *gitdb) gitPush() error {
 func (g *gitdb) gitCommit(filePath string, msg string, user *DbUser) {
 	mu.Lock()
 	defer mu.Unlock()
-	g.gitDriver.commit(filePath, msg, user)
+	err := g.gitDriver.commit(filePath, msg, user)
+	if err != nil {
+		// todo: update to return this error but for now at least log it
+		logError(err.Error())
+	}
 }
 
 func (g *gitdb) gitUndo() error {

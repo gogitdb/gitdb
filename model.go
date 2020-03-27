@@ -43,9 +43,6 @@ type BaseModel struct {
 }
 
 func (m *BaseModel) Id() string {
-	if len(m.ID) <= 0 {
-		panic("Model.ID not set")
-	}
 	return m.ID
 }
 

@@ -1,6 +1,6 @@
 .PHONY: test testdel example
 testdel:
-	go test ./... -coverprofile=cover.out
+	go test ./... -coverprofile=cover.out -v
 	go tool cover -func=cover.out
 	rm -f cover.out
 test:

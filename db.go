@@ -96,12 +96,12 @@ func (g *gitdb) migrate(from Model, to Model) error {
 	}
 
 	oldBlocks := map[string]string{}
-	for recordId, record := range block.records {
+	for _, record := range block.Records() {
 
-		_, blockId, _, _ := ParseId(recordId)
+		_, blockId, _, _ := ParseId(record.id)
 		if _, ok := oldBlocks[blockId]; !ok {
 			blockFile := blockId + ".json"
-			println(blockFile)
+			logTest(blockFile)
 			blockFilePath := filepath.Join(g.dbDir(), block.dataset, blockFile)
 			oldBlocks[blockId] = blockFilePath
 		}

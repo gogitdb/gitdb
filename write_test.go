@@ -141,6 +141,14 @@ func TestUnlock(t *testing.T) {
 	}
 }
 
+func TestGetLockFileNames(t *testing.T) {
+	m := getTestMessage()
+	locks := m.GetLockFileNames()
+	if len(locks) > 0 {
+		t.Errorf("testMessage return %d lock files", len(locks))
+	}
+}
+
 func TestGenerateId(t *testing.T) {
 	setup()
 	defer testDb.Close()

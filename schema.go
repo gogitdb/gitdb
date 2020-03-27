@@ -51,20 +51,21 @@ func (a *Schema) Indexes() map[string]interface{} {
 	return a.indexesFunc()
 }
 
-func NewAutoBlock(db *gitdb, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
+func NewAutoBlock(dbConn *Connection, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
 	currentBlock := -1
 	return func() string {
 
 		//don't bother figuring out the block id if model also has been assigned an id
 		//simply parse it and return right block
-		if len(model.Id()) > 0 {
-			return NewIDParser(model.Id()).block
+		id := model.Id()
+		if len(id) > 0 {
+			return NewIDParser(id).block
 		}
 
 		var currentBlockFile os.FileInfo
 		var currentBlockFileName string
 
-		fullPath := db.fullPath(model)
+		fullPath := dbConn.db().fullPath(model)
 		files, err := ioutil.ReadDir(fullPath)
 		if err == nil {
 			for _, currentBlockFile = range files {

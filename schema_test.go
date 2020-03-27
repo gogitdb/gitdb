@@ -4,6 +4,23 @@ import (
 	"testing"
 )
 
+func TestNewAutoBlock(t *testing.T) {
+	setup()
+	defer testDb.Close()
+
+	insert(1)
+
+	m := getTestMessage()
+
+	want := "b1"
+	got := NewAutoBlock(testDb, m, 1, 1)()
+
+	if got != want {
+		t.Errorf("want: %s, got: %s", want, got)
+	}
+
+}
+
 func TestSchemaString(t *testing.T) {
 	setup()
 	defer testDb.Close()

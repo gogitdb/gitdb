@@ -67,9 +67,10 @@ func (g *gitdb) gitClone() error {
 			notification := "Contact your database admin to add your public key to git server\n"
 			notification += "Public key: " + fmt.Sprintf("%s", fb)
 
+			log(notification)
 			logTest(notification)
 
-			err = newMail(g, "Database Setup Error", notification).send()
+			g.sendMail(newMail("Database Setup Error", notification))
 			if err != nil {
 				return err
 			}

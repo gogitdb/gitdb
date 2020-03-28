@@ -112,8 +112,13 @@ func (c *Connection) GenerateId(m Model) int64 {
 	return c.db().generateId(m)
 }
 
-func (c *Connection) SetUser(user *DbUser) {
-	c.db().config.User = user
+func (c *Connection) SetUser(user *DbUser) error {
+	db, err := c.dbWithError()
+	if err != nil {
+		return err
+	}
+	db.config.User = user
+	return nil
 }
 
 func (c *Connection) Migrate(from Model, to Model) error {

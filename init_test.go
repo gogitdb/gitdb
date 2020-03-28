@@ -1,20 +1,24 @@
-package gitdb
+package gitdb_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/fobilow/gitdb"
+)
 
 func TestConn(t *testing.T) {
-	setup()
+	setup(t)
 	defer testDb.Close()
-	got := Conn()
+	got := gitdb.Conn()
 	if got != testDb {
 		t.Errorf("connection don't match")
 	}
 }
 
 func TestGetConn(t *testing.T) {
-	setup()
+	setup(t)
 	defer testDb.Close()
-	got := GetConn("default")
+	got := gitdb.GetConn("default")
 	if got != testDb {
 		t.Errorf("connection don't match")
 	}

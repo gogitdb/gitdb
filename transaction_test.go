@@ -1,4 +1,4 @@
-package gitdb
+package gitdb_test
 
 import (
 	"testing"

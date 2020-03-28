@@ -44,6 +44,8 @@ type gitdb struct {
 	indexCache   gdbIndexCache
 	loadedBlocks map[string]*Block
 	writeQueue   map[string]Model
+
+	mails []*mail
 }
 
 func (g *gitdb) shutdown() error {

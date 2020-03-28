@@ -5,7 +5,7 @@ type operation func() error
 type transaction struct {
 	name       string
 	operations []operation
-	db         *gitdb
+	db         *Gitdb
 }
 
 func (t *transaction) Commit() error {
@@ -34,6 +34,6 @@ func (t *transaction) AddOperation(o operation) {
 	t.operations = append(t.operations, o)
 }
 
-func (c *Connection) NewTransaction(name string) *transaction {
-	return &transaction{name: name, db: c.db()}
+func (g *Gitdb) NewTransaction(name string) *transaction {
+	return &transaction{name: name, db: g}
 }

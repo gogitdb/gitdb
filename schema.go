@@ -51,7 +51,7 @@ func (a *Schema) Indexes() map[string]interface{} {
 	return a.indexesFunc()
 }
 
-func NewAutoBlock(dbConn *Connection, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
+func NewAutoBlock(dbConn *Gitdb, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
 	currentBlock := -1
 	return func() string {
 
@@ -65,7 +65,7 @@ func NewAutoBlock(dbConn *Connection, model Model, maxBlockSize int64, recordsPe
 		var currentBlockFile os.FileInfo
 		var currentBlockFileName string
 
-		fullPath := dbConn.db().fullPath(model)
+		fullPath := dbConn.fullPath(model)
 		files, err := ioutil.ReadDir(fullPath)
 		if err == nil {
 			for _, currentBlockFile = range files {
@@ -172,7 +172,7 @@ func (r *record) Hydrate(model Model) error {
 	//check if decryption is required
 	if model.ShouldEncrypt() {
 		//TODO find a better way to get encryption key. Maybe a global encryption key is better
-		key := Conn().db().config.EncryptionKey
+		key := Conn().config.EncryptionKey
 		logTest("decrypting with: " + key)
 		r2.data = decrypt(key, r2.data)
 	}
@@ -187,7 +187,7 @@ func (r *record) hydrate(model interface{}) error {
 	}
 
 	//try decrypting
-	key := Conn().db().config.EncryptionKey
+	key := Conn().config.EncryptionKey
 	logTest("decrypting with: " + key)
 	r2 := *r
 	r2.data = decrypt(key, r2.data)

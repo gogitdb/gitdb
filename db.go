@@ -29,17 +29,22 @@ type SearchParam struct {
 	Value string
 }
 
-type gitdb struct {
-	writeMu   sync.Mutex
-	commit    sync.WaitGroup
-	locked    chan bool
-	events    chan *dbEvent
+type Gitdb struct {
+	mu       sync.Mutex
+	writeMu  sync.Mutex
+	commit   sync.WaitGroup
+	locked   chan bool
+	shutdown chan bool
+	events   chan *dbEvent
+
 	lastIds   map[string]int64
 	config    *Config
 	gitDriver dbDriver
 
 	autoCommit   bool //default to true
 	indexUpdated bool
+	loopStarted  bool
+	closed       bool
 
 	indexCache   gdbIndexCache
 	loadedBlocks map[string]*Block
@@ -48,8 +53,30 @@ type gitdb struct {
 	mails []*mail
 }
 
-func (g *gitdb) shutdown() error {
+func newConnection() *Gitdb {
+	//autocommit defaults to true
+	db := &Gitdb{autoCommit: true, indexCache: make(gdbIndexCache)}
+	//initialize channels
+	db.events = make(chan *dbEvent, 1)
+	db.locked = make(chan bool, 1)
+	//initialize shutdown channel with capacity 2
+	//to represent the event loop and sync clock
+	//goroutines
+	db.shutdown = make(chan bool, 2)
+	return db
+}
+
+func (g *Gitdb) Close() error {
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	logTest("shutting down gitdb")
+	if g.closed {
+		logTest("connection already closed")
+		return nil
+	}
+
+	//flush queue and index to disk
 	if err := g.flushQueue(); err != nil {
 		return err
 	}
@@ -58,10 +85,19 @@ func (g *gitdb) shutdown() error {
 		return err
 	}
 
+	//send shutdown event to event loop and sync clock
+	g.shutdown <- true
+	g.shutdown <- true
+	g.waitForCommit()
+
+	//remove cached connection
+	delete(conns, g.config.ConnectionName)
+	g.closed = true
+
 	return nil
 }
 
-func (g *gitdb) configure(cfg *Config) {
+func (g *Gitdb) configure(cfg *Config) {
 
 	if int64(cfg.SyncInterval) == 0 {
 		cfg.SyncInterval = defaultSyncInterval
@@ -83,7 +119,7 @@ func (g *gitdb) configure(cfg *Config) {
 }
 
 //todo add revert logic if migrate fails mid way
-func (g *gitdb) migrate(from Model, to Model) error {
+func (g *Gitdb) Migrate(from Model, to Model) error {
 	block := newBlock(from.GetSchema().Name())
 	err := g.dofetch(block)
 	if err != nil {
@@ -106,7 +142,7 @@ func (g *gitdb) migrate(from Model, to Model) error {
 			return err
 		}
 
-		err = g.insert(to)
+		err = g.Insert(to)
 		if err != nil {
 			return err
 		}
@@ -126,7 +162,7 @@ func (g *gitdb) migrate(from Model, to Model) error {
 
 //TODO make this method more robust to handle cases where the id file is deleted
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
-func (g *gitdb) generateId(m Model) int64 {
+func (g *Gitdb) GenerateId(m Model) int64 {
 	var id int64
 	idFile := g.idFilePath(m)
 	//check if id file exists
@@ -150,7 +186,7 @@ func (g *gitdb) generateId(m Model) int64 {
 	return id
 }
 
-func (g *gitdb) updateId(m Model) error {
+func (g *Gitdb) updateId(m Model) error {
 	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
 		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
 	}
@@ -158,11 +194,11 @@ func (g *gitdb) updateId(m Model) error {
 	return nil
 }
 
-func (g *gitdb) setLastId(m Model, id int64) {
+func (g *Gitdb) setLastId(m Model, id int64) {
 	g.lastIds[m.GetSchema().Name()] = id
 }
 
-func (g *gitdb) getLastId(m Model) int64 {
+func (g *Gitdb) getLastId(m Model) int64 {
 	return g.lastIds[m.GetSchema().Name()]
 }
 

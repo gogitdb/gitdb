@@ -37,62 +37,50 @@ func newDeleteEvent(description string, dataset string, commit bool) *dbEvent {
 	return &dbEvent{Type: w, Description: description, Dataset: dataset, Commit: commit}
 }
 
-func (c *Connection) startEventLoop() {
-	go func(c *Connection) {
-		db, err := c.dbWithError()
-		if err != nil {
-			logTest(err.Error())
-			return
-		}
-
+func (g *Gitdb) startEventLoop() {
+	go func(g *Gitdb) {
 		logTest("starting event loop")
 
 		for {
 			select {
-			case <-c.shutdown:
+			case <-g.shutdown:
 				log("event shutdown")
 				logTest("shutting down event loop")
 				return
-			case e := <-db.events:
+			case e := <-g.events:
 				switch e.Type {
 				case w, d:
 					if e.Commit {
-						db.gitCommit(e.Dataset, e.Description, db.config.User)
+						g.gitCommit(e.Dataset, e.Description, g.config.User)
 						logTest("handled write event for " + e.Description)
 					}
-					db.commit.Done()
+					g.commit.Done()
 				default:
 					log("No handler found for " + string(e.Type) + " event")
 				}
 			}
 		}
-	}(c)
+	}(g)
 
 }
 
-func (c *Connection) startSyncClock() {
+func (g *Gitdb) startSyncClock() {
 
-	go func(c *Connection) {
-		db, err := c.dbWithError()
-		if err != nil {
-			logTest(err.Error())
-			return
-		}
-
-		if len(db.config.OnlineRemote) <= 0 {
+	go func(g *Gitdb) {
+		if len(g.config.OnlineRemote) <= 0 {
 			log("Syncing disabled: online remote is not set")
 			return
 		}
 
-		logTest(fmt.Sprintf("starting sync clock @ interval %s", db.config.SyncInterval))
-		ticker := time.NewTicker(db.config.SyncInterval)
+		logTest(fmt.Sprintf("starting sync clock @ interval %s", g.config.SyncInterval))
+		ticker := time.NewTicker(g.config.SyncInterval)
 		for {
 			select {
-			case <-c.shutdown:
+			case <-g.shutdown:
 				logTest("shutting down sync clock")
 				return
 			case <-ticker.C:
-				db.writeMu.Lock()
+				g.writeMu.Lock()
 				//if client PC has at least 20% battery life
 				if !hasSufficientBatteryPower(20) {
 					log("Syncing disabled: insufficient battery power")
@@ -100,18 +88,18 @@ func (c *Connection) startSyncClock() {
 				}
 
 				log("Syncing database...")
-				err1 := db.gitPull()
-				err2 := db.gitPush()
+				err1 := g.gitPull()
+				err2 := g.gitPush()
 				if err1 != nil || err2 != nil {
 					log("Database sync failed")
 				}
 
 				//reset loaded blocks
-				db.loadedBlocks = map[string]*Block{}
+				g.loadedBlocks = map[string]*Block{}
 
-				db.buildIndex()
-				db.writeMu.Unlock()
+				g.buildIndex()
+				g.writeMu.Unlock()
 			}
 		}
-	}(c)
+	}(g)
 }

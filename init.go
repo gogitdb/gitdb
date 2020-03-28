@@ -9,9 +9,9 @@ import (
 )
 
 var mu sync.Mutex
-var conns map[string]*Connection
+var conns map[string]*Gitdb
 
-func Open(cfg *Config) (*Connection, error) {
+func Open(cfg *Config) (*Gitdb, error) {
 
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -22,13 +22,13 @@ func Open(cfg *Config) (*Connection, error) {
 	}
 
 	if conns == nil {
-		conns = make(map[string]*Connection)
+		conns = make(map[string]*Gitdb)
 	}
 
 	conn := newConnection()
-	conn.db().configure(cfg)
+	conn.configure(cfg)
 
-	err := conn.db().boot()
+	err := conn.boot()
 	logMsg := "Db booted fine"
 	if err != nil {
 		logMsg = fmt.Sprintf("Db booted with errors - %s", err)
@@ -52,7 +52,7 @@ func Open(cfg *Config) (*Connection, error) {
 }
 
 //At the moment this method will return the last connected started by Start(*Config)
-func Conn() *Connection {
+func Conn() *Gitdb {
 
 	if len(conns) > 1 {
 		panic("Multiple gitdb connections found. Use GetConn function instead")
@@ -75,7 +75,7 @@ func Conn() *Connection {
 	return conns[connName]
 }
 
-func GetConn(name string) *Connection {
+func GetConn(name string) *Gitdb {
 	if _, ok := conns[name]; !ok {
 		panic("No gitdb connection found")
 	}
@@ -83,7 +83,7 @@ func GetConn(name string) *Connection {
 	return conns[name]
 }
 
-func (g *gitdb) boot() error {
+func (g *Gitdb) boot() error {
 	g.lastIds = make(map[string]int64)
 	log("Booting up db using " + g.gitDriver.name() + " driver")
 

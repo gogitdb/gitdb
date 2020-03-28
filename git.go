@@ -19,7 +19,7 @@ const (
 
 type dbDriver interface {
 	name() string
-	configure(db *gitdb)
+	configure(db *Gitdb)
 	init() error
 	clone() error
 	addRemote() error
@@ -34,14 +34,14 @@ type baseGitDriver struct {
 	absDbPath string
 }
 
-func (g *baseGitDriver) configure(db *gitdb) {
+func (g *baseGitDriver) configure(db *Gitdb) {
 	g.config = db.config
 	g.absDbPath = db.dbDir()
 }
 
 //this function is only called once. I.e when a initializing the database for the
 //very first time. In this case we must clone the online repo
-func (g *gitdb) gitInit() error {
+func (g *Gitdb) gitInit() error {
 	//we take this very seriously
 	err := g.gitDriver.init()
 	if err != nil {
@@ -51,7 +51,7 @@ func (g *gitdb) gitInit() error {
 	return err
 }
 
-func (g *gitdb) gitClone() error {
+func (g *Gitdb) gitClone() error {
 	//we take this very seriously
 	log("cloning down database...")
 	err := g.gitDriver.clone()
@@ -83,7 +83,7 @@ func (g *gitdb) gitClone() error {
 	return nil
 }
 
-func (g *gitdb) gitAddRemote() error {
+func (g *Gitdb) gitAddRemote() error {
 	//we take this very seriously
 	err := g.gitDriver.addRemote()
 	if err != nil {
@@ -99,15 +99,15 @@ func (g *gitdb) gitAddRemote() error {
 //first attempt to pull from offline DB repo followed by online DB repo
 //fails silently, logs error message and determine if we need to put the
 //application in an error state
-func (g *gitdb) gitPull() error {
+func (g *Gitdb) gitPull() error {
 	return g.gitDriver.pull()
 }
 
-func (g *gitdb) gitPush() error {
+func (g *Gitdb) gitPush() error {
 	return g.gitDriver.push()
 }
 
-func (g *gitdb) gitCommit(filePath string, msg string, user *DbUser) {
+func (g *Gitdb) gitCommit(filePath string, msg string, user *DbUser) {
 	mu.Lock()
 	defer mu.Unlock()
 	err := g.gitDriver.commit(filePath, msg, user)
@@ -117,11 +117,11 @@ func (g *gitdb) gitCommit(filePath string, msg string, user *DbUser) {
 	}
 }
 
-func (g *gitdb) gitUndo() error {
+func (g *Gitdb) gitUndo() error {
 	return g.gitDriver.undo()
 }
 
-func (g *gitdb) gitLastCommitTime() (time.Time, error) {
+func (g *Gitdb) gitLastCommitTime() (time.Time, error) {
 	var t time.Time
 	cmd := exec.Command("git", "-C", g.dbDir(), "log", "-1", "--remotes=online", "--format=%cd", "--date=iso")
 	//log.PutInfo(utils.CmdToString(cmd))
@@ -139,6 +139,6 @@ func (g *gitdb) gitLastCommitTime() (time.Time, error) {
 	return t, errors.New("no commit history in repo")
 }
 
-func (c *Connection) GetLastCommitTime() (time.Time, error) {
-	return c.db().gitLastCommitTime()
+func (g *Gitdb) GetLastCommitTime() (time.Time, error) {
+	return g.gitLastCommitTime()
 }

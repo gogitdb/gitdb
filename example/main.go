@@ -12,7 +12,7 @@ import (
 	"github.com/fobilow/gitdb/example/booking"
 )
 
-var dbconn *db.Connection
+var dbconn *db.Gitdb
 var logToFile bool
 
 func init() {

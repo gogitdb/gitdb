@@ -332,7 +332,7 @@ func main() {
 
 ### Encryption
 
-GitDB suppports AES encryption and is done on a Model level, which means you can have a database with different Models where some are ecnrypted and others are not. To encryt your data, your Model must implement `ShouldEncrypt()` to return true and you must set `gitdb.Config.EncryptionKey`. For maximum security set this key to a 32 byte string to select AES-256 
+GitDB suppports AES encryption and is done on a Model level, which means you can have a database with different Models where some are encrypted and others are not. To encrypt your data, your Model must implement `ShouldEncrypt()` to return true and you must set `gitdb.Config.EncryptionKey`. For maximum security set this key to a 32 byte string to select AES-256 
 
 ```go
 package main

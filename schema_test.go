@@ -11,7 +11,7 @@ func TestNewAutoBlock(t *testing.T) {
 	defer teardown(t)
 
 	m := getTestMessage()
-	if err := insert(m, false); err != {
+	if err := insert(m, false); err != nil {
 		t.Errorf("insert failed: %s", err)
 	}
 

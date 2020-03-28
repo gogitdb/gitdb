@@ -64,9 +64,6 @@ func (g *gitdb) gitClone() error {
 			logTest(notification)
 
 			g.sendMail(newMail("Database Setup Error", notification))
-			if err != nil {
-				return err
-			}
 		}
 
 		os.RemoveAll(g.dbDir())

@@ -20,7 +20,7 @@ func (g *gitdb) GetMails() []*mail {
 	return mails
 }
 
-func (g *gitdb) sendMail(m *mail) error {
+func (g *gitdb) sendMail(m *mail) {
 	g.mails = append(g.mails, m)
-	return nil
+
 }

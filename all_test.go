@@ -31,15 +31,17 @@ func TestMain(m *testing.M) {
 	flag.BoolVar(&flagFakeRemote, "fakerepo", true, "create fake remote repo for tests")
 	flag.Parse()
 
+	//fail test if git is not installed
+	if _, err := exec.LookPath("git"); err != nil {
+		fmt.Println("git is required to run tests")
+		return
+	}
+
 	gitdb.SetLogLevel(gitdb.LogLevel(flagLogLevel))
 	m.Run()
 }
 
 func setup(t testing.TB) func(t testing.TB) {
-	//fail test if git is not installed
-	if _, err := exec.LookPath("git"); err != nil {
-		t.Error("git is required to run tests")
-	}
 
 	if flagFakeRemote {
 		fakeOnlineRepo(t)

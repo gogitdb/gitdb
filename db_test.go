@@ -7,7 +7,9 @@ func TestMigrate(t *testing.T) {
 	defer teardown(t)
 
 	m := getTestMessageWithId(0)
-	insert(m, false)
+	if err := insert(m, false); err != nil {
+		t.Errorf("insert failed: %s", err)
+	}
 
 	m2 := &MessageV2{}
 

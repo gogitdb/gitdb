@@ -11,7 +11,9 @@ func TestNewAutoBlock(t *testing.T) {
 	defer teardown(t)
 
 	m := getTestMessage()
-	insert(m, false)
+	if err := insert(m, false); err != {
+		t.Errorf("insert failed: %s", err)
+	}
 
 	want := "b1"
 	got := gitdb.NewAutoBlock(dbPath, m, 1, 1)()

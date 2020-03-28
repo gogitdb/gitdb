@@ -52,10 +52,11 @@ func TestDelete(t *testing.T) {
 	defer teardown(t)
 
 	m := getTestMessageWithId(0)
-	insert(m, flagFakeRemote)
+	if err := insert(m, flagFakeRemote); err != nil {
+		t.Errorf("Error: %s", err.Error())
+	}
 
-	err := testDb.Delete(m.GetSchema().RecordId())
-	if err != nil {
+	if err := testDb.Delete(m.GetSchema().RecordId()); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 }

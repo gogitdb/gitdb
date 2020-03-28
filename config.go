@@ -12,17 +12,20 @@ type Config struct {
 	sshKey         string
 	EncryptionKey  string
 	SyncInterval   time.Duration
-	Verbose        LogLevel //flag for displaying messages useful for debugging. defaults to false
 	GitDriver      dbDriverName
 	User           *DbUser
 }
 
+var defaultConnectionName = "default"
 var defaultSyncInterval = time.Second * 5
+var defaultUser = NewUser("ghost", "ghost@gitdb.local")
 
 func NewConfig(dbPath string) *Config {
 	return &Config{
-		DbPath:       dbPath,
-		SyncInterval: defaultSyncInterval,
+		DbPath:         dbPath,
+		SyncInterval:   defaultSyncInterval,
+		User:           defaultUser,
+		ConnectionName: defaultConnectionName,
 	}
 }
 

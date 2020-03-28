@@ -18,7 +18,7 @@ func Open(cfg *Config) (*Connection, error) {
 	}
 
 	if len(cfg.ConnectionName) == 0 {
-		cfg.ConnectionName = "default"
+		cfg.ConnectionName = defaultConnectionName
 	}
 
 	if conns == nil {
@@ -58,6 +58,10 @@ func Conn() *Connection {
 		panic("Multiple gitdb connections found. Use GetConn function instead")
 	}
 
+	if len(conns) == 0 {
+		panic("No open gitdb connections found")
+	}
+
 	var connName string
 	for k := range conns {
 		connName = k
@@ -65,7 +69,7 @@ func Conn() *Connection {
 	}
 
 	if _, ok := conns[connName]; !ok {
-		panic("No gitdb connection found")
+		panic("No gitdb connection found - " + connName)
 	}
 
 	return conns[connName]
@@ -87,13 +91,6 @@ func (g *gitdb) boot() error {
 
 	//create id dir
 	err = os.MkdirAll(g.idDir(), 0755)
-	if err != nil {
-		log(err.Error())
-		return err
-	}
-
-	//create mail dir
-	err = os.MkdirAll(g.mailDir(), 0755)
 	if err != nil {
 		log(err.Error())
 		return err

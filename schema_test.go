@@ -1,19 +1,20 @@
-package gitdb
+package gitdb_test
 
 import (
 	"testing"
+
+	"github.com/fobilow/gitdb"
 )
 
 func TestNewAutoBlock(t *testing.T) {
-	setup()
-	defer testDb.Close()
-
-	insert(1)
+	teardown := setup(t)
+	defer teardown(t)
 
 	m := getTestMessage()
+	insert(m, false)
 
 	want := "b1"
-	got := NewAutoBlock(testDb, m, 1, 1)()
+	got := gitdb.NewAutoBlock(testDb, m, 1, 1)()
 
 	if got != want {
 		t.Errorf("want: %s, got: %s", want, got)
@@ -22,8 +23,8 @@ func TestNewAutoBlock(t *testing.T) {
 }
 
 func TestSchemaString(t *testing.T) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(t)
+	defer teardown(t)
 
 	m := getTestMessage()
 	want := "Message/b0/0"
@@ -34,8 +35,8 @@ func TestSchemaString(t *testing.T) {
 }
 
 func TestSchemaId(t *testing.T) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(t)
+	defer teardown(t)
 
 	m := getTestMessage()
 	want := "Message/b0/0"
@@ -47,7 +48,7 @@ func TestSchemaId(t *testing.T) {
 
 func TestParseId(t *testing.T) {
 	testId := "DatasetName/Block/RecordId"
-	ds, block, recordId, err := ParseId(testId)
+	ds, block, recordId, err := gitdb.ParseId(testId)
 
 	passed := ds == "DatasetName" && block == "Block" && recordId == "RecordId" && err == nil
 	if !passed {
@@ -56,7 +57,7 @@ func TestParseId(t *testing.T) {
 }
 
 func TestIDParser(t *testing.T) {
-	id := NewIDParser("DatasetName/Block/RecordId")
+	id := gitdb.NewIDParser("DatasetName/Block/RecordId")
 
 	if id.Dataset() != "DatasetName" {
 		t.Errorf("id.Dataset() returned - %s", id.Dataset())
@@ -74,13 +75,13 @@ func TestIDParser(t *testing.T) {
 func BenchmarkParseId(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
-		ParseId("DatasetName/Block/RecordId")
+		gitdb.ParseId("DatasetName/Block/RecordId")
 	}
 }
 
 func BenchmarkIDParserParseId(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
-		NewIDParser("DatasetName/Block/RecordId")
+		gitdb.NewIDParser("DatasetName/Block/RecordId")
 	}
 }

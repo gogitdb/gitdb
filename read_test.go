@@ -1,17 +1,19 @@
-package gitdb
+package gitdb_test
 
 import (
 	"testing"
+
+	"github.com/fobilow/gitdb"
 )
 
 func TestGet(t *testing.T) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(t)
+	defer teardown(t)
 
 	m := getTestMessage()
 	var err error
 
-	err = doInsert(m, false)
+	err = insert(m, false)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -29,13 +31,13 @@ func TestGet(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(t)
+	defer teardown(t)
 
 	m := getTestMessage()
 	var err error
 
-	err = doInsert(m, false)
+	err = insert(m, false)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -48,11 +50,11 @@ func TestExists(t *testing.T) {
 }
 
 func TestFetch(t *testing.T) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(t)
+	defer teardown(t)
 
 	count := 5
-	insert(count)
+	generateInserts(t, count)
 
 	dataset := "Message"
 	messages, err := testDb.Fetch(dataset)
@@ -63,7 +65,7 @@ func TestFetch(t *testing.T) {
 	got := len(messages)
 	want := got
 	if got > 0 {
-		want = checkFetchResult(dataset)
+		want = countRecords(dataset)
 		if got != want {
 			t.Errorf("Want: %d, Got: %d", want, got)
 		}
@@ -71,11 +73,11 @@ func TestFetch(t *testing.T) {
 }
 
 func TestFetchMultithreaded(t *testing.T) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(t)
+	defer teardown(t)
 
 	count := 5
-	insert(count)
+	generateInserts(t, count)
 
 	dataset := "Message"
 	messages, err := testDb.FetchMt(dataset)
@@ -86,7 +88,7 @@ func TestFetchMultithreaded(t *testing.T) {
 	got := len(messages)
 	want := 0
 	if got > 0 {
-		want = checkFetchResult(dataset)
+		want = countRecords(dataset)
 	}
 
 	if got != want {
@@ -95,18 +97,18 @@ func TestFetchMultithreaded(t *testing.T) {
 }
 
 func TestSearch(t *testing.T) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(t)
+	defer teardown(t)
 
 	count := 5
-	insert(count)
+	generateInserts(t, count)
 
-	sp := &SearchParam{
+	sp := &gitdb.SearchParam{
 		Index: "From",
 		Value: "alice@example.com",
 	}
 
-	results, err := testDb.Search("Message", []*SearchParam{sp}, SEARCH_MODE_EQUALS)
+	results, err := testDb.Search("Message", []*gitdb.SearchParam{sp}, gitdb.SEARCH_MODE_EQUALS)
 	if err != nil {
 		t.Errorf("search failed with error - %s", err)
 	}
@@ -118,8 +120,9 @@ func TestSearch(t *testing.T) {
 }
 
 func BenchmarkFetch(b *testing.B) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(b)
+	defer teardown(b)
+
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
 		testDb.Fetch("Message")
@@ -127,8 +130,8 @@ func BenchmarkFetch(b *testing.B) {
 }
 
 func BenchmarkFetchMultithreaded(b *testing.B) {
-	setup()
-	defer testDb.Close()
+	teardown := setup(b)
+	defer teardown(b)
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
 		testDb.FetchMt("Message")

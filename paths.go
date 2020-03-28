@@ -57,10 +57,6 @@ func (g *gitdb) sshDir() string {
 }
 
 //ssh paths
-func (g *gitdb) mailDir() string {
-	return filepath.Join(g.absDbPath(), g.internalDirName(), "mail")
-}
-
 func (g *gitdb) publicKeyFilePath() string {
 	return filepath.Join(g.sshDir(), "gitdb.pub")
 }

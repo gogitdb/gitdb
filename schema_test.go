@@ -41,7 +41,7 @@ func TestSchemaId(t *testing.T) {
 
 	m := getTestMessage()
 	want := "Message/b0/0"
-	got := m.GetSchema().Id()
+	got := m.GetSchema().ID()
 	if got != want {
 		t.Errorf("want: %s, got: %s", want, got)
 	}
@@ -49,7 +49,7 @@ func TestSchemaId(t *testing.T) {
 
 func TestParseId(t *testing.T) {
 	testId := "DatasetName/Block/RecordId"
-	ds, block, recordId, err := gitdb.ParseId(testId)
+	ds, block, recordId, err := gitdb.ParseID(testId)
 
 	passed := ds == "DatasetName" && block == "Block" && recordId == "RecordId" && err == nil
 	if !passed {
@@ -76,7 +76,7 @@ func TestIDParser(t *testing.T) {
 func BenchmarkParseId(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
-		gitdb.ParseId("DatasetName/Block/RecordId")
+		gitdb.ParseID("DatasetName/Block/RecordId")
 	}
 }
 

@@ -56,7 +56,7 @@ func TestDelete(t *testing.T) {
 		t.Errorf("Error: %s", err.Error())
 	}
 
-	if err := testDb.Delete(m.GetSchema().RecordId()); err != nil {
+	if err := testDb.Delete(m.GetSchema().RecordID()); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 }
@@ -104,6 +104,6 @@ func TestGenerateId(t *testing.T) {
 	defer teardown(t)
 
 	m := getTestMessage()
-	testDb.GenerateId(m)
+	testDb.GenerateID(m)
 
 }

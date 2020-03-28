@@ -10,6 +10,7 @@ import (
 	"github.com/distatus/battery"
 )
 
+//RandStr returns a random string of length n
 func RandStr(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, n)
@@ -26,7 +27,7 @@ func stamp(m Model) {
 	}
 	m.SetUpdatedDate(stampTime)
 
-	m.SetId(m.GetSchema().RecordId())
+	m.SetID(m.GetSchema().RecordID())
 
 	metadata := &metaData{}
 	metadata.Indexes = m.GetSchema().Indexes()
@@ -36,7 +37,8 @@ func stamp(m Model) {
 
 }
 
-func ParseId(id string) (dataDir string, block string, record string, err error) {
+//ParseID parses a GitDB record id and returns it's metadata
+func ParseID(id string) (dataDir string, block string, record string, err error) {
 	recordMeta := strings.Split(id, "/")
 	if len(recordMeta) != 3 {
 		err = errors.New("Invalid record id: " + id)

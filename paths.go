@@ -22,7 +22,7 @@ func (g *gitdb) fullPath(m Model) string {
 }
 
 func (g *gitdb) blockFilePath(m Model) string {
-	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc()+".json")
+	return filepath.Join(g.fullPath(m), m.GetSchema().blockIDFunc()+".json")
 }
 
 func (g *gitdb) blockFilePath2(dataset, block string) string {

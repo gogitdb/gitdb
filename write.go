@@ -57,8 +57,8 @@ func (g *gitdb) queue(m Model) error {
 		g.writeQueue = map[string]Model{}
 	}
 
-	g.writeQueue[m.Id()] = m
-	return g.updateId(m)
+	g.writeQueue[m.ID()] = m
+	return g.updateID(m)
 }
 
 func (g *gitdb) flushQueue() error {
@@ -94,10 +94,12 @@ func (g *gitdb) write(m Model) error {
 		return err
 	}
 
+	mID := m.ID()
+
 	//construct a commit message
-	commitMsg := "Inserting " + m.Id() + " into " + schema.BlockId()
-	if _, err := dataBlock.Get(m.Id()); err == nil {
-		commitMsg = "Updating " + m.Id() + " in " + schema.BlockId()
+	commitMsg := "Inserting " + mID + " into " + schema.BlockID()
+	if _, err := dataBlock.get(mID); err == nil {
+		commitMsg = "Updating " + mID + " in " + schema.BlockID()
 	}
 
 	newRecordStr := string(newRecordBytes)
@@ -106,9 +108,9 @@ func (g *gitdb) write(m Model) error {
 		newRecordStr = encrypt(g.config.EncryptionKey, newRecordStr)
 	}
 
-	dataBlock.Add(m.GetSchema().RecordId(), newRecordStr)
+	dataBlock.add(m.GetSchema().RecordID(), newRecordStr)
 
-	g.events <- newWriteBeforeEvent("...", m.Id())
+	g.events <- newWriteBeforeEvent("...", mID)
 	if err := g.writeBlock(blockFilePath, dataBlock); err != nil {
 		return err
 	}
@@ -118,13 +120,13 @@ func (g *gitdb) write(m Model) error {
 	g.commit.Add(1)
 	g.events <- newWriteEvent(commitMsg, blockFilePath, g.autoCommit)
 	logTest("sent write event to loop")
-	g.updateIndexes(schema.Name(), newRecord(m.Id(), newRecordStr))
+	g.updateIndexes(schema.Name(), newRecord(mID, newRecordStr))
 
 	//block here until write has been committed
 	g.waitForCommit()
 
 	//what is the effect of this on InsertMany?
-	return g.updateId(m)
+	return g.updateID(m)
 }
 
 func (g *gitdb) waitForCommit() {
@@ -134,7 +136,7 @@ func (g *gitdb) waitForCommit() {
 	}
 }
 
-func (g *gitdb) writeBlock(blockFile string, block *Block) error {
+func (g *gitdb) writeBlock(blockFile string, block *gBlock) error {
 
 	blockBytes, fmtErr := json.MarshalIndent(block.data(), "", "\t")
 	if fmtErr != nil {
@@ -154,13 +156,13 @@ func (g *gitdb) DeleteOrFail(id string) error {
 
 func (g *gitdb) dodelete(id string, failNotFound bool) error {
 
-	dataset, block, _, err := ParseId(id)
+	dataset, block, _, err := ParseID(id)
 	if err != nil {
 		return err
 	}
 
 	blockFilePath := g.blockFilePath2(dataset, block)
-	err = g.delById(id, dataset, blockFilePath, failNotFound)
+	err = g.delByID(id, dataset, blockFilePath, failNotFound)
 
 	if err == nil {
 		logTest("sending delete event to loop")
@@ -172,7 +174,7 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 	return err
 }
 
-func (g *gitdb) delById(id string, dataset string, blockFile string, failIfNotFound bool) error {
+func (g *gitdb) delByID(id string, dataset string, blockFile string, failIfNotFound bool) error {
 
 	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {
@@ -187,7 +189,7 @@ func (g *gitdb) delById(id string, dataset string, blockFile string, failIfNotFo
 		return err
 	}
 
-	if err := dataBlock.Delete(id); err != nil {
+	if err := dataBlock.delete(id); err != nil {
 		if failIfNotFound {
 			return errors.New("Could not delete [" + id + "]: record does not exist")
 		}

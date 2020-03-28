@@ -18,15 +18,15 @@ func TestGet(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	recId := m.GetSchema().RecordId()
+	recId := m.GetSchema().RecordID()
 	result := &Message{}
 	err = testDb.Get(recId, result)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	if err == nil && result.Id() != recId {
-		t.Errorf("Want: %v, Got: %v", recId, result.Id())
+	if err == nil && result.ID() != recId {
+		t.Errorf("Want: %v, Got: %v", recId, result.ID())
 	}
 }
 
@@ -42,7 +42,7 @@ func TestExists(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	recId := m.GetSchema().RecordId()
+	recId := m.GetSchema().RecordID()
 	err = testDb.Exists(recId)
 	if err != nil {
 		t.Error(err.Error())
@@ -108,7 +108,7 @@ func TestSearch(t *testing.T) {
 		Value: "alice@example.com",
 	}
 
-	results, err := testDb.Search("Message", []*gitdb.SearchParam{sp}, gitdb.SEARCH_MODE_EQUALS)
+	results, err := testDb.Search("Message", []*gitdb.SearchParam{sp}, gitdb.SearchEquals)
 	if err != nil {
 		t.Errorf("search failed with error - %s", err)
 	}

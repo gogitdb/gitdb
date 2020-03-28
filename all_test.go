@@ -27,7 +27,7 @@ var flagLogLevel int
 var flagFakeRemote bool
 
 func TestMain(m *testing.M) {
-	flag.IntVar(&flagLogLevel, "loglevel", int(gitdb.LOGLEVEL_TEST), "control verbosity of test logs")
+	flag.IntVar(&flagLogLevel, "loglevel", int(gitdb.LogLevelTest), "control verbosity of test logs")
 	flag.BoolVar(&flagFakeRemote, "fakerepo", true, "create fake remote repo for tests")
 	flag.Parse()
 
@@ -209,9 +209,9 @@ func insert(m gitdb.Model, benchmark bool) error {
 
 	if !benchmark {
 		//check that block file exist
-		idParser := gitdb.NewIDParser(m.Id())
+		idParser := gitdb.NewIDParser(m.ID())
 		cfg := getConfig()
-		blockFile := filepath.Join(cfg.DbPath, "data", idParser.BlockId()+".json")
+		blockFile := filepath.Join(cfg.DbPath, "data", idParser.BlockID()+".json")
 		if _, err := os.Stat(blockFile); err != nil {
 			return err
 		} else {
@@ -224,7 +224,7 @@ func insert(m gitdb.Model, benchmark bool) error {
 			got := rep.Replace(string(b))
 
 			w := map[string]gitdb.Model{
-				idParser.RecordId(): m,
+				idParser.RecordID(): m,
 			}
 
 			x, _ := json.Marshal(w)

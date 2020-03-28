@@ -9,9 +9,10 @@ import (
 )
 
 var mu sync.Mutex
-var conns map[string]*gitdb
+var conns map[string]GitDb
 
-func Open(config *Config) (*gitdb, error) {
+//Open opens a connection to GitDB
+func Open(config *Config) (GitDb, error) {
 
 	//clone config to avoid changes from outside of package
 	x := *config
@@ -44,14 +45,15 @@ func Open(config *Config) (*gitdb, error) {
 	}
 
 	if conns == nil {
-		conns = make(map[string]*gitdb)
+		conns = make(map[string]GitDb)
 	}
 	conns[cfg.ConnectionName] = conn
 	return conn, nil
 }
 
-//At the moment this method will return the last connected started by Open(*Config)
-func Conn() *gitdb {
+//Conn returns the last connection started by Open(*Config)
+// if you opened more than one connection use GetConn(name) instead
+func Conn() GitDb {
 
 	if len(conns) > 1 {
 		panic("Multiple gitdb connections found. Use GetConn function instead")
@@ -74,7 +76,8 @@ func Conn() *gitdb {
 	return conns[connName]
 }
 
-func GetConn(name string) *gitdb {
+//GetConn returns a specific gitdb connection by name
+func GetConn(name string) GitDb {
 	if _, ok := conns[name]; !ok {
 		panic("No gitdb connection found")
 	}

@@ -12,10 +12,10 @@ import (
 	"sync"
 )
 
-func (g *gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
+func (g *gitdb) loadBlock(blockFile string, dataset string) (*gBlock, error) {
 
 	if len(g.loadedBlocks) == 0 {
-		g.loadedBlocks = map[string]*Block{}
+		g.loadedBlocks = map[string]*gBlock{}
 	}
 
 	//if block file exist, read it and load into map else return an empty block
@@ -32,22 +32,22 @@ func (g *gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
 	return g.loadedBlocks[blockFile], nil
 }
 
-func (g *gitdb) readBlock(blockFile string, block *Block) error {
+func (g *gitdb) readBlock(blockFile string, block *gBlock) error {
 
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(data, &block.rawRecords); err != nil {
-		return badBlockError
+	if err := json.Unmarshal(data, &block.rawRecs); err != nil {
+		return errBadBlock
 	}
 
 	return err
 }
 
 //EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *gitdb) scanBlock(blockFile string, dataFormat DataFormat, result *Block) error {
+func (g *gitdb) scanBlock(blockFile string, result *gBlock) error {
 
 	bf, err := os.Open(blockFile)
 	if err != nil {
@@ -76,7 +76,7 @@ func (g *gitdb) scanBlock(blockFile string, dataFormat DataFormat, result *Block
 				}
 			}
 
-			result.Add(kv[0], string(v))
+			result.add(kv[0], string(v))
 			v = v[:0]
 		}
 	}
@@ -86,7 +86,7 @@ func (g *gitdb) scanBlock(blockFile string, dataFormat DataFormat, result *Block
 
 func (g *gitdb) doget(id string) (*record, error) {
 
-	dataDir, block, _, err := ParseId(id)
+	dataDir, block, _, err := ParseID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (g *gitdb) doget(id string) (*record, error) {
 		return nil, errors.New("Record " + id + " not found in " + dataDir)
 	}
 
-	record, err := dataBlock.Get(id)
+	record, err := dataBlock.get(id)
 	if err != nil {
 		logError(err.Error())
 		return record, errors.New("Record " + id + " not found in " + dataDir)
@@ -123,7 +123,7 @@ func (g *gitdb) Get(id string, result Model) error {
 	}
 
 	g.events <- newReadEvent("...", id)
-	return record.Hydrate(result)
+	return record.gHydrate(result, g.config.EncryptionKey)
 }
 
 func (g *gitdb) Exists(id string) error {
@@ -143,14 +143,13 @@ func (g *gitdb) Fetch(dataDir string) ([]*record, error) {
 		return nil, err
 	}
 
-	log(fmt.Sprintf("%d records found in %s", dataBlock.Size(), dataDir))
-	return dataBlock.Records(), nil
+	log(fmt.Sprintf("%d records found in %s", dataBlock.size(), dataDir))
+	return dataBlock.records(g.config.EncryptionKey), nil
 }
 
-func (g *gitdb) dofetch(dataBlock *Block) error {
+func (g *gitdb) dofetch(dataBlock *gBlock) error {
 
-	dataset := dataBlock.dataset
-	fullPath := filepath.Join(g.dbDir(), dataset)
+	fullPath := filepath.Join(g.dbDir(), dataBlock.dataset)
 	//events <- newReadEvent("...", fullPath)
 	log("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
@@ -203,8 +202,8 @@ func (g *gitdb) FetchMt(dataset string) ([]*record, error) {
 	}
 	wg.Wait()
 
-	log(fmt.Sprintf("%d records found in %s", dataBlock.Size(), fullPath))
-	return dataBlock.Records(), nil
+	log(fmt.Sprintf("%d records found in %s", dataBlock.size(), fullPath))
+	return dataBlock.records(g.config.EncryptionKey), nil
 }
 
 func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error) {
@@ -229,13 +228,13 @@ func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 			addResult := false
 			dbValue := strings.ToLower(v.(string))
 			switch query.mode {
-			case SEARCH_MODE_EQUALS:
+			case SearchEquals:
 				addResult = dbValue == queryValue
-			case SEARCH_MODE_CONTAINS:
+			case SearchContains:
 				addResult = strings.Contains(dbValue, queryValue)
-			case SEARCH_MODE_STARTS_WITH:
+			case SearchStartsWith:
 				addResult = strings.HasPrefix(dbValue, queryValue)
-			case SEARCH_MODE_ENDS_WITH:
+			case SearchEndsWith:
 				addResult = strings.HasSuffix(dbValue, queryValue)
 			}
 
@@ -250,8 +249,8 @@ func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 
 	//filter out the blocks that we need to search
 	searchBlocks := map[string]string{}
-	for recordId := range matchingRecords {
-		_, block, _, err := ParseId(recordId)
+	for recordID := range matchingRecords {
+		_, block, _, err := ParseID(recordID)
 		if err != nil {
 			return nil, err
 		}
@@ -270,5 +269,5 @@ func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 	}
 
 	//log.PutInfo(fmt.Sprintf("Found %d results in %s namespace by %s for '%s'", len(records), query.DataDir, query.Index, strings.Join(query.Values, ",")))
-	return dataBlock.Records(), nil
+	return dataBlock.records(g.config.EncryptionKey), nil
 }

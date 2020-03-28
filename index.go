@@ -15,7 +15,7 @@ func (g *gitdb) updateIndexes(dataset string, records ...*record) {
 	g.indexUpdated = true
 	indexPath := g.indexPath(dataset)
 	for _, record := range records {
-		for name, value := range record.model().Meta.Indexes {
+		for name, value := range record.model(g.config.EncryptionKey).Meta.Indexes {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)

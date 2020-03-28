@@ -10,13 +10,18 @@ import (
 	"time"
 )
 
+//SearchMode defines how gitdb should search with SearchParam
 type SearchMode int
 
 const (
-	SEARCH_MODE_EQUALS      SearchMode = 1
-	SEARCH_MODE_CONTAINS    SearchMode = 2
-	SEARCH_MODE_STARTS_WITH SearchMode = 3
-	SEARCH_MODE_ENDS_WITH   SearchMode = 4
+	//SearchEquals will search index for records whose values equal SearchParam.Value
+	SearchEquals SearchMode = 1
+	//SearchContains will search index for records whose values contain SearchParam.Value
+	SearchContains SearchMode = 2
+	//SearchStartsWith will search index for records whose values start with SearchParam.Value
+	SearchStartsWith SearchMode = 3
+	//SearchEndsWith will search index for records whose values ends with SearchParam.Value
+	SearchEndsWith SearchMode = 4
 )
 
 type searchQuery struct {
@@ -25,11 +30,13 @@ type searchQuery struct {
 	mode         SearchMode
 }
 
+//SearchParam represents search parameters against GitDB index
 type SearchParam struct {
 	Index string
 	Value string
 }
 
+//GitDb interface defines all export funcs an implementation must have
 type GitDb interface {
 	Close() error
 	Insert(m Model) error
@@ -43,7 +50,7 @@ type GitDb interface {
 	DeleteOrFail(id string) error
 	Lock(m Model) error
 	Unlock(m Model) error
-	GenerateId(m Model) int64
+	GenerateID(m Model) int64
 	Migrate(from Model, to Model) error
 	GetMails() []*mail
 	NewTransaction(name string) *transaction
@@ -69,7 +76,7 @@ type gitdb struct {
 	closed       bool
 
 	indexCache   gdbIndexCache
-	loadedBlocks map[string]*Block
+	loadedBlocks map[string]*gBlock
 	writeQueue   map[string]Model
 
 	mails []*mail
@@ -148,17 +155,17 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 	}
 
 	oldBlocks := map[string]string{}
-	for _, record := range block.Records() {
+	for _, record := range block.records("") {
 
-		_, blockId, _, _ := ParseId(record.id)
-		if _, ok := oldBlocks[blockId]; !ok {
-			blockFile := blockId + ".json"
+		_, blockID, _, _ := ParseID(record.id)
+		if _, ok := oldBlocks[blockID]; !ok {
+			blockFile := blockID + ".json"
 			logTest(blockFile)
 			blockFilePath := filepath.Join(g.dbDir(), block.dataset, blockFile)
-			oldBlocks[blockId] = blockFilePath
+			oldBlocks[blockID] = blockFilePath
 		}
 
-		err = record.Hydrate(to)
+		err = record.gHydrate(to, g.config.EncryptionKey)
 		if err != nil {
 			return err
 		}
@@ -169,7 +176,7 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 		}
 	}
 
-	//remove all block files
+	//remove all old block files
 	for _, blockFilePath := range oldBlocks {
 		log("Removing old block: " + blockFilePath)
 		err := os.Remove(blockFilePath)
@@ -183,7 +190,7 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 
 //TODO make this method more robust to handle cases where the id file is deleted
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
-func (g *gitdb) GenerateId(m Model) int64 {
+func (g *gitdb) GenerateID(m Model) int64 {
 	var id int64
 	idFile := g.idFilePath(m)
 	//check if id file exists
@@ -203,22 +210,22 @@ func (g *gitdb) GenerateId(m Model) int64 {
 	}
 
 	id = id + 1
-	g.setLastId(m, id)
+	g.setLastID(m, id)
 	return id
 }
 
-func (g *gitdb) updateId(m Model) error {
+func (g *gitdb) updateID(m Model) error {
 	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
-		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
+		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastID(m), 10)), 0744)
 	}
 
 	return nil
 }
 
-func (g *gitdb) setLastId(m Model, id int64) {
+func (g *gitdb) setLastID(m Model, id int64) {
 	g.lastIds[m.GetSchema().Name()] = id
 }
 
-func (g *gitdb) getLastId(m Model) int64 {
+func (g *gitdb) getLastID(m Model) int64 {
 	return g.lastIds[m.GetSchema().Name()]
 }

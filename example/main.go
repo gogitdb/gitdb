@@ -81,7 +81,7 @@ func write() {
 	bm.Status = booking.CheckedIn
 	bm.UserId = "user_1"
 	bm.RoomId = "room_1"
-	bm.AutoId = dbconn.GenerateId(bm)
+	bm.AutoId = dbconn.GenerateID(bm)
 
 	err := dbconn.Insert(bm)
 	if err != nil {
@@ -110,7 +110,7 @@ func delete() {
 
 func search() {
 	searchParam := &db.SearchParam{Index: "CustomerId", Value: "customer_2"}
-	rows, err := dbconn.Search("Booking", []*db.SearchParam{searchParam}, db.SEARCH_MODE_EQUALS)
+	rows, err := dbconn.Search("Booking", []*db.SearchParam{searchParam}, db.SearchEquals)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -131,7 +131,7 @@ func fetch() {
 			r.Hydrate(b)
 			bookings = append(bookings, b)
 
-			fmt.Println(fmt.Sprintf("%s-%s", b.ID, b.CreatedAt))
+			fmt.Println(fmt.Sprintf("%s-%s", b.RecordID, b.CreatedAt))
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type SearchMode int
@@ -29,7 +30,28 @@ type SearchParam struct {
 	Value string
 }
 
-type Gitdb struct {
+type GitDb interface {
+	Close() error
+	Insert(m Model) error
+	InsertMany(m []Model) error
+	Get(id string, m Model) error
+	Exists(id string) error
+	Fetch(dataset string) ([]*record, error)
+	FetchMt(dataset string) ([]*record, error)
+	Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error)
+	Delete(id string) error
+	DeleteOrFail(id string) error
+	Lock(m Model) error
+	Unlock(m Model) error
+	GenerateId(m Model) int64
+	Migrate(from Model, to Model) error
+	GetMails() []*mail
+	NewTransaction(name string) *transaction
+	GetLastCommitTime() (time.Time, error)
+	SetUser(user *DbUser) error
+}
+
+type gitdb struct {
 	mu       sync.Mutex
 	writeMu  sync.Mutex
 	commit   sync.WaitGroup
@@ -41,7 +63,7 @@ type Gitdb struct {
 	config    *Config
 	gitDriver dbDriver
 
-	autoCommit   bool //default to true
+	autoCommit   bool
 	indexUpdated bool
 	loopStarted  bool
 	closed       bool
@@ -53,9 +75,9 @@ type Gitdb struct {
 	mails []*mail
 }
 
-func newConnection() *Gitdb {
+func newConnection() *gitdb {
 	//autocommit defaults to true
-	db := &Gitdb{autoCommit: true, indexCache: make(gdbIndexCache)}
+	db := &gitdb{autoCommit: true, indexCache: make(gdbIndexCache)}
 	//initialize channels
 	db.events = make(chan *dbEvent, 1)
 	db.locked = make(chan bool, 1)
@@ -63,10 +85,11 @@ func newConnection() *Gitdb {
 	//to represent the event loop and sync clock
 	//goroutines
 	db.shutdown = make(chan bool, 2)
+
 	return db
 }
 
-func (g *Gitdb) Close() error {
+func (g *gitdb) Close() error {
 
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -97,29 +120,27 @@ func (g *Gitdb) Close() error {
 	return nil
 }
 
-func (g *Gitdb) configure(cfg *Config) {
+func (g *gitdb) configure(cfg *Config) {
+
+	if len(cfg.ConnectionName) == 0 {
+		cfg.ConnectionName = defaultConnectionName
+	}
 
 	if int64(cfg.SyncInterval) == 0 {
 		cfg.SyncInterval = defaultSyncInterval
 	}
 
-	g.config = cfg
-	g.config.sshKey = g.privateKeyFilePath()
-
-	switch cfg.GitDriver {
-	case GitDriverGoGit:
-		g.gitDriver = &goGit{}
-	case GitDriverBinary:
-		g.gitDriver = &gitBinary{}
-	default:
-		g.gitDriver = &gitBinary{}
+	if cfg.GitDriver == nil {
+		cfg.GitDriver = defaultDbDriver
 	}
 
-	g.gitDriver.configure(g)
+	g.config = cfg
+
+	g.config.GitDriver.configure(g)
 }
 
 //todo add revert logic if migrate fails mid way
-func (g *Gitdb) Migrate(from Model, to Model) error {
+func (g *gitdb) Migrate(from Model, to Model) error {
 	block := newBlock(from.GetSchema().Name())
 	err := g.dofetch(block)
 	if err != nil {
@@ -162,7 +183,7 @@ func (g *Gitdb) Migrate(from Model, to Model) error {
 
 //TODO make this method more robust to handle cases where the id file is deleted
 //TODO it needs to be intelligent enough to figure out the last id from the last existing record
-func (g *Gitdb) GenerateId(m Model) int64 {
+func (g *gitdb) GenerateId(m Model) int64 {
 	var id int64
 	idFile := g.idFilePath(m)
 	//check if id file exists
@@ -186,7 +207,7 @@ func (g *Gitdb) GenerateId(m Model) int64 {
 	return id
 }
 
-func (g *Gitdb) updateId(m Model) error {
+func (g *gitdb) updateId(m Model) error {
 	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
 		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastId(m), 10)), 0744)
 	}
@@ -194,27 +215,10 @@ func (g *Gitdb) updateId(m Model) error {
 	return nil
 }
 
-func (g *Gitdb) setLastId(m Model, id int64) {
+func (g *gitdb) setLastId(m Model, id int64) {
 	g.lastIds[m.GetSchema().Name()] = id
 }
 
-func (g *Gitdb) getLastId(m Model) int64 {
+func (g *gitdb) getLastId(m Model) int64 {
 	return g.lastIds[m.GetSchema().Name()]
 }
-
-// func (g *gitdb) getLock() bool {
-// 	select {
-// 	case locked := <-g.locked:
-// 		g.locked <- locked
-// 		return !locked
-// 	default:
-// 		g.locked <- true
-// 		return true
-// 	}
-// }
-
-// func (g *gitdb) releaseLock() bool {
-// 	<-g.locked
-// 	g.locked <- false
-// 	return true
-// }

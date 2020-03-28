@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-func (g *Gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
+func (g *gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
 
 	if len(g.loadedBlocks) == 0 {
 		g.loadedBlocks = map[string]*Block{}
@@ -32,7 +32,7 @@ func (g *Gitdb) loadBlock(blockFile string, dataset string) (*Block, error) {
 	return g.loadedBlocks[blockFile], nil
 }
 
-func (g *Gitdb) readBlock(blockFile string, block *Block) error {
+func (g *gitdb) readBlock(blockFile string, block *Block) error {
 
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
@@ -47,7 +47,7 @@ func (g *Gitdb) readBlock(blockFile string, block *Block) error {
 }
 
 //EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result *Block) error {
+func (g *gitdb) scanBlock(blockFile string, dataFormat DataFormat, result *Block) error {
 
 	bf, err := os.Open(blockFile)
 	if err != nil {
@@ -84,7 +84,7 @@ func (g *Gitdb) scanBlock(blockFile string, dataFormat DataFormat, result *Block
 	return err
 }
 
-func (g *Gitdb) doget(id string) (*record, error) {
+func (g *gitdb) doget(id string) (*record, error) {
 
 	dataDir, block, _, err := ParseId(id)
 	if err != nil {
@@ -116,7 +116,7 @@ func (g *Gitdb) doget(id string) (*record, error) {
 //of reading the entire block file into memory (i.e ioutil.ReadFile) and looking for
 //the matching record. This should be implemented as a scanBlock func on the Gitdb struct
 //and replace call to g.readBlock
-func (g *Gitdb) Get(id string, result Model) error {
+func (g *gitdb) Get(id string, result Model) error {
 	record, err := g.doget(id)
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func (g *Gitdb) Get(id string, result Model) error {
 	return record.Hydrate(result)
 }
 
-func (g *Gitdb) Exists(id string) error {
+func (g *gitdb) Exists(id string) error {
 	_, err := g.doget(id)
 	if err == nil {
 		g.events <- newReadEvent("...", id)
@@ -135,7 +135,7 @@ func (g *Gitdb) Exists(id string) error {
 	return err
 }
 
-func (g *Gitdb) Fetch(dataDir string) ([]*record, error) {
+func (g *gitdb) Fetch(dataDir string) ([]*record, error) {
 
 	dataBlock := newBlock(dataDir)
 	err := g.dofetch(dataBlock)
@@ -147,7 +147,7 @@ func (g *Gitdb) Fetch(dataDir string) ([]*record, error) {
 	return dataBlock.Records(), nil
 }
 
-func (g *Gitdb) dofetch(dataBlock *Block) error {
+func (g *gitdb) dofetch(dataBlock *Block) error {
 
 	dataset := dataBlock.dataset
 	fullPath := filepath.Join(g.dbDir(), dataset)
@@ -173,7 +173,7 @@ func (g *Gitdb) dofetch(dataBlock *Block) error {
 }
 
 //EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *Gitdb) FetchMt(dataset string) ([]*record, error) {
+func (g *gitdb) FetchMt(dataset string) ([]*record, error) {
 
 	dataBlock := newBlock(dataset)
 
@@ -207,7 +207,7 @@ func (g *Gitdb) FetchMt(dataset string) ([]*record, error) {
 	return dataBlock.Records(), nil
 }
 
-func (g *Gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error) {
+func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error) {
 
 	query := &searchQuery{
 		dataset:      dataDir,

@@ -15,7 +15,7 @@ import (
 	"github.com/fobilow/gitdb"
 )
 
-var testDb *gitdb.Gitdb
+var testDb gitdb.GitDb
 var messageId int
 
 const testData = "/tmp/gitdb-test"
@@ -79,7 +79,7 @@ func fakeOnlineRepo(t testing.TB) {
 	}
 }
 
-func getDbConn(t testing.TB) *gitdb.Gitdb {
+func getDbConn(t testing.TB) gitdb.GitDb {
 	conn, err := gitdb.Open(getConfig())
 	if err != nil {
 		t.Errorf("getDbConn failed: %s", err)

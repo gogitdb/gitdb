@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func (g *Gitdb) Insert(m Model) error {
+func (g *gitdb) Insert(m Model) error {
 
 	stamp(m)
 
@@ -32,7 +32,7 @@ func (g *Gitdb) Insert(m Model) error {
 	return g.write(m)
 }
 
-func (g *Gitdb) InsertMany(models []Model) error {
+func (g *gitdb) InsertMany(models []Model) error {
 	//todo polish this up later
 	if len(models) > 100 {
 		return errors.New("max number of models InsertMany supports is 100")
@@ -51,7 +51,7 @@ func (g *Gitdb) InsertMany(models []Model) error {
 	return tx.Commit()
 }
 
-func (g *Gitdb) queue(m Model) error {
+func (g *gitdb) queue(m Model) error {
 
 	if len(g.writeQueue) == 0 {
 		g.writeQueue = map[string]Model{}
@@ -61,7 +61,7 @@ func (g *Gitdb) queue(m Model) error {
 	return g.updateId(m)
 }
 
-func (g *Gitdb) flushQueue() error {
+func (g *gitdb) flushQueue() error {
 
 	for id, model := range g.writeQueue {
 		log("Flushing: " + id)
@@ -78,7 +78,7 @@ func (g *Gitdb) flushQueue() error {
 	return nil
 }
 
-func (g *Gitdb) write(m Model) error {
+func (g *gitdb) write(m Model) error {
 
 	blockFilePath := g.blockFilePath(m)
 	schema := m.GetSchema()
@@ -127,14 +127,14 @@ func (g *Gitdb) write(m Model) error {
 	return g.updateId(m)
 }
 
-func (g *Gitdb) waitForCommit() {
+func (g *gitdb) waitForCommit() {
 	if g.autoCommit {
 		logTest("waiting for gitdb to commit changes")
 		g.commit.Wait()
 	}
 }
 
-func (g *Gitdb) writeBlock(blockFile string, block *Block) error {
+func (g *gitdb) writeBlock(blockFile string, block *Block) error {
 
 	blockBytes, fmtErr := json.MarshalIndent(block.data(), "", "\t")
 	if fmtErr != nil {
@@ -144,15 +144,15 @@ func (g *Gitdb) writeBlock(blockFile string, block *Block) error {
 	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 
-func (g *Gitdb) Delete(id string) error {
+func (g *gitdb) Delete(id string) error {
 	return g.dodelete(id, false)
 }
 
-func (g *Gitdb) DeleteOrFail(id string) error {
+func (g *gitdb) DeleteOrFail(id string) error {
 	return g.dodelete(id, true)
 }
 
-func (g *Gitdb) dodelete(id string, failNotFound bool) error {
+func (g *gitdb) dodelete(id string, failNotFound bool) error {
 
 	dataset, block, _, err := ParseId(id)
 	if err != nil {
@@ -172,7 +172,7 @@ func (g *Gitdb) dodelete(id string, failNotFound bool) error {
 	return err
 }
 
-func (g *Gitdb) delById(id string, dataset string, blockFile string, failIfNotFound bool) error {
+func (g *gitdb) delById(id string, dataset string, blockFile string, failIfNotFound bool) error {
 
 	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {

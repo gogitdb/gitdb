@@ -9,20 +9,16 @@ import (
 )
 
 var mu sync.Mutex
-var conns map[string]*Gitdb
+var conns map[string]*gitdb
 
-func Open(cfg *Config) (*Gitdb, error) {
+func Open(config *Config) (*gitdb, error) {
+
+	//clone config to avoid changes from outside of package
+	x := *config
+	cfg := &x
 
 	if err := cfg.Validate(); err != nil {
 		return nil, err
-	}
-
-	if len(cfg.ConnectionName) == 0 {
-		cfg.ConnectionName = defaultConnectionName
-	}
-
-	if conns == nil {
-		conns = make(map[string]*Gitdb)
 	}
 
 	conn := newConnection()
@@ -47,12 +43,15 @@ func Open(cfg *Config) (*Gitdb, error) {
 		conn.loopStarted = true
 	}
 
+	if conns == nil {
+		conns = make(map[string]*gitdb)
+	}
 	conns[cfg.ConnectionName] = conn
 	return conn, nil
 }
 
-//At the moment this method will return the last connected started by Start(*Config)
-func Conn() *Gitdb {
+//At the moment this method will return the last connected started by Open(*Config)
+func Conn() *gitdb {
 
 	if len(conns) > 1 {
 		panic("Multiple gitdb connections found. Use GetConn function instead")
@@ -75,7 +74,7 @@ func Conn() *Gitdb {
 	return conns[connName]
 }
 
-func GetConn(name string) *Gitdb {
+func GetConn(name string) *gitdb {
 	if _, ok := conns[name]; !ok {
 		panic("No gitdb connection found")
 	}
@@ -83,9 +82,9 @@ func GetConn(name string) *Gitdb {
 	return conns[name]
 }
 
-func (g *Gitdb) boot() error {
+func (g *gitdb) boot() error {
 	g.lastIds = make(map[string]int64)
-	log("Booting up db using " + g.gitDriver.name() + " driver")
+	log("Booting up db using " + g.config.GitDriver.name() + " driver")
 
 	var err error
 
@@ -102,7 +101,7 @@ func (g *Gitdb) boot() error {
 		return err
 	}
 
-	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i '%s' -o 'StrictHostKeyChecking no'", g.config.sshKey))
+	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i '%s' -o 'StrictHostKeyChecking no'", g.privateKeyFilePath()))
 
 	// if .db directory does not exist and create it and attempt
 	// to do a git pull from remote

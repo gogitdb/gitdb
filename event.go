@@ -37,8 +37,8 @@ func newDeleteEvent(description string, dataset string, commit bool) *dbEvent {
 	return &dbEvent{Type: w, Description: description, Dataset: dataset, Commit: commit}
 }
 
-func (g *Gitdb) startEventLoop() {
-	go func(g *Gitdb) {
+func (g *gitdb) startEventLoop() {
+	go func(g *gitdb) {
 		logTest("starting event loop")
 
 		for {
@@ -64,9 +64,9 @@ func (g *Gitdb) startEventLoop() {
 
 }
 
-func (g *Gitdb) startSyncClock() {
+func (g *gitdb) startSyncClock() {
 
-	go func(g *Gitdb) {
+	go func(g *gitdb) {
 		if len(g.config.OnlineRemote) <= 0 {
 			log("Syncing disabled: online remote is not set")
 			return

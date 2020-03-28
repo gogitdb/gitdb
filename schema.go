@@ -51,11 +51,11 @@ func (a *Schema) Indexes() map[string]interface{} {
 	return a.indexesFunc()
 }
 
-func NewAutoBlock(dbConn *Gitdb, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
+func NewAutoBlock(dbPath string, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
 	currentBlock := -1
 	return func() string {
 
-		//don't bother figuring out the block id if model also has been assigned an id
+		//don't bother figuring out the block id if model has been assigned an id
 		//simply parse it and return right block
 		id := model.Id()
 		if len(id) > 0 {
@@ -65,14 +65,16 @@ func NewAutoBlock(dbConn *Gitdb, model Model, maxBlockSize int64, recordsPerBloc
 		var currentBlockFile os.FileInfo
 		var currentBlockFileName string
 
-		fullPath := dbConn.fullPath(model)
+		fullPath := filepath.Join(dbPath, "data", model.GetSchema().Name())
 		files, err := ioutil.ReadDir(fullPath)
-		if err == nil {
-			for _, currentBlockFile = range files {
-				currentBlockFileName = filepath.Join(fullPath, currentBlockFile.Name())
-				if filepath.Ext(currentBlockFileName) == ".json" {
-					currentBlock++
-				}
+		if err != nil {
+			panic(err)
+		}
+
+		for _, currentBlockFile = range files {
+			currentBlockFileName = filepath.Join(fullPath, currentBlockFile.Name())
+			if filepath.Ext(currentBlockFileName) == ".json" {
+				currentBlock++
 			}
 		}
 

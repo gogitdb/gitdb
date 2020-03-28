@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 )
 
-func (g *Gitdb) absDbPath() string {
+func (g *gitdb) absDbPath() string {
 	absDbPath, err := filepath.Abs(g.config.DbPath)
 	if err != nil {
 		panic(err)
@@ -13,62 +13,62 @@ func (g *Gitdb) absDbPath() string {
 	return absDbPath
 }
 
-func (g *Gitdb) dbDir() string {
+func (g *gitdb) dbDir() string {
 	return filepath.Join(g.absDbPath(), "data")
 }
 
-func (g *Gitdb) fullPath(m Model) string {
+func (g *gitdb) fullPath(m Model) string {
 	return filepath.Join(g.dbDir(), m.GetSchema().Name())
 }
 
-func (g *Gitdb) blockFilePath(m Model) string {
+func (g *gitdb) blockFilePath(m Model) string {
 	return filepath.Join(g.fullPath(m), m.GetSchema().blockIdFunc()+".json")
 }
 
-func (g *Gitdb) blockFilePath2(dataset, block string) string {
+func (g *gitdb) blockFilePath2(dataset, block string) string {
 	return filepath.Join(g.dbDir(), dataset, block+".json")
 }
 
-func (g *Gitdb) lockDir(m Model) string {
+func (g *gitdb) lockDir(m Model) string {
 	return filepath.Join(g.fullPath(m), "Lock")
 }
 
-func (g *Gitdb) idDir() string {
+func (g *gitdb) idDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "id")
 }
 
 //db/.db/Id/ModelName
-func (g *Gitdb) idFilePath(m Model) string {
+func (g *gitdb) idFilePath(m Model) string {
 	return filepath.Join(g.idDir(), m.GetSchema().Name())
 }
 
 //index path
-func (g *Gitdb) indexDir() string {
+func (g *gitdb) indexDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "index")
 }
 
-func (g *Gitdb) indexPath(dataset string) string {
+func (g *gitdb) indexPath(dataset string) string {
 	return filepath.Join(g.indexDir(), dataset)
 }
 
 //ssh paths
-func (g *Gitdb) sshDir() string {
+func (g *gitdb) sshDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "ssh")
 }
 
 //ssh paths
-func (g *Gitdb) mailDir() string {
+func (g *gitdb) mailDir() string {
 	return filepath.Join(g.absDbPath(), g.internalDirName(), "mail")
 }
 
-func (g *Gitdb) publicKeyFilePath() string {
+func (g *gitdb) publicKeyFilePath() string {
 	return filepath.Join(g.sshDir(), "gitdb.pub")
 }
 
-func (g *Gitdb) privateKeyFilePath() string {
+func (g *gitdb) privateKeyFilePath() string {
 	return filepath.Join(g.sshDir(), "gitdb")
 }
 
-func (g *Gitdb) internalDirName() string {
+func (g *gitdb) internalDirName() string {
 	return ".gitdb" //todo rename
 }

@@ -14,13 +14,13 @@ func newMail(subject string, body string) *mail {
 	return &mail{Subject: subject, Body: body, Date: time.Now()}
 }
 
-func (g *Gitdb) GetMails() []*mail {
+func (g *gitdb) GetMails() []*mail {
 	mails := g.mails
 	g.mails = []*mail{}
 	return mails
 }
 
-func (g *Gitdb) sendMail(m *mail) error {
+func (g *gitdb) sendMail(m *mail) error {
 	g.mails = append(g.mails, m)
 	return nil
 }

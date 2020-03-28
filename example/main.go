@@ -12,7 +12,7 @@ import (
 	"github.com/fobilow/gitdb/example/booking"
 )
 
-var dbconn *db.Gitdb
+var dbconn db.GitDb
 var logToFile bool
 
 func init() {
@@ -22,8 +22,6 @@ func init() {
 		SyncInterval:  time.Second * 5,
 		EncryptionKey: "XVlBzgbaiCMRAjWwhTHctcuAxhxKQFDa", //this has to be 32 bytes to select AES-256
 		User:          db.NewUser("dev", "dev@gitdb.io"),
-		GitDriver:     db.GitDriverBinary,
-		//gitDriver: db.GitDriverGoGit,
 	}
 
 	if logToFile {

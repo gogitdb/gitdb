@@ -10,16 +10,9 @@ import (
 	"time"
 )
 
-type dbDriverName string
-
-const (
-	GitDriverBinary dbDriverName = "git-binary"
-	GitDriverGoGit  dbDriverName = "git-gogit"
-)
-
 type dbDriver interface {
 	name() string
-	configure(db *Gitdb)
+	configure(db *gitdb)
 	init() error
 	clone() error
 	addRemote() error
@@ -34,16 +27,16 @@ type baseGitDriver struct {
 	absDbPath string
 }
 
-func (g *baseGitDriver) configure(db *Gitdb) {
+func (g *baseGitDriver) configure(db *gitdb) {
 	g.config = db.config
 	g.absDbPath = db.dbDir()
 }
 
 //this function is only called once. I.e when a initializing the database for the
 //very first time. In this case we must clone the online repo
-func (g *Gitdb) gitInit() error {
+func (g *gitdb) gitInit() error {
 	//we take this very seriously
-	err := g.gitDriver.init()
+	err := g.config.GitDriver.init()
 	if err != nil {
 		os.RemoveAll(g.dbDir())
 	}
@@ -51,10 +44,10 @@ func (g *Gitdb) gitInit() error {
 	return err
 }
 
-func (g *Gitdb) gitClone() error {
+func (g *gitdb) gitClone() error {
 	//we take this very seriously
 	log("cloning down database...")
-	err := g.gitDriver.clone()
+	err := g.config.GitDriver.clone()
 	if err != nil {
 		//TODO if err is authentication related generate key pair
 		//TODO inform users to ask admin to add their public key to repo
@@ -83,9 +76,9 @@ func (g *Gitdb) gitClone() error {
 	return nil
 }
 
-func (g *Gitdb) gitAddRemote() error {
+func (g *gitdb) gitAddRemote() error {
 	//we take this very seriously
-	err := g.gitDriver.addRemote()
+	err := g.config.GitDriver.addRemote()
 	if err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
 			os.RemoveAll(g.dbDir()) //TODO is this necessary?
@@ -99,29 +92,29 @@ func (g *Gitdb) gitAddRemote() error {
 //first attempt to pull from offline DB repo followed by online DB repo
 //fails silently, logs error message and determine if we need to put the
 //application in an error state
-func (g *Gitdb) gitPull() error {
-	return g.gitDriver.pull()
+func (g *gitdb) gitPull() error {
+	return g.config.GitDriver.pull()
 }
 
-func (g *Gitdb) gitPush() error {
-	return g.gitDriver.push()
+func (g *gitdb) gitPush() error {
+	return g.config.GitDriver.push()
 }
 
-func (g *Gitdb) gitCommit(filePath string, msg string, user *DbUser) {
+func (g *gitdb) gitCommit(filePath string, msg string, user *DbUser) {
 	mu.Lock()
 	defer mu.Unlock()
-	err := g.gitDriver.commit(filePath, msg, user)
+	err := g.config.GitDriver.commit(filePath, msg, user)
 	if err != nil {
 		// todo: update to return this error but for now at least log it
 		logError(err.Error())
 	}
 }
 
-func (g *Gitdb) gitUndo() error {
-	return g.gitDriver.undo()
+func (g *gitdb) gitUndo() error {
+	return g.config.GitDriver.undo()
 }
 
-func (g *Gitdb) gitLastCommitTime() (time.Time, error) {
+func (g *gitdb) gitLastCommitTime() (time.Time, error) {
 	var t time.Time
 	cmd := exec.Command("git", "-C", g.dbDir(), "log", "-1", "--remotes=online", "--format=%cd", "--date=iso")
 	//log.PutInfo(utils.CmdToString(cmd))
@@ -139,6 +132,6 @@ func (g *Gitdb) gitLastCommitTime() (time.Time, error) {
 	return t, errors.New("no commit history in repo")
 }
 
-func (g *Gitdb) GetLastCommitTime() (time.Time, error) {
+func (g *gitdb) GetLastCommitTime() (time.Time, error) {
 	return g.gitLastCommitTime()
 }

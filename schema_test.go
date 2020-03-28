@@ -14,12 +14,11 @@ func TestNewAutoBlock(t *testing.T) {
 	insert(m, false)
 
 	want := "b1"
-	got := gitdb.NewAutoBlock(testDb, m, 1, 1)()
+	got := gitdb.NewAutoBlock(dbPath, m, 1, 1)()
 
 	if got != want {
 		t.Errorf("want: %s, got: %s", want, got)
 	}
-
 }
 
 func TestSchemaString(t *testing.T) {

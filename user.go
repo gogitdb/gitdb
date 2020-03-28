@@ -17,7 +17,7 @@ func NewUser(name string, email string) *DbUser {
 	return &DbUser{Name: name, Email: email}
 }
 
-func (g *Gitdb) SetUser(user *DbUser) error {
+func (g *gitdb) SetUser(user *DbUser) error {
 	g.config.User = user
 	return nil
 }

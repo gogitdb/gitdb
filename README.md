@@ -10,18 +10,27 @@ GitDB
 
 ## What is GitDB?
 
-GitDB is to Go what Mnesia is to Erlang
+> GitDB is not a binary. It’s a library!
 
-- Decentralized database
-- Document database
-- Embedded into the go application
-- Supports Encryption (encrypt on write, decrypt on read)
-- Supports multiple data formats e.g Json, Bson (more to come...)
-- Supports record locking.
+GitDB is a decentralized document database written in Go. It provides database-like functionalities via strictly defined interfaces. 
+
+GitDB allows developers to create Models of objects in their application which implement a Model Interface that can access it's persistence features. This allows GitDB to work with these objects in database operations. 
+
+## Why GitDB - motivation behind project?
+
+- A need for a database that was quick and simple to set up
+- A need for a database that was decentralized and each participating client in a system can store their data independent of other clients.
+
+
+## Features
+
+- Decentralized
+- Document store
+- Embedded into your go application
+- Encryption (encrypt on write, decrypt on read)
+- Record locking.
 - Simple Indexing System
-- Decentralization is achieved with git
-- Data is stored in blocks (blocks can be dynamic or static)
-- A block can contain many records...
+- Transactions
 
 
 ## Project versioning
@@ -41,6 +50,7 @@ New minor versions may add additional features to the API.
     - [Deleting a record](#deleting-a-record)
     - [Search for records](#search-for-records)
     - [Transactions](#transactions)
+    - [Encryption](#encryption)
   - [Resources](#resources)
   - [Caveats & Limitations](#caveats--limitations)
   - [Reading the Source](#reading-the-source)
@@ -66,8 +76,8 @@ To use GitDB as an embedded document store, import as:
 ```go
 import "github.com/fobilow/gitdb"
 
-config := gitdb.NewConfig(path)
-db, err := gitdb.Open(path)
+cfg := gitdb.NewConfig(path)
+db, err := gitdb.Open(cfg)
 if err != nil {
   log.Fatal(err)
 }
@@ -86,7 +96,7 @@ import (
 
 func main() {
   
-  config := gitdb.NewConfig("/tmp/data")
+  cfg := gitdb.NewConfig("/tmp/data")
   // Open will create or clone down a git repo 
   // in configured path if it does not exist.
   db, err := gitdb.Open(cfg)
@@ -145,7 +155,7 @@ import (
 )
 
 func main(){
-  config := gitdb.NewConfig("/tmp/data")
+  cfg := gitdb.NewConfig("/tmp/data")
   db, err := gitdb.Open(cfg)
   if err != nil {
     log.Fatal(err)
@@ -168,7 +178,7 @@ func main(){
   account.Name = "Bar Foo"
   err = db.Insert(account)
   if err != nil {
-    log.Error(err)
+    log.Print(err)
   }
 }
 ```
@@ -182,7 +192,7 @@ import (
 )
 
 func main(){
-  config := gitdb.NewConfig("/tmp/data")
+  cfg := gitdb.NewConfig("/tmp/data")
   db, err := gitdb.Open(cfg)
   if err != nil {
     log.Fatal(err)
@@ -193,7 +203,7 @@ func main(){
   account := &BankAccount()
   err = db.Get("Accounts/202003/0123456789", account)
   if err != nil {
-    log.Error(err)
+    log.Print(err)
   }
 }
 ```
@@ -207,7 +217,7 @@ import (
 )
 
 func main(){
-  config := gitdb.NewConfig("/tmp/data")
+  cfg := gitdb.NewConfig("/tmp/data")
   db, err := gitdb.Open(cfg)
   if err != nil {
     log.Fatal(err)
@@ -240,7 +250,7 @@ import (
 )
 
 func main(){
-  config := gitdb.NewConfig("/tmp/data")
+  cfg := gitdb.NewConfig("/tmp/data")
   db, err := gitdb.Open(cfg)
   if err != nil {
     log.Fatal(err)
@@ -264,7 +274,7 @@ import (
 )
 
 func main(){
-  config := gitdb.NewConfig("/tmp/data")
+  cfg := gitdb.NewConfig("/tmp/data")
   db, err := gitdb.Open(cfg)
   if err != nil {
     log.Fatal(err)
@@ -298,7 +308,7 @@ import (
 )
 
 func main() {
-  config := gitdb.NewConfig("/tmp/data")
+  cfg := gitdb.NewConfig("/tmp/data")
   db, err := gitdb.Open(cfg)
   if err != nil {
     log.Fatal(err)
@@ -316,6 +326,49 @@ func main() {
   terr := t.Commit()
   if terr != nil {
     log.Print(terr)
+  }
+}
+```
+
+### Encryption
+
+GitDB suppports AES encryption and is done on a Model level, which means you can have a database with different Models where some are ecnrypted and others are not. To encryt your data, your Model must implement `ShouldEncrypt()` to return true and you must set `gitdb.Config.EncryptionKey`. For maximum security set this key to a 32 byte string to select AES-256 
+
+```go
+package main
+
+import (
+  "log"
+  "github.com/fobilow/gitdb"
+)
+
+func main(){
+  cfg := gitdb.NewConfig("/tmp/data")
+  cfg.EncryptionKey = "a_32_bytes_string_for_AES-256"
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer db.Close()
+
+  //populate model
+  account := &BankAccount()
+  account.AccountNo = "0123456789"
+  account.AccountType = "Savings"
+  account.Currency = "GBP"
+  account.Name = "Foo Bar"
+
+  //Insert will encrypt the account
+  err = db.Insert(account)
+  if err != nil {
+    fmt.Println(err)
+  }
+
+  //Get will automatically decrypt account
+  account := &BankAccount()
+  err = db.Get("Accounts/202003/0123456789", account)
+  if err != nil {
+    log.Print(err)
   }
 }
 ```

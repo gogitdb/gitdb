@@ -89,17 +89,8 @@ func (g *gitdb) boot() error {
 	g.lastIds = make(map[string]int64)
 	log("Booting up db using " + g.config.GitDriver.name() + " driver")
 
-	var err error
-
-	//create id dir
-	err = os.MkdirAll(g.idDir(), 0755)
-	if err != nil {
-		log(err.Error())
-		return err
-	}
-
 	//create .ssh dir
-	err = g.generateSSHKeyPair()
+	err := g.generateSSHKeyPair()
 	if err != nil {
 		return err
 	}

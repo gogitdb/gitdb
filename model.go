@@ -6,102 +6,63 @@ import (
 
 //Model interface describes methods GitDB supports
 type Model interface {
-	ID() string
-	SetID(string)
-	SetMetaData(m *metaData)
-	String() string
-	Validate() bool
-	IsLockable() bool
-	GetLockFileNames() []string
 	GetSchema() *Schema
-	GetCreatedDate() time.Time
-	GetUpdatedDate() time.Time
-	SetCreatedDate(time.Time)
-	SetUpdatedDate(time.Time)
+	//Validate validates a Model
+	Validate() error
+	//IsLockable informs GitDb if a Model support locking
+	IsLockable() bool
+	//GetLockFileNames informs GitDb of files a Models using for locking
+	GetLockFileNames() []string
+	//ShouldEncrypt informs GitDb if a Model support encryption
 	ShouldEncrypt() bool
-	GetValidationErrors() []error
+	//SetBaseModel sets shared fields and is called by gitdb before insert
+	SetBaseModel()
 }
 
-type metaData struct {
-	Indexes   map[string]interface{}
-	Encrypted bool
-}
-
-//BaseModel provides sensible defaults for a Model struct by composition
-type BaseModel struct {
-	RecordID  string `json:"ID"`
-	Meta      *metaData
+//TimeStampedModel provides time stamp fields
+type TimeStampedModel struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	errors    []error
 }
 
-//ID returns record id
-func (m *BaseModel) ID() string {
-	return m.RecordID
+//SetBaseModel sets shared fields and is called by gitdb before insert
+func (m *TimeStampedModel) SetBaseModel() {
+	stampTime := time.Now()
+	if m.CreatedAt.IsZero() {
+		m.CreatedAt = stampTime
+	}
+	m.UpdatedAt = stampTime
 }
 
-//SetID sets record id
-func (m *BaseModel) SetID(id string) {
-	m.RecordID = id
+type gRecord struct {
+	Indexes map[string]interface{}
+	Data    Model
 }
 
-//SetMetaData sets metadata
-func (m *BaseModel) SetMetaData(md *metaData) {
-	m.Meta = md
+func wrapModel(m Model) *gRecord {
+	return &gRecord{
+		Indexes: m.GetSchema().indexes(),
+		Data:    m,
+	}
 }
 
-//GetCreatedDate returns created time of Model
-func (m *BaseModel) GetCreatedDate() time.Time {
-	return m.CreatedAt
+func (m *gRecord) GetSchema() *Schema {
+	return m.Data.GetSchema()
 }
 
-//GetUpdatedDate returns updated time of Model
-func (m *BaseModel) GetUpdatedDate() time.Time {
-	return m.UpdatedAt
+func (m *gRecord) Validate() error {
+	return m.Data.Validate()
+}
+func (m *gRecord) IsLockable() bool {
+	return m.Data.IsLockable()
+}
+func (m *gRecord) ShouldEncrypt() bool {
+	return m.Data.ShouldEncrypt()
+}
+func (m *gRecord) GetLockFileNames() []string {
+	return m.Data.GetLockFileNames()
 }
 
-//SetCreatedDate sets created time of Model
-func (m *BaseModel) SetCreatedDate(t time.Time) {
-	m.CreatedAt = t
-}
-
-//SetUpdatedDate sets updated time of Model
-func (m *BaseModel) SetUpdatedDate(t time.Time) {
-	m.UpdatedAt = t
-}
-
-func (m *BaseModel) String() string {
-	return m.RecordID
-}
-
-//Validate validates a Model
-//this func is here provide a sensible default
-func (m *BaseModel) Validate() bool {
-	return true
-}
-
-//IsLockable informs GitDb if a Model support locking
-//this func is here provide a sensible default
-func (m *BaseModel) IsLockable() bool {
-	return false
-}
-
-//GetLockFileNames informs GitDb of files a Models using for locking
-//It only works with lockable Models
-//this func is here provide a sensible default
-func (m *BaseModel) GetLockFileNames() []string {
-	return []string{}
-}
-
-//ShouldEncrypt informs GitDb if a Model support encryption
-//this func is here provide a sensible default
-func (m *BaseModel) ShouldEncrypt() bool {
-	return false
-}
-
-//GetValidationErrors returns any errors from Validate
-//this func is here provide a sensible default
-func (m *BaseModel) GetValidationErrors() []error {
-	return m.errors
+func (m *gRecord) SetBaseModel() {
+	m.Data.SetBaseModel()
 }

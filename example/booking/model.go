@@ -8,7 +8,7 @@ import (
 
 type BookingModel struct {
 	//extends..
-	gitdb.BaseModel
+	gitdb.TimeStampedModel
 	Type         RoomType
 	CheckInDate  time.Time
 	CheckOutDate time.Time
@@ -30,6 +30,20 @@ func NewBookingModel() *BookingModel {
 	return &BookingModel{}
 }
 
+func (b *BookingModel) NumberOfHours() int {
+	return int(b.CheckOutDate.Sub(b.CheckInDate).Hours())
+}
+
+func (b *BookingModel) NumberOfNights() int {
+	n := int(b.CheckOutDate.Sub(b.CheckInDate).Hours() / 24)
+	if n <= 0 {
+		n = 1
+	}
+
+	return n
+}
+
+//GetSchema example
 func (b *BookingModel) GetSchema() *gitdb.Schema {
 
 	//Name of schema
@@ -62,30 +76,26 @@ func (b *BookingModel) GetSchema() *gitdb.Schema {
 	return gitdb.NewSchema(name, block, record, indexes)
 }
 
+//GetLockFileNames example
+//Todo add comment and date expansion function
 func (b *BookingModel) GetLockFileNames() []string {
 	var names []string
 	names = append(names, "lock_"+b.CheckInDate.Format("2006-01-02")+"_"+b.RoomId)
 	return names
 }
 
-func (b *BookingModel) NumberOfHours() int {
-	return int(b.CheckOutDate.Sub(b.CheckInDate).Hours())
-}
-
-func (b *BookingModel) NumberOfNights() int {
-	n := int(b.CheckOutDate.Sub(b.CheckInDate).Hours() / 24)
-	if n <= 0 {
-		n = 1
-	}
-
-	return n
-}
-
-func (b *BookingModel) Validate() bool {
+//Validate example
+func (b *BookingModel) Validate() error {
 	//write validation logic here
-	return true
+	return nil
 }
 
+//IsLockable example
+func (b *BookingModel) IsLockable() bool {
+	return false
+}
+
+//ShouldEncrypt example
 func (b *BookingModel) ShouldEncrypt() bool {
 	return true
 }

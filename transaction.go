@@ -34,6 +34,6 @@ func (t *transaction) AddOperation(o operation) {
 	t.operations = append(t.operations, o)
 }
 
-func (g *gitdb) NewTransaction(name string) *transaction {
+func (g *gitdb) StartTransaction(name string) *transaction {
 	return &transaction{name: name, db: g}
 }

@@ -56,7 +56,7 @@ func TestDelete(t *testing.T) {
 		t.Errorf("Error: %s", err.Error())
 	}
 
-	if err := testDb.Delete(m.GetSchema().RecordID()); err != nil {
+	if err := testDb.Delete(gitdb.ID(m)); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 }
@@ -97,13 +97,4 @@ func TestGetLockFileNames(t *testing.T) {
 	if len(locks) > 0 {
 		t.Errorf("testMessage return %d lock files", len(locks))
 	}
-}
-
-func TestGenerateId(t *testing.T) {
-	teardown := setup(t)
-	defer teardown(t)
-
-	m := getTestMessage()
-	testDb.GenerateID(m)
-
 }

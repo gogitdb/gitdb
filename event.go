@@ -3,6 +3,8 @@ package gitdb
 import (
 	"fmt"
 	"time"
+
+	"github.com/distatus/battery"
 )
 
 type eventType string
@@ -102,4 +104,18 @@ func (g *gitdb) startSyncClock() {
 			}
 		}
 	}(g)
+}
+
+func hasSufficientBatteryPower(threshold float64) bool {
+	batt, err := battery.Get(0)
+	if err != nil {
+		return false
+	}
+
+	percentageCharge := batt.Current / batt.Full * 100
+
+	log(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
+
+	//return true if battery life is above threshold
+	return percentageCharge >= threshold
 }

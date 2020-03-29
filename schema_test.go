@@ -6,7 +6,30 @@ import (
 	"github.com/fobilow/gitdb"
 )
 
-func TestNewAutoBlock(t *testing.T) {
+func TestAutoBlock(t *testing.T) {
+	teardown := setup(t)
+	defer teardown(t)
+
+	m := getTestMessage()
+	if err := insert(m, false); err != nil {
+		t.Errorf("insert failed: %s", err)
+	}
+	want := "b0"
+	got := gitdb.AutoBlock(dbPath, m, 1, 1)()
+	if got != want {
+		t.Errorf("want: %s, got: %s", want, got)
+	}
+
+	m = getTestMessage()
+	want = "b1"
+	got = gitdb.AutoBlock(dbPath, m, 0, 1)()
+
+	if got != want {
+		t.Errorf("want: %s, got: %s", want, got)
+	}
+}
+
+func TestHydrate(t *testing.T) {
 	teardown := setup(t)
 	defer teardown(t)
 
@@ -15,35 +38,15 @@ func TestNewAutoBlock(t *testing.T) {
 		t.Errorf("insert failed: %s", err)
 	}
 
-	want := "b1"
-	got := gitdb.NewAutoBlock(dbPath, m, 1, 1)()
-
-	if got != want {
-		t.Errorf("want: %s, got: %s", want, got)
+	result := &Message{}
+	records, err := testDb.Fetch("Message")
+	if err != nil {
+		t.Errorf("testDb.Fetch failed: %s", err)
 	}
-}
 
-func TestSchemaString(t *testing.T) {
-	teardown := setup(t)
-	defer teardown(t)
-
-	m := getTestMessage()
-	want := "Message/b0/0"
-	got := m.GetSchema().String()
-	if got != want {
-		t.Errorf("want: %s, got: %s", want, got)
-	}
-}
-
-func TestSchemaId(t *testing.T) {
-	teardown := setup(t)
-	defer teardown(t)
-
-	m := getTestMessage()
-	want := "Message/b0/0"
-	got := m.GetSchema().ID()
-	if got != want {
-		t.Errorf("want: %s, got: %s", want, got)
+	err = records[0].Hydrate(result)
+	if err != nil {
+		t.Errorf("record.Hydrate failed: %s", err)
 	}
 }
 
@@ -57,32 +60,9 @@ func TestParseId(t *testing.T) {
 	}
 }
 
-func TestIDParser(t *testing.T) {
-	id := gitdb.NewIDParser("DatasetName/Block/RecordId")
-
-	if id.Dataset() != "DatasetName" {
-		t.Errorf("id.Dataset() returned - %s", id.Dataset())
-	}
-
-	if id.Block() != "Block" {
-		t.Errorf("id.Record() returned - %s", id.Record())
-	}
-
-	if id.Record() != "RecordId" {
-		t.Errorf("id.Record() returned - %s", id.Record())
-	}
-}
-
 func BenchmarkParseId(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
 		gitdb.ParseID("DatasetName/Block/RecordId")
-	}
-}
-
-func BenchmarkIDParserParseId(b *testing.B) {
-	b.ReportAllocs()
-	for i := 0; i <= b.N; i++ {
-		gitdb.NewIDParser("DatasetName/Block/RecordId")
 	}
 }

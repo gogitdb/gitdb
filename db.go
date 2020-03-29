@@ -1,11 +1,8 @@
 package gitdb
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -44,16 +41,14 @@ type GitDb interface {
 	Get(id string, m Model) error
 	Exists(id string) error
 	Fetch(dataset string) ([]*record, error)
-	FetchMt(dataset string) ([]*record, error)
 	Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error)
 	Delete(id string) error
 	DeleteOrFail(id string) error
 	Lock(m Model) error
 	Unlock(m Model) error
-	GenerateID(m Model) int64
 	Migrate(from Model, to Model) error
 	GetMails() []*mail
-	NewTransaction(name string) *transaction
+	StartTransaction(name string) *transaction
 	GetLastCommitTime() (time.Time, error)
 	SetUser(user *DbUser) error
 }
@@ -148,7 +143,7 @@ func (g *gitdb) configure(cfg *Config) {
 
 //todo add revert logic if migrate fails mid way
 func (g *gitdb) Migrate(from Model, to Model) error {
-	block := newBlock(from.GetSchema().Name())
+	block := newBlock(from.GetSchema().name())
 	err := g.dofetch(block)
 	if err != nil {
 		return err
@@ -186,46 +181,4 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 	}
 
 	return nil
-}
-
-//TODO make this method more robust to handle cases where the id file is deleted
-//TODO it needs to be intelligent enough to figure out the last id from the last existing record
-func (g *gitdb) GenerateID(m Model) int64 {
-	var id int64
-	idFile := g.idFilePath(m)
-	//check if id file exists
-	_, err := os.Stat(idFile)
-	if err != nil {
-		id = 0
-	} else {
-		data, err := ioutil.ReadFile(idFile)
-		if err != nil {
-			panic(err)
-		}
-
-		id, err = strconv.ParseInt(strings.Trim(string(data), "\n"), 10, 64)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	id = id + 1
-	g.setLastID(m, id)
-	return id
-}
-
-func (g *gitdb) updateID(m Model) error {
-	if _, ok := g.lastIds[m.GetSchema().Name()]; ok {
-		return ioutil.WriteFile(g.idFilePath(m), []byte(strconv.FormatInt(g.getLastID(m), 10)), 0744)
-	}
-
-	return nil
-}
-
-func (g *gitdb) setLastID(m Model, id int64) {
-	g.lastIds[m.GetSchema().Name()] = id
-}
-
-func (g *gitdb) getLastID(m Model) int64 {
-	return g.lastIds[m.GetSchema().Name()]
 }

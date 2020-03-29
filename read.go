@@ -1,7 +1,6 @@
 package gitdb
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 func (g *gitdb) loadBlock(blockFile string, dataset string) (*gBlock, error) {
@@ -39,46 +37,8 @@ func (g *gitdb) readBlock(blockFile string, block *gBlock) error {
 		return err
 	}
 
-	if err := json.Unmarshal(data, &block.rawRecs); err != nil {
+	if err := json.Unmarshal(data, &block); err != nil {
 		return errBadBlock
-	}
-
-	return err
-}
-
-//EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *gitdb) scanBlock(blockFile string, result *gBlock) error {
-
-	bf, err := os.Open(blockFile)
-	if err != nil {
-		return err
-	}
-
-	defer bf.Close()
-
-	scanner := bufio.NewScanner(bf)
-	scanner.Split(bufio.ScanLines)
-	kv := make([]string, 2)
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "{" && line != "}" {
-			kv = strings.Split(strings.Trim(line, ","), ": ")
-			if len(kv[0]) <= 0 || len(kv[1]) <= 0 {
-				return errors.New("invalid block file")
-			}
-
-			//unescape and unqoute string
-			v := make([]byte, 0, len(kv[1]))
-			for i := 1; i < len(kv[1])-1; i++ {
-				if kv[1][i] != '\\' {
-					v = append(v, kv[1][i])
-				}
-			}
-
-			result.add(kv[0], string(v))
-			v = v[:0]
-		}
 	}
 
 	return err
@@ -169,41 +129,6 @@ func (g *gitdb) dofetch(dataBlock *gBlock) error {
 	}
 
 	return nil
-}
-
-//EXPERIMENTAL: USE ONLY IF YOU KNOW WHAT YOU ARE DOING
-func (g *gitdb) FetchMt(dataset string) ([]*record, error) {
-
-	dataBlock := newBlock(dataset)
-
-	fullPath := filepath.Join(g.dbDir(), dataset)
-	//events <- newReadEvent("...", fullPath)
-	log("Fetching records from - " + fullPath)
-	files, err := ioutil.ReadDir(fullPath)
-	if err != nil {
-		return nil, err
-	}
-
-	wg := sync.WaitGroup{}
-	for _, file := range files {
-		fileName := filepath.Join(fullPath, file.Name())
-		if filepath.Ext(fileName) == ".json" {
-			wg.Add(1)
-			go func() {
-				err := g.readBlock(fileName, dataBlock)
-				if err != nil {
-					logError(err.Error())
-					return
-				}
-
-				wg.Done()
-			}()
-		}
-	}
-	wg.Wait()
-
-	log(fmt.Sprintf("%d records found in %s", dataBlock.size(), fullPath))
-	return dataBlock.records(g.config.EncryptionKey), nil
 }
 
 func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error) {

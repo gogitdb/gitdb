@@ -47,7 +47,7 @@ func main() {
 }
 
 func testTransaction() {
-	t := dbconn.NewTransaction("booking")
+	t := dbconn.StartTransaction("booking")
 	t.AddOperation(updateRoom)
 	t.AddOperation(lockRoom)
 	t.AddOperation(saveBooking)
@@ -81,7 +81,6 @@ func write() {
 	bm.Status = booking.CheckedIn
 	bm.UserId = "user_1"
 	bm.RoomId = "room_1"
-	bm.AutoId = dbconn.GenerateID(bm)
 
 	err := dbconn.Insert(bm)
 	if err != nil {
@@ -131,7 +130,7 @@ func fetch() {
 			r.Hydrate(b)
 			bookings = append(bookings, b)
 
-			fmt.Println(fmt.Sprintf("%s-%s", b.RecordID, b.CreatedAt))
+			fmt.Println(fmt.Sprintf("%s-%s", db.ID(b), b.CreatedAt))
 		}
 	}
 }

@@ -10,8 +10,6 @@ import (
 
 func (g *gitdb) Lock(m Model) error {
 
-	stamp(m)
-
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
 	}
@@ -50,7 +48,7 @@ func (g *gitdb) Lock(m Model) error {
 		lockFilesWritten = append(lockFilesWritten, lockFile)
 	}
 
-	commitMsg := "Created Lock Files for: " + m.ID()
+	commitMsg := "Created Lock Files for: " + ID(m)
 	g.events <- newWriteEvent(commitMsg, fullPath, g.autoCommit)
 	return nil
 }
@@ -76,7 +74,7 @@ func (g *gitdb) Unlock(m Model) error {
 		}
 	}
 
-	commitMsg := "Removing Lock Files for: " + m.ID()
+	commitMsg := "Removing Lock Files for: " + ID(m)
 	g.events <- newWriteEvent(commitMsg, fullPath, g.autoCommit)
 	return nil
 }

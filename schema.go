@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 )
 
 //StringFunc is a function that takes no argument and returns a string
@@ -20,7 +19,7 @@ type IndexFunc func() map[string]interface{}
 
 //Schema interface for all schema structs
 type Schema struct {
-	name         StringFunc
+	dataset      StringFunc
 	blockIDFunc  StringFunc
 	recordIDFunc StringFunc
 	indexesFunc  IndexFunc
@@ -31,161 +30,157 @@ func NewSchema(name, block, record StringFunc, indexes IndexFunc) *Schema {
 	return &Schema{name, block, record, indexes}
 }
 
-//Name returns name of schema
-func (a *Schema) Name() string {
-	return a.name()
+//name returns name of schema
+func (a *Schema) name() string {
+	return a.dataset()
 }
 
-//ID returns record id of schema
-func (a *Schema) ID() string {
-	return a.RecordID()
+//blockID retuns block id of schema
+func (a *Schema) blockID() string {
+	return a.dataset() + "/" + a.blockIDFunc()
 }
 
-//RecordID returns record id of schema
-func (a *Schema) RecordID() string {
-	return a.BlockID() + "/" + a.recordIDFunc()
+//recordID returns record id of schema
+func (a *Schema) recordID() string {
+	return a.blockID() + "/" + a.recordIDFunc()
 }
 
-//BlockID retuns block id of schema
-func (a *Schema) BlockID() string {
-	return a.name() + "/" + a.blockIDFunc()
-}
-
-//String returns record id of schema
-func (a *Schema) String() string {
-	return a.RecordID()
-}
-
-//Indexes returns indexes of a schema
-func (a *Schema) Indexes() map[string]interface{} {
+//indexes returns indexes of a schema
+func (a *Schema) indexes() map[string]interface{} {
 	return a.indexesFunc()
 }
 
-//NewAutoBlock automatically generates block id for a given Model
-func NewAutoBlock(dbPath string, model Model, maxBlockSize int64, recordsPerBlock int) func() string {
-	currentBlock := -1
-	return func() string {
+//Validate ensures *Schema is valid
+func (a *Schema) Validate() error {
+	if len(a.name()) == 0 {
+		return errors.New("Invalid Schema Name")
+	}
 
-		//don't bother figuring out the block id if model has been assigned an id
-		//simply parse it and return right block
-		id := model.ID()
-		if len(id) > 0 {
-			return NewIDParser(id).block
+	if len(a.blockIDFunc()) == 0 {
+		return errors.New("Invalid Schema Block ID")
+	}
+
+	if len(a.recordIDFunc()) == 0 {
+		return errors.New("Invalid Schema Record ID")
+	}
+
+	return nil
+}
+
+//Indexes returns the index map of a given Model
+func Indexes(m Model) map[string]interface{} {
+	return m.GetSchema().indexes()
+}
+
+//ID returns the id of a given Model
+func ID(m Model) string {
+	return m.GetSchema().recordID()
+}
+
+//ParseID parses a record id and returns it's metadata
+func ParseID(id string) (dataDir string, block string, record string, err error) {
+	recordMeta := strings.Split(id, "/")
+	if len(recordMeta) != 3 {
+		err = errors.New("Invalid record id: " + id)
+	} else {
+		dataDir = recordMeta[0]
+		block = recordMeta[1]
+		record = recordMeta[2]
+	}
+
+	return dataDir, block, record, err
+}
+
+//AutoBlock automatically generates block id for a given Model
+//maxBlockSize is the maximum allowed size of a block file in bytes
+func AutoBlock(dbPath string, m Model, maxBlockSize int64, maxRecordsPerBlock int) func() string {
+
+	return func() string {
+		var currentBlock int
+		var currentBlockFile os.FileInfo
+		var currentBlockrecords map[string]interface{}
+
+		if maxBlockSize <= 0 {
+			maxBlockSize = 4000
 		}
 
-		var currentBlockFile os.FileInfo
-		var currentBlockFileName string
+		if maxRecordsPerBlock <= 0 {
+			maxRecordsPerBlock = 1000
+		}
 
-		fullPath := filepath.Join(dbPath, "data", model.GetSchema().Name())
+		dataset := m.GetSchema().name()
+		fullPath := filepath.Join(dbPath, "data", dataset)
+
+		if _, err := os.Stat(fullPath); err != nil {
+			return fmt.Sprintf("b%d", currentBlock)
+		}
+
 		files, err := ioutil.ReadDir(fullPath)
 		if err != nil {
-			panic(err)
+			logError(err.Error())
+			logTest("AutoBlock: " + err.Error())
+			return ""
 		}
 
+		if len(files) == 0 {
+			return fmt.Sprintf("b%d", currentBlock)
+		}
+
+		currentBlock = -1
 		for _, currentBlockFile = range files {
-			currentBlockFileName = filepath.Join(fullPath, currentBlockFile.Name())
-			if filepath.Ext(currentBlockFileName) == ".json" {
-				currentBlock++
+			currentBlockFileName := filepath.Join(fullPath, currentBlockFile.Name())
+			if filepath.Ext(currentBlockFileName) != ".json" {
+				continue
+			}
+
+			currentBlock++
+			//TODO OPTIMIZE read file
+			b, err := ioutil.ReadFile(currentBlockFileName)
+			if err != nil {
+				logTest("AutoBlock: " + err.Error())
+				logError(err.Error())
+				continue
+			}
+
+			currentBlockrecords = make(map[string]interface{})
+			if err := json.Unmarshal(b, &currentBlockrecords); err != nil {
+				logError(err.Error())
+				continue
+			}
+
+			block := strings.Replace(filepath.Base(currentBlockFileName), filepath.Ext(currentBlockFileName), "", 1)
+			id := fmt.Sprintf("%s/%s/%s", dataset, block, m.GetSchema().recordIDFunc())
+			//model already exists return its block
+			if _, ok := currentBlockrecords[id]; ok {
+				logTest("AutoBlock: found - " + id)
+				return block
 			}
 		}
 
-		//is current block at it's limit?
-		if currentBlockFile != nil {
-			//block size check
-			if currentBlockFile.Size() >= maxBlockSize {
-				currentBlock++
-			} else {
-				//record size check
-				b, err := ioutil.ReadFile(currentBlockFileName)
-				if err != nil {
-					panic("could not determine block record size")
-				}
-
-				var records map[string]interface{}
-				err = json.Unmarshal(b, &records)
-				if err != nil {
-					// todo: update to handle err better but log and return for now
-					logError(err.Error())
-					return ""
-				}
-				if len(records) >= recordsPerBlock {
-					currentBlock++
-				}
-			}
+		//is current block at it's size limit?
+		if currentBlockFile.Size() >= maxBlockSize {
+			currentBlock++
+			return fmt.Sprintf("b%d", currentBlock)
 		}
 
-		if currentBlock == -1 {
-			currentBlock = 0
+		//record size check
+		if len(currentBlockrecords) >= maxRecordsPerBlock {
+			currentBlock++
 		}
 
 		return fmt.Sprintf("b%d", currentBlock)
 	}
 }
 
-//IDParser provides parsing function for GitDB record ids
-type IDParser struct {
-	dataset string
-	block   string
-	record  string
-	err     error
-}
-
-func (i *IDParser) parse(id string) *IDParser {
-	recordMeta := strings.Split(id, "/")
-	if len(recordMeta) != 3 {
-		i.err = errors.New("Invalid record id: " + id)
-	} else {
-		i.dataset = recordMeta[0]
-		i.block = recordMeta[1]
-		i.record = recordMeta[2]
-	}
-
-	return i
-}
-
-//Dataset returns dataset which parsed id belongs to
-func (i *IDParser) Dataset() string {
-	return i.dataset
-}
-
-//Record returns record of the parsed id
-func (i *IDParser) Record() string {
-	return i.record
-}
-
-//Block returns block which parsed id belongs to
-func (i *IDParser) Block() string {
-	return i.block
-}
-
-//RecordID returns the fully qualified id of a record
-func (i *IDParser) RecordID() string {
-	return i.BlockID() + "/" + i.record
-}
-
-//BlockID returns the fully qualified id of a block
-func (i *IDParser) BlockID() string {
-	return i.dataset + "/" + i.block
-}
-
-//NewIDParser constructs a *IDParser
-func NewIDParser(id string) *IDParser {
-	return new(IDParser).parse(id)
-}
-
 type record struct {
 	id    string
 	data  string
+	index map[string]interface{}
 	key   string
-	cdate time.Time
 }
 
 func newRecord(id, data string) *record {
 	return &record{id: id, data: data}
-}
-
-func (r *record) bytes() []byte {
-	return []byte(r.data)
 }
 
 func (r *record) Hydrate(model Model) error {
@@ -216,43 +211,73 @@ func (r *record) decrypt(key string) *record {
 }
 
 func (r *record) hydrate(model interface{}) error {
-	return json.Unmarshal(r.bytes(), model)
-}
-
-func (r *record) model(key string) *BaseModel {
-
-	if len(key) > 0 {
-		r = r.decrypt(key)
+	var raw struct {
+		Indexes map[string]interface{}
+		Data    map[string]interface{}
+	}
+	if err := json.Unmarshal([]byte(r.data), &raw); err != nil {
+		return err
 	}
 
-	m := &BaseModel{}
-	r.hydrate(m)
-	r.cdate = m.CreatedAt
-	return m
+	b, err := json.Marshal(raw.Data)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(b, model); err != nil {
+		return err
+	}
+
+	r.index = raw.Indexes
+	return nil
+}
+
+func (r *record) indexes(key string) map[string]interface{} {
+	var m map[string]interface{}
+	r.hydrate(&m)
+	return r.index
 }
 
 type gBlock struct {
 	//recs used to provide hydration and sorting
-	recs map[string]*record
-	//rawRecs used for reading from block files
-	rawRecs map[string]string
+	recs    map[string]*record
 	dataset string
 }
 
 func newBlock(dataset string) *gBlock {
 	block := &gBlock{dataset: dataset}
 	block.recs = map[string]*record{}
-	block.rawRecs = map[string]string{}
 	return block
+}
+
+func (b *gBlock) MarshalJSON() ([]byte, error) {
+	raw := map[string]string{}
+	for k, v := range b.recs {
+		raw[k] = v.data
+	}
+
+	return json.Marshal(raw)
+}
+
+func (b *gBlock) UnmarshalJSON(data []byte) error {
+	var raw map[string]string
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	//populate recs
+	for k, v := range raw {
+		b.recs[k] = newRecord(k, v)
+	}
+
+	return nil
 }
 
 func (b *gBlock) add(key string, value string) {
 	b.recs[key] = newRecord(key, value)
-	b.rawRecs[key] = value
 }
 
 func (b *gBlock) get(key string) (*record, error) {
-	b.fill()
 	if _, ok := b.recs[key]; ok {
 		return b.recs[key], nil
 	}
@@ -261,35 +286,21 @@ func (b *gBlock) get(key string) (*record, error) {
 }
 
 func (b *gBlock) delete(key string) error {
-	b.fill()
 	if _, ok := b.recs[key]; ok {
 		delete(b.recs, key)
-		delete(b.rawRecs, key)
 		return nil
 	}
 
 	return errors.New("key does not exist")
 }
 
-func (b *gBlock) reset() {
-	for k := range b.recs {
-		delete(b.recs, k)
-		delete(b.rawRecs, k)
-	}
-}
-
 func (b *gBlock) size() int {
-	b.fill()
 	return len(b.recs)
 }
 
 func (b *gBlock) records(key string) []*record {
-	b.fill()
 	var records []*record
 	for _, v := range b.recs {
-		//hack to set cdate used for sorting
-		v.model(key)
-
 		v.key = key
 		records = append(records, v)
 	}
@@ -299,23 +310,13 @@ func (b *gBlock) records(key string) []*record {
 	return records
 }
 
-func (b *gBlock) data() map[string]string {
-	return b.rawRecs
-}
-
-func (b *gBlock) fill() {
-	for k, v := range b.rawRecs {
-		b.recs[k] = newRecord(k, v)
-	}
-}
-
 type collection []*record
 
 func (c collection) Len() int {
 	return len(c)
 }
 func (c collection) Less(i, j int) bool {
-	return c[i].cdate.Before(c[j].cdate)
+	return c[i].id < c[j].id
 }
 func (c collection) Swap(i, j int) {
 	c[i], c[j] = c[j], c[i]

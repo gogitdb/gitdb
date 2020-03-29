@@ -18,28 +18,15 @@ func (g *gitdb) dbDir() string {
 }
 
 func (g *gitdb) fullPath(m Model) string {
-	return filepath.Join(g.dbDir(), m.GetSchema().Name())
+	return filepath.Join(g.dbDir(), m.GetSchema().name())
 }
 
-func (g *gitdb) blockFilePath(m Model) string {
-	return filepath.Join(g.fullPath(m), m.GetSchema().blockIDFunc()+".json")
-}
-
-func (g *gitdb) blockFilePath2(dataset, block string) string {
+func (g *gitdb) blockFilePath(dataset, block string) string {
 	return filepath.Join(g.dbDir(), dataset, block+".json")
 }
 
 func (g *gitdb) lockDir(m Model) string {
 	return filepath.Join(g.fullPath(m), "Lock")
-}
-
-func (g *gitdb) idDir() string {
-	return filepath.Join(g.absDbPath(), g.internalDirName(), "id")
-}
-
-//db/.db/Id/ModelName
-func (g *gitdb) idFilePath(m Model) string {
-	return filepath.Join(g.idDir(), m.GetSchema().Name())
 }
 
 //index path

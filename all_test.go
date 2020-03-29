@@ -2,6 +2,7 @@ package gitdb_test
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -120,7 +121,7 @@ func getTestMessageWithId(messageId int) *Message {
 }
 
 type Message struct {
-	gitdb.BaseModel
+	gitdb.TimeStampedModel
 	MessageId int
 	From      string
 	To        string
@@ -130,7 +131,8 @@ type Message struct {
 func (m *Message) GetSchema() *gitdb.Schema {
 
 	name := func() string { return "Message" }
-	block := func() string { return "b0" }
+	// block := func() string { return "b0" }
+	block := gitdb.AutoBlock(dbPath, m, 1, 2)
 	record := func() string { return fmt.Sprintf("%d", m.MessageId) }
 
 	//Indexes speed up searching
@@ -144,8 +146,15 @@ func (m *Message) GetSchema() *gitdb.Schema {
 	return gitdb.NewSchema(name, block, record, indexes)
 }
 
+func (m *Message) Validate() error            { return nil }
+func (m *Message) IsLockable() bool           { return false }
+func (m *Message) ShouldEncrypt() bool        { return false }
+func (m *Message) GetLockFileNames() []string { return []string{} }
+
+// func (m *Message) SetBaseModel() {}
+
 type MessageV2 struct {
-	gitdb.BaseModel
+	gitdb.TimeStampedModel
 	MessageId int
 	From      string
 	To        string
@@ -168,6 +177,13 @@ func (m *MessageV2) GetSchema() *gitdb.Schema {
 
 	return gitdb.NewSchema(name, block, record, indexes)
 }
+
+func (m *MessageV2) Validate() error            { return nil }
+func (m *MessageV2) IsLockable() bool           { return false }
+func (m *MessageV2) ShouldEncrypt() bool        { return false }
+func (m *MessageV2) GetLockFileNames() []string { return []string{} }
+
+// func (m *MessageV2) SetBaseModel() {}
 
 //count the number of records in fetched block
 func countRecords(dataset string) int {
@@ -209,11 +225,16 @@ func insert(m gitdb.Model, benchmark bool) error {
 
 	if !benchmark {
 		//check that block file exist
-		idParser := gitdb.NewIDParser(m.ID())
-		cfg := getConfig()
-		blockFile := filepath.Join(cfg.DbPath, "data", idParser.BlockID()+".json")
-		if _, err := os.Stat(blockFile); err != nil {
+		recordID := gitdb.ID(m)
+		dataset, block, _, err := gitdb.ParseID(recordID)
+		if err != nil {
 			return err
+		}
+		cfg := getConfig()
+		blockFile := filepath.Join(cfg.DbPath, "data", dataset, block+".json")
+		if _, err := os.Stat(blockFile); err != nil {
+			//return err
+			return errors.New("insert test stat failed - " + blockFile)
 		} else {
 			b, err := ioutil.ReadFile(blockFile)
 			if err != nil {
@@ -223,8 +244,14 @@ func insert(m gitdb.Model, benchmark bool) error {
 			rep := strings.NewReplacer("\n", "", "\\", "", "\t", "", "\"{", "{", "}\"", "}", " ", "")
 			got := rep.Replace(string(b))
 
-			w := map[string]gitdb.Model{
-				idParser.RecordID(): m,
+			w := map[string]interface{}{
+				recordID: struct {
+					Indexes map[string]interface{}
+					Data    gitdb.Model
+				}{
+					gitdb.Indexes(m),
+					m,
+				},
 			}
 
 			x, _ := json.Marshal(w)

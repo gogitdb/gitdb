@@ -8,21 +8,18 @@ import (
 	"os"
 )
 
-func (g *gitdb) Insert(m Model) error {
+func (g *gitdb) Insert(mo Model) error {
 
-	stamp(m)
-
-	if _, err := os.Stat(g.fullPath(m)); err != nil {
-		err := os.MkdirAll(g.fullPath(m), 0755)
-		if err != nil {
-			return fmt.Errorf("failed to make dir %s: %w", g.fullPath(m), err)
-		}
+	m := wrapModel(mo)
+	if err := m.Validate(); err != nil {
+		return fmt.Errorf("Model is not valid: %s", err)
 	}
 
-	if !m.Validate() {
-		return errors.New("Model is not valid")
+	if err := m.GetSchema().Validate(); err != nil {
+		return err
 	}
 
+	m.SetBaseModel()
 	g.writeMu.Lock()
 	defer g.writeMu.Unlock()
 
@@ -38,7 +35,7 @@ func (g *gitdb) InsertMany(models []Model) error {
 		return errors.New("max number of models InsertMany supports is 100")
 	}
 
-	tx := g.NewTransaction("InsertMany")
+	tx := g.StartTransaction("InsertMany")
 	var model Model
 	for _, model = range models {
 		//create a new variable to pass to function to avoid
@@ -57,8 +54,8 @@ func (g *gitdb) queue(m Model) error {
 		g.writeQueue = map[string]Model{}
 	}
 
-	g.writeQueue[m.ID()] = m
-	return g.updateID(m)
+	g.writeQueue[ID(m)] = m
+	return nil
 }
 
 func (g *gitdb) flushQueue() error {
@@ -80,10 +77,16 @@ func (g *gitdb) flushQueue() error {
 
 func (g *gitdb) write(m Model) error {
 
-	blockFilePath := g.blockFilePath(m)
-	schema := m.GetSchema()
+	if _, err := os.Stat(g.fullPath(m)); err != nil {
+		err := os.MkdirAll(g.fullPath(m), 0755)
+		if err != nil {
+			return fmt.Errorf("failed to make dir %s: %w", g.fullPath(m), err)
+		}
+	}
 
-	dataBlock, err := g.loadBlock(blockFilePath, schema.Name())
+	schema := m.GetSchema()
+	blockFilePath := g.blockFilePath(schema.name(), schema.blockIDFunc())
+	dataBlock, err := g.loadBlock(blockFilePath, schema.name())
 	if err != nil {
 		return err
 	}
@@ -94,12 +97,12 @@ func (g *gitdb) write(m Model) error {
 		return err
 	}
 
-	mID := m.ID()
+	mID := ID(m)
 
 	//construct a commit message
-	commitMsg := "Inserting " + mID + " into " + schema.BlockID()
+	commitMsg := "Inserting " + mID + " into " + schema.blockID()
 	if _, err := dataBlock.get(mID); err == nil {
-		commitMsg = "Updating " + mID + " in " + schema.BlockID()
+		commitMsg = "Updating " + mID + " in " + schema.blockID()
 	}
 
 	newRecordStr := string(newRecordBytes)
@@ -108,7 +111,7 @@ func (g *gitdb) write(m Model) error {
 		newRecordStr = encrypt(g.config.EncryptionKey, newRecordStr)
 	}
 
-	dataBlock.add(m.GetSchema().RecordID(), newRecordStr)
+	dataBlock.add(m.GetSchema().recordID(), newRecordStr)
 
 	g.events <- newWriteBeforeEvent("...", mID)
 	if err := g.writeBlock(blockFilePath, dataBlock); err != nil {
@@ -120,13 +123,12 @@ func (g *gitdb) write(m Model) error {
 	g.commit.Add(1)
 	g.events <- newWriteEvent(commitMsg, blockFilePath, g.autoCommit)
 	logTest("sent write event to loop")
-	g.updateIndexes(schema.Name(), newRecord(mID, newRecordStr))
+	g.updateIndexes(schema.name(), newRecord(mID, newRecordStr))
 
 	//block here until write has been committed
 	g.waitForCommit()
 
-	//what is the effect of this on InsertMany?
-	return g.updateID(m)
+	return nil
 }
 
 func (g *gitdb) waitForCommit() {
@@ -138,7 +140,7 @@ func (g *gitdb) waitForCommit() {
 
 func (g *gitdb) writeBlock(blockFile string, block *gBlock) error {
 
-	blockBytes, fmtErr := json.MarshalIndent(block.data(), "", "\t")
+	blockBytes, fmtErr := json.MarshalIndent(block, "", "\t")
 	if fmtErr != nil {
 		return fmtErr
 	}
@@ -161,7 +163,7 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 		return err
 	}
 
-	blockFilePath := g.blockFilePath2(dataset, block)
+	blockFilePath := g.blockFilePath(dataset, block)
 	err = g.delByID(id, dataset, blockFilePath, failNotFound)
 
 	if err == nil {

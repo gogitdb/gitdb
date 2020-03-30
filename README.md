@@ -4,9 +4,9 @@ GitDB
 [![Go Report Card](https://goreportcard.com/badge/github.com/fobilow/gitdb?style=flat-square)](https://goreportcard.com/report/github.com/fobilow/gitdb)
 [![Coverage](https://codecov.io/gh/fobilow/gitdb/branch/develop/graph/badge.svg)](https://codecov.io/gh/fobilow/gitdb)
 [![Build Status Travis](https://img.shields.io/travis/fobilow/gitdb.svg?style=flat-square&&branch=master)](https://travis-ci.com/fobilow/gitdb)
-<!-- [![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/fobilow/gitdb) -->
-<!-- [![Releases](https://img.shields.io/github/release/fobilow/gitdb/all.svg?style=flat-square)](https://github.com/fobilow/gitdb/releases) -->
-<!-- [![LICENSE](https://img.shields.io/github/license/fobilow/gitdb.svg?style=flat-square)](https://github.com/fobilow/gitdb/blob/master/LICENSE) -->
+[![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/fobilow/gitdb)
+[![Releases](https://img.shields.io/github/release/fobilow/gitdb/all.svg?style=flat-square)](https://github.com/fobilow/gitdb/releases)
+[![LICENSE](https://img.shields.io/github/license/fobilow/gitdb.svg?style=flat-square)](https://github.com/fobilow/gitdb/blob/master/LICENSE)
 
 ## What is GitDB?
 
@@ -117,7 +117,8 @@ BaseModel is a sub type provided by gitdb to standardize and simplify the creati
 
 ```go
 type BankAccount struct {
-  gitdb.BaseModel //using BaseModel by composition to simplify code
+  //TimeStampedModel allows you to easily add CreatedAt and UpdatedAt fields to all your models
+  gitdb.TimeStampedModel 
   AccountType         string
   AccountNo           string
   Currency            string
@@ -142,6 +143,13 @@ func (b *BankAccount) GetSchema() *gitdb.Schema {
 
   return gitdb.NewSchema(name, block, record, indexes)
 }
+
+func (b *BankAccount) Validate() error            { return nil }
+func (b *BankAccount) IsLockable() bool           { return false }
+func (b *BankAccount) ShouldEncrypt() bool        { return false }
+func (b *BankAccount) GetLockFileNames() []string { return []string{} }
+
+...
   
 ```
 
@@ -171,14 +179,17 @@ func main(){
 
   err = db.Insert(account)
   if err != nil {
-    fmt.Println(err)
+    log.Println(err)
   }
+
+  //get account id
+  log.Println(gitdb.Id(account))
 
   //update account name
   account.Name = "Bar Foo"
   err = db.Insert(account)
   if err != nil {
-    log.Print(err)
+    log.Println(err)
   }
 }
 ```
@@ -200,10 +211,10 @@ func main(){
   defer db.Close()
 
   //model to passed to Get to store result 
-  account := &BankAccount()
-  err = db.Get("Accounts/202003/0123456789", account)
+  var account BankAccount()
+  err = db.Get("Accounts/202003/0123456789", &account)
   if err != nil {
-    log.Print(err)
+    log.Println(err)
   }
 }
 ```
@@ -212,6 +223,7 @@ func main(){
 package main
 
 import (
+  "fmt"
   "log"
   "github.com/fobilow/gitdb"
 )
@@ -235,7 +247,7 @@ func main(){
     b := &BankAccount{}
     r.Hydrate(b)
     accounts = append(accounts, b)
-    log.Print(fmt.Sprintf("%s-%s", b.ID, b.CreatedAt))
+    log.Print(fmt.Sprintf("%s-%s", gitdb.ID(b), b.AccountNo))
   }
 }
 
@@ -269,6 +281,7 @@ func main(){
 package main
 
 import (
+  "fmt"
   "log"
   "github.com/fobilow/gitdb"
 )
@@ -281,10 +294,11 @@ func main(){
   }
   defer db.Close()
 
+  //Find all records that have savings account type
   searchParam := &db.SearchParam{Index: "AccountType", Value: "Savings"}
-  records, err := dbconn.Search("Accounts", []*db.SearchParam{searchParam}, db.SEARCH_MODE_EQUALS)
+  records, err := dbconn.Search("Accounts", []*db.SearchParam{searchParam}, gitdb.SearchEquals)
   if err != nil {
-    fmt.Println(err.Error())
+    log.Println(err.Error())
     return
   } 
 
@@ -319,11 +333,11 @@ func main() {
   func accountUpgradeFuncTwo() error { println("accountUpgradeFuncTwo..."); return errors.New("accountUpgradeFuncTwo failed") }
   func accountUpgradeFuncThree() error { println("accountUpgradeFuncThree"); return nil }
 
-  t := db.NewTransaction("AccountUpgrade")
-  t.AddOperation(accountUpgradeFuncOne)
-  t.AddOperation(accountUpgradeFuncTwo)
-  t.AddOperation(accountUpgradeFuncThree)
-  terr := t.Commit()
+  tx := db.StartTransaction("AccountUpgrade")
+  tx.AddOperation(accountUpgradeFuncOne)
+  tx.AddOperation(accountUpgradeFuncTwo)
+  tx.AddOperation(accountUpgradeFuncThree)
+  terr := tx.Commit()
   if terr != nil {
     log.Print(terr)
   }
@@ -361,14 +375,14 @@ func main(){
   //Insert will encrypt the account
   err = db.Insert(account)
   if err != nil {
-    fmt.Println(err)
+    log.Println(err)
   }
 
   //Get will automatically decrypt account
-  account := &BankAccount()
-  err = db.Get("Accounts/202003/0123456789", account)
+  var account BankAccount()
+  err = db.Get("Accounts/202003/0123456789", &account)
   if err != nil {
-    log.Print(err)
+    log.Println(err)
   }
 }
 ```
@@ -405,9 +419,9 @@ them via pull request.
 
 <!-- ## Other Projects Using GitDB
 
-Below is a list of public, open source projects that use Bolt:
+Below is a list of public, open source projects that use GitDB:
 
 * VogueHotel - Uses Gitdb as the default database backend.
 
 
-If you are using Gitdb in a project please send a pull request to add it to the list. -->
+If you are using GitDB in a project please send a pull request to add it to the list. -->

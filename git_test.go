@@ -5,7 +5,7 @@ import (
 )
 
 func TestGetLastCommitTime(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 
 	_, err := testDb.GetLastCommitTime()

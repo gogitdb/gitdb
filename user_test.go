@@ -21,7 +21,7 @@ func TestNewUser(t *testing.T) {
 }
 
 func TestSetUser(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 
 	user := gitdb.NewUser("test", "tester@gitdb.io")

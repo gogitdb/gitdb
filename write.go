@@ -11,6 +11,7 @@ import (
 func (g *gitdb) Insert(mo Model) error {
 
 	m := wrapModel(mo)
+	m.SetBaseModel()
 	if err := m.Validate(); err != nil {
 		return fmt.Errorf("Model is not valid: %s", err)
 	}
@@ -18,10 +19,6 @@ func (g *gitdb) Insert(mo Model) error {
 	if err := m.GetSchema().Validate(); err != nil {
 		return err
 	}
-
-	m.SetBaseModel()
-	g.writeMu.Lock()
-	defer g.writeMu.Unlock()
 
 	if err := g.flushQueue(); err != nil {
 		log(err.Error())
@@ -91,6 +88,8 @@ func (g *gitdb) write(m Model) error {
 		return err
 	}
 
+	logTest(fmt.Sprintf("Size of block before write - %d", dataBlock.size()))
+
 	//...append new record to block
 	newRecordBytes, err := json.Marshal(m)
 	if err != nil {
@@ -139,6 +138,8 @@ func (g *gitdb) waitForCommit() {
 }
 
 func (g *gitdb) writeBlock(blockFile string, block *gBlock) error {
+	g.writeMu.Lock()
+	defer g.writeMu.Unlock()
 
 	blockBytes, fmtErr := json.MarshalIndent(block, "", "\t")
 	if fmtErr != nil {

@@ -7,7 +7,7 @@ import (
 )
 
 func TestInsert(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 	m := getTestMessage()
 	err := insert(m, false)
@@ -17,7 +17,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestInsertMany(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 	defer testDb.Close()
 	msgs := []gitdb.Model{}
@@ -33,7 +33,7 @@ func TestInsertMany(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
-	teardown := setup(b)
+	teardown := setup(b, nil)
 	defer teardown(b)
 	b.ReportAllocs()
 
@@ -48,7 +48,7 @@ func BenchmarkInsert(b *testing.B) {
 }
 
 func TestDelete(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 
 	m := getTestMessageWithId(0)
@@ -62,7 +62,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDeleteOrFail(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 	err := testDb.DeleteOrFail("non_existent_id")
 	if err == nil {
@@ -71,7 +71,7 @@ func TestDeleteOrFail(t *testing.T) {
 }
 
 func TestLock(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 	m := getTestMessage()
 	err := testDb.Lock(m)
@@ -82,7 +82,7 @@ func TestLock(t *testing.T) {
 }
 
 func TestUnlock(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 	m := getTestMessage()
 	err := testDb.Unlock(m)

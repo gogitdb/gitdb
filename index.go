@@ -25,6 +25,23 @@ func (g *gitdb) updateIndexes(dataset string, records ...*record) {
 	}
 }
 
+//for read-only backward compatibility with earlier versions of GitDB
+func (g *gitdb) updateIndexesV1(dataset string, records ...*record) {
+	g.indexUpdated = true
+	indexPath := g.indexPath(dataset)
+	model := g.config.Factory(dataset)
+	for _, record := range records {
+		record.gHydrate(model, g.config.EncryptionKey)
+		for name, value := range model.GetSchema().indexes() {
+			indexFile := filepath.Join(indexPath, name+".json")
+			if _, ok := g.indexCache[indexFile]; !ok {
+				g.indexCache[indexFile] = g.readIndex(indexFile)
+			}
+			g.indexCache[indexFile][record.id] = value
+		}
+	}
+}
+
 func (g *gitdb) flushIndex() error {
 	if g.indexUpdated {
 		logTest("flushing index")
@@ -73,15 +90,22 @@ func (g *gitdb) readIndex(indexFile string) gdbIndex {
 }
 
 func (g *gitdb) buildIndex() {
-	dataSets := getDatasets(g.dbDir())
-	for _, dataSet := range dataSets {
-		log("Building index for Dataset: " + dataSet)
-		records, err := g.Fetch(dataSet)
+	datasets := getDatasets(g.dbDir())
+	for _, dataset := range datasets {
+		log("Building index for Dataset: " + dataset)
+		records, err := g.Fetch(dataset)
 		if err != nil {
 			continue
 		}
 
-		g.updateIndexes(dataSet, records...)
+		if len(records) > 0 {
+			if records[0].version() == "v1" {
+				g.updateIndexesV1(dataset, records...)
+				continue
+			}
+
+			g.updateIndexes(dataset, records...)
+		}
 	}
 	log("Building index complete")
 }

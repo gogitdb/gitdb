@@ -7,20 +7,32 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(t)
 
 	m := getTestMessage()
-	var err error
-
-	err = insert(m, false)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
 
 	recId := gitdb.ID(m)
 	result := &Message{}
-	err = testDb.Get(recId, result)
+	err := testDb.Get(recId, result)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if err == nil && gitdb.ID(result) != recId {
+		t.Errorf("Want: %v, Got: %v", recId, gitdb.ID(result))
+	}
+}
+
+func TestGetV1(t *testing.T) {
+	teardown := setup(t, getReadTestConfig("v1"))
+	defer teardown(t)
+
+	m := getTestMessage()
+
+	recId := gitdb.ID(m)
+	result := &Message{}
+	err := testDb.Get(recId, result)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -31,30 +43,21 @@ func TestGet(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(t)
 
 	m := getTestMessage()
-	var err error
-
-	err = insert(m, false)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
 
 	recId := gitdb.ID(m)
-	err = testDb.Exists(recId)
+	err := testDb.Exists(recId)
 	if err != nil {
 		t.Error(err.Error())
 	}
 }
 
 func TestFetch(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(t)
-
-	count := 5
-	generateInserts(t, count)
 
 	dataset := "Message"
 	messages, err := testDb.Fetch(dataset)
@@ -62,23 +65,18 @@ func TestFetch(t *testing.T) {
 		t.Error(err.Error())
 	}
 
+	want := 10
 	got := len(messages)
-	want := got
-	if got > 0 {
-		want = countRecords(dataset)
-		if got != want {
-			t.Errorf("Want: %d, Got: %d", want, got)
-		}
+	if got != want {
+		t.Errorf("Want: %d, Got: %d", want, got)
 	}
 }
 
 func TestSearch(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(t)
 
-	count := 5
-	generateInserts(t, count)
-
+	count := 10
 	sp := &gitdb.SearchParam{
 		Index: "From",
 		Value: "alice@example.com",
@@ -96,7 +94,7 @@ func TestSearch(t *testing.T) {
 }
 
 func BenchmarkFetch(b *testing.B) {
-	teardown := setup(b)
+	teardown := setup(b, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(b)
 
 	b.ReportAllocs()

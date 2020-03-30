@@ -3,7 +3,7 @@ package gitdb_test
 import "testing"
 
 func TestMigrate(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 
 	m := getTestMessageWithId(0)

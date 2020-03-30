@@ -91,21 +91,27 @@ func ParseID(id string) (dataDir string, block string, record string, err error)
 	return dataDir, block, record, err
 }
 
-//AutoBlock automatically generates block id for a given Model
-//maxBlockSize is the maximum allowed size of a block file in bytes
-func AutoBlock(dbPath string, m Model, maxBlockSize int64, maxRecordsPerBlock int) func() string {
+//BlockMethod type of method to use with AutoBlock
+type BlockMethod string
+
+var (
+	//BlockBySize generates a new block when current block has reached a specified size
+	BlockBySize BlockMethod = "size"
+	//BlockByCount generates a new block when the number of records has reached a specified count
+	BlockByCount BlockMethod = "count"
+)
+
+//AutoBlock automatically generates block id for a given Model depending on a BlockMethod
+func AutoBlock(dbPath string, m Model, method BlockMethod, n int64) func() string {
 
 	return func() string {
 		var currentBlock int
 		var currentBlockFile os.FileInfo
 		var currentBlockrecords map[string]interface{}
 
-		if maxBlockSize <= 0 {
-			maxBlockSize = 4000
-		}
-
-		if maxRecordsPerBlock <= 0 {
-			maxRecordsPerBlock = 1000
+		//being sensible
+		if n <= 0 {
+			n = 1000
 		}
 
 		dataset := m.GetSchema().name()
@@ -123,6 +129,7 @@ func AutoBlock(dbPath string, m Model, maxBlockSize int64, maxRecordsPerBlock in
 		}
 
 		if len(files) == 0 {
+			logTest("AutoBlock: no blocks found at " + fullPath)
 			return fmt.Sprintf("b%d", currentBlock)
 		}
 
@@ -150,6 +157,8 @@ func AutoBlock(dbPath string, m Model, maxBlockSize int64, maxRecordsPerBlock in
 
 			block := strings.Replace(filepath.Base(currentBlockFileName), filepath.Ext(currentBlockFileName), "", 1)
 			id := fmt.Sprintf("%s/%s/%s", dataset, block, m.GetSchema().recordIDFunc())
+
+			logTest("AutoBlock: searching for  - " + id)
 			//model already exists return its block
 			if _, ok := currentBlockrecords[id]; ok {
 				logTest("AutoBlock: found - " + id)
@@ -158,13 +167,14 @@ func AutoBlock(dbPath string, m Model, maxBlockSize int64, maxRecordsPerBlock in
 		}
 
 		//is current block at it's size limit?
-		if currentBlockFile.Size() >= maxBlockSize {
+		if method == BlockBySize && currentBlockFile.Size() >= n {
 			currentBlock++
 			return fmt.Sprintf("b%d", currentBlock)
 		}
 
 		//record size check
-		if len(currentBlockrecords) >= maxRecordsPerBlock {
+		logTest(fmt.Sprintf("AutoBlock: current block count - %d", len(currentBlockrecords)))
+		if method == BlockByCount && len(currentBlockrecords) >= int(n) {
 			currentBlock++
 		}
 
@@ -210,25 +220,56 @@ func (r *record) decrypt(key string) *record {
 	return &r2
 }
 
+func (r *record) version() string {
+	//TODO can we optimize this?
+	var v map[string]interface{}
+	if err := json.Unmarshal([]byte(r.data), &v); err != nil {
+		return "v1"
+	}
+
+	ver, ok := v["Version"]
+	if !ok {
+		return "v1"
+	}
+
+	return ver.(string)
+}
+
 func (r *record) hydrate(model interface{}) error {
-	var raw struct {
-		Indexes map[string]interface{}
-		Data    map[string]interface{}
-	}
-	if err := json.Unmarshal([]byte(r.data), &raw); err != nil {
-		return err
+	return r.hydrateByVersion(model, r.version())
+}
+
+func (r *record) hydrateByVersion(model interface{}, version string) error {
+	switch version {
+	case "v1":
+		if err := json.Unmarshal([]byte(r.data), model); err != nil {
+			return err
+		}
+		return nil
+	case "v2": //TODO Optimize Unmarshall-Marshall technique
+		var rawV2 struct {
+			Indexes map[string]interface{}
+			Data    map[string]interface{}
+		}
+
+		if err := json.Unmarshal([]byte(r.data), &rawV2); err != nil {
+			return err
+		}
+
+		b, err := json.Marshal(rawV2.Data)
+		if err != nil {
+			return err
+		}
+
+		if err := json.Unmarshal(b, model); err != nil {
+			return err
+		}
+
+		r.index = rawV2.Indexes
+	default:
+		return fmt.Errorf("Unable to hydrate version : %s", version)
 	}
 
-	b, err := json.Marshal(raw.Data)
-	if err != nil {
-		return err
-	}
-
-	if err := json.Unmarshal(b, model); err != nil {
-		return err
-	}
-
-	r.index = raw.Indexes
 	return nil
 }
 

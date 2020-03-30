@@ -5,6 +5,7 @@ example/example
 .idea
 vendor
 *.test
+.gitdb
 cover.out
 prof.cpu
 prof.mem

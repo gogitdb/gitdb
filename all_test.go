@@ -42,13 +42,23 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func setup(t testing.TB) func(t testing.TB) {
+func setup(t testing.TB, cfg *gitdb.Config) func(t testing.TB) {
 
-	if flagFakeRemote {
+	if cfg == nil {
+		cfg = getConfig()
+	}
+
+	if flagFakeRemote && len(cfg.OnlineRemote) > 0 {
 		fakeOnlineRepo(t)
 	}
 
-	testDb = getDbConn(t)
+	if strings.HasPrefix(cfg.DbPath, "./testdata") {
+		if err := os.MkdirAll(filepath.Join(cfg.DbPath, "data", ".git"), 0755); err != nil {
+			t.Errorf("fake .git failed: %s", err.Error())
+		}
+	}
+
+	testDb = getDbConn(t, cfg)
 	messageId = 0
 
 	return teardown
@@ -58,32 +68,27 @@ func teardown(t testing.TB) {
 	testDb.Close()
 
 	fmt.Println("truncating test data")
-	cmd := exec.Command("rm", "-Rf", testData)
-	_, err := cmd.CombinedOutput()
-	if err != nil {
+	if err := os.RemoveAll(testData); err != nil {
 		t.Errorf("cleanup failed - %s", err.Error())
 	}
 }
 
 func fakeOnlineRepo(t testing.TB) {
 	fmt.Println("creating fake online repo")
-	cmd := exec.Command("mkdir", "-p", fakeRemote)
-	_, err := cmd.CombinedOutput()
-	if err != nil {
+	if err := os.MkdirAll(fakeRemote, 0755); err != nil {
 		t.Errorf("fake repo failed: %s", err.Error())
 		return
 	}
 
-	cmd = exec.Command("git", "-C", fakeRemote, "init", "--bare")
-	_, err = cmd.CombinedOutput()
-	if err != nil {
+	cmd := exec.Command("git", "-C", fakeRemote, "init", "--bare")
+	if _, err := cmd.CombinedOutput(); err != nil {
 		t.Errorf("fake repo failed: %s", err.Error())
 		return
 	}
 }
 
-func getDbConn(t testing.TB) gitdb.GitDb {
-	conn, err := gitdb.Open(getConfig())
+func getDbConn(t testing.TB, cfg *gitdb.Config) gitdb.GitDb {
+	conn, err := gitdb.Open(cfg)
 	if err != nil {
 		t.Errorf("getDbConn failed: %s", err)
 	}
@@ -100,6 +105,23 @@ func getConfig() *gitdb.Config {
 	}
 
 	return config
+}
+
+func getReadTestConfig(version string) *gitdb.Config {
+	cfg := gitdb.NewConfig("./testdata/" + version + "/data")
+	if version == "v1" {
+		//add a factory method
+		cfg.Factory = func(dataset string) gitdb.Model {
+			switch dataset {
+			case "Message":
+				return &Message{}
+			case "MessageV2":
+				return &MessageV2{}
+			}
+			return &Message{}
+		}
+	}
+	return cfg
 }
 
 func getTestMessage() *Message {
@@ -131,8 +153,8 @@ type Message struct {
 func (m *Message) GetSchema() *gitdb.Schema {
 
 	name := func() string { return "Message" }
-	// block := func() string { return "b0" }
-	block := gitdb.AutoBlock(dbPath, m, 1, 2)
+	block := func() string { return "b0" }
+	// block := gitdb.AutoBlock(dbPath, m, gitdb.BlockByCount, 2)
 	record := func() string { return fmt.Sprintf("%d", m.MessageId) }
 
 	//Indexes speed up searching
@@ -246,9 +268,11 @@ func insert(m gitdb.Model, benchmark bool) error {
 
 			w := map[string]interface{}{
 				recordID: struct {
+					Version string
 					Indexes map[string]interface{}
 					Data    gitdb.Model
 				}{
+					gitdb.RecVersion,
 					gitdb.Indexes(m),
 					m,
 				},

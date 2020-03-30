@@ -35,12 +35,14 @@ func (m *TimeStampedModel) SetBaseModel() {
 }
 
 type gRecord struct {
+	Version string
 	Indexes map[string]interface{}
 	Data    Model
 }
 
 func wrapModel(m Model) *gRecord {
 	return &gRecord{
+		Version: RecVersion,
 		Indexes: m.GetSchema().indexes(),
 		Data:    m,
 	}

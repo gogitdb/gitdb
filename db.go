@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+//RecVersion of gitdb
+const RecVersion = "v2"
+
 //SearchMode defines how gitdb should search with SearchParam
 type SearchMode int
 
@@ -23,7 +26,7 @@ const (
 
 type searchQuery struct {
 	dataset      string
-	searchParams []*SearchParam //map of index => value
+	searchParams []*SearchParam
 	mode         SearchMode
 }
 

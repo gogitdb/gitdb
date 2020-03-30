@@ -5,7 +5,7 @@ import (
 )
 
 func TestMailGetMails(t *testing.T) {
-	teardown := setup(t)
+	teardown := setup(t, nil)
 	defer teardown(t)
 
 	mails := testDb.GetMails()

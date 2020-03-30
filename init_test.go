@@ -7,7 +7,7 @@ import (
 )
 
 func TestConn(t *testing.T) {
-	setup(t)
+	setup(t, nil)
 	defer testDb.Close()
 	got := gitdb.Conn()
 	if got != testDb {
@@ -16,7 +16,7 @@ func TestConn(t *testing.T) {
 }
 
 func TestGetConn(t *testing.T) {
-	setup(t)
+	setup(t, nil)
 	defer testDb.Close()
 	got := gitdb.GetConn("default")
 	if got != testDb {

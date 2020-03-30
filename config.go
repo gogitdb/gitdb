@@ -14,6 +14,7 @@ type Config struct {
 	SyncInterval   time.Duration
 	GitDriver      dbDriver
 	User           *DbUser
+	Factory        func(string) Model
 }
 
 var defaultConnectionName = "default"

@@ -111,13 +111,13 @@ func main() {
 
 ### Models
 
-A model represents a record in GitDB. GitDB only works with models that implement the gidb.Model interface
+A Model is a struct that represents a record in GitDB. GitDB only works with models that implement the gidb.Model interface
 
-BaseModel is a sub type provided by gitdb to standardize and simplify the creation of Models in your application. It provides 4 standard fields to every Model in your application and error reporting feature of gitdb. It provides a partial implementation of the Model Interface which can be completed by composition with an application Model.
+gitdb.TimeStampedModel is a simple struct that allows you to easily CreatedAt and UpdatedAt to all the Models in your application and will automatically time stamp them before persisting to GitDB. You can write your own base Models to embed common fields across your application Models
 
 ```go
 type BankAccount struct {
-  //TimeStampedModel allows you to easily add CreatedAt and UpdatedAt fields to all your models
+  //TimeStampedModel will add CreatedAt and UpdatedAt fields this Model
   gitdb.TimeStampedModel 
   AccountType         string
   AccountNo           string

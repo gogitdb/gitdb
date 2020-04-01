@@ -28,10 +28,7 @@ func TestAutoBlock(t *testing.T) {
 }
 
 func TestHydrate(t *testing.T) {
-	cfg := getConfig()
-	cfg.DbPath = "./testdata/v2/data"
-
-	teardown := setup(t, cfg)
+	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(t)
 
 	result := &Message{}

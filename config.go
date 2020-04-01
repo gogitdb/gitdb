@@ -15,12 +15,14 @@ type Config struct {
 	GitDriver      dbDriver
 	User           *DbUser
 	Factory        func(string) Model
+	UIPort         int
 }
 
 var defaultConnectionName = "default"
 var defaultSyncInterval = time.Second * 5
 var defaultUser = NewUser("ghost", "ghost@gitdb.local")
 var defaultDbDriver = &gitBinary{}
+var defaultUIPort = 4120
 
 //NewConfig constructs a *Config
 func NewConfig(dbPath string) *Config {
@@ -30,6 +32,7 @@ func NewConfig(dbPath string) *Config {
 		User:           defaultUser,
 		ConnectionName: defaultConnectionName,
 		GitDriver:      defaultDbDriver,
+		UIPort:         defaultUIPort,
 	}
 }
 

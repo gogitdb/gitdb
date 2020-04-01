@@ -54,6 +54,7 @@ type GitDb interface {
 	StartTransaction(name string) *transaction
 	GetLastCommitTime() (time.Time, error)
 	SetUser(user *DbUser) error
+	Config() Config
 }
 
 type gitdb struct {
@@ -92,6 +93,10 @@ func newConnection() *gitdb {
 	db.shutdown = make(chan bool, 2)
 
 	return db
+}
+
+func (g *gitdb) Config() Config {
+	return *g.config
 }
 
 func (g *gitdb) Close() error {

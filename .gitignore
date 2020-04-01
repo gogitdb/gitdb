@@ -1,5 +1,6 @@
 example/data
 example/example
+example/ui_gitdb.go
 .DS_Store
 .vscode
 .idea

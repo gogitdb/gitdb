@@ -9,3 +9,21 @@ var (
 	errConnectionClosed  error = errors.New("Connection is closed")
 	errConnectionInvalid error = errors.New("Connection is not valid. use gitdb.Start to construct a valid connection")
 )
+
+type badBlockError struct {
+	s         string
+	blockFile string
+}
+
+func (e *badBlockError) Error() string {
+	return e.s
+}
+
+type badRecordError struct {
+	s        string
+	recordID string
+}
+
+func (e *badRecordError) Error() string {
+	return e.s
+}

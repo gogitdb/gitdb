@@ -97,5 +97,5 @@ func (b *BookingModel) IsLockable() bool {
 
 //ShouldEncrypt example
 func (b *BookingModel) ShouldEncrypt() bool {
-	return true
+	return false
 }

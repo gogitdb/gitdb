@@ -1,3 +1,4 @@
+//go:generate gitdb embed-ui -o ./ui_gitdb.go
 package main
 
 import (
@@ -41,9 +42,17 @@ func init() {
 }
 
 func main() {
+	db.SetLogLevel(db.LogLevelInfo)
 	defer dbconn.Close()
-	write()
-	fetch()
+	//	write()
+	//	fetch()
+	testUI()
+}
+
+func testUI() {
+	//simulate a block so UI can run
+	c := make(chan int)
+	c <- 1
 }
 
 func testTransaction() {

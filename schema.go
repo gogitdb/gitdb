@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -17,7 +16,7 @@ type StringFunc func() string
 //IndexFunc is a function that returns a map of indexes keyed by field name
 type IndexFunc func() map[string]interface{}
 
-//Schema interface for all schema structs
+//Schema holds functions for generating a model id
 type Schema struct {
 	dataset      StringFunc
 	blockIDFunc  StringFunc
@@ -78,17 +77,17 @@ func ID(m Model) string {
 }
 
 //ParseID parses a record id and returns it's metadata
-func ParseID(id string) (dataDir string, block string, record string, err error) {
+func ParseID(id string) (dataset string, block string, record string, err error) {
 	recordMeta := strings.Split(id, "/")
 	if len(recordMeta) != 3 {
 		err = errors.New("Invalid record id: " + id)
 	} else {
-		dataDir = recordMeta[0]
+		dataset = recordMeta[0]
 		block = recordMeta[1]
 		record = recordMeta[2]
 	}
 
-	return dataDir, block, record, err
+	return dataset, block, record, err
 }
 
 //BlockMethod type of method to use with AutoBlock
@@ -182,183 +181,4 @@ func AutoBlock(dbPath string, m Model, method BlockMethod, n int64) func() strin
 	}
 }
 
-type record struct {
-	id    string
-	data  string
-	index map[string]interface{}
-	key   string
-}
 
-func newRecord(id, data string) *record {
-	return &record{id: id, data: data}
-}
-
-func (r *record) Hydrate(model Model) error {
-	//check if decryption is required
-	if model.ShouldEncrypt() {
-		r = r.decrypt(r.key)
-	}
-
-	return r.hydrate(model)
-}
-
-func (r *record) gHydrate(model Model, key string) error {
-	if model.ShouldEncrypt() && len(key) > 0 {
-		r = r.decrypt(key)
-	}
-
-	return r.hydrate(model)
-}
-
-func (r *record) decrypt(key string) *record {
-	r2 := *r
-	logTest("decrypting with: " + key)
-	dec := decrypt(key, r2.data)
-	if len(dec) > 0 {
-		r2.data = dec
-	}
-	return &r2
-}
-
-func (r *record) version() string {
-	//TODO can we optimize this?
-	var v map[string]interface{}
-	if err := json.Unmarshal([]byte(r.data), &v); err != nil {
-		return "v1"
-	}
-
-	ver, ok := v["Version"]
-	if !ok {
-		return "v1"
-	}
-
-	return ver.(string)
-}
-
-func (r *record) hydrate(model interface{}) error {
-	return r.hydrateByVersion(model, r.version())
-}
-
-func (r *record) hydrateByVersion(model interface{}, version string) error {
-	switch version {
-	case "v1":
-		if err := json.Unmarshal([]byte(r.data), model); err != nil {
-			return err
-		}
-		return nil
-	case "v2": //TODO Optimize Unmarshall-Marshall technique
-		var rawV2 struct {
-			Indexes map[string]interface{}
-			Data    map[string]interface{}
-		}
-
-		if err := json.Unmarshal([]byte(r.data), &rawV2); err != nil {
-			return err
-		}
-
-		b, err := json.Marshal(rawV2.Data)
-		if err != nil {
-			return err
-		}
-
-		if err := json.Unmarshal(b, model); err != nil {
-			return err
-		}
-
-		r.index = rawV2.Indexes
-	default:
-		return fmt.Errorf("Unable to hydrate version : %s", version)
-	}
-
-	return nil
-}
-
-func (r *record) indexes(key string) map[string]interface{} {
-	var m map[string]interface{}
-	r.hydrate(&m)
-	return r.index
-}
-
-type gBlock struct {
-	//recs used to provide hydration and sorting
-	recs    map[string]*record
-	dataset string
-}
-
-func newBlock(dataset string) *gBlock {
-	block := &gBlock{dataset: dataset}
-	block.recs = map[string]*record{}
-	return block
-}
-
-func (b *gBlock) MarshalJSON() ([]byte, error) {
-	raw := map[string]string{}
-	for k, v := range b.recs {
-		raw[k] = v.data
-	}
-
-	return json.Marshal(raw)
-}
-
-func (b *gBlock) UnmarshalJSON(data []byte) error {
-	var raw map[string]string
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-
-	//populate recs
-	for k, v := range raw {
-		b.recs[k] = newRecord(k, v)
-	}
-
-	return nil
-}
-
-func (b *gBlock) add(key string, value string) {
-	b.recs[key] = newRecord(key, value)
-}
-
-func (b *gBlock) get(key string) (*record, error) {
-	if _, ok := b.recs[key]; ok {
-		return b.recs[key], nil
-	}
-
-	return nil, errors.New("key does not exist")
-}
-
-func (b *gBlock) delete(key string) error {
-	if _, ok := b.recs[key]; ok {
-		delete(b.recs, key)
-		return nil
-	}
-
-	return errors.New("key does not exist")
-}
-
-func (b *gBlock) size() int {
-	return len(b.recs)
-}
-
-func (b *gBlock) records(key string) []*record {
-	var records []*record
-	for _, v := range b.recs {
-		v.key = key
-		records = append(records, v)
-	}
-
-	sort.Sort(collection(records))
-
-	return records
-}
-
-type collection []*record
-
-func (c collection) Len() int {
-	return len(c)
-}
-func (c collection) Less(i, j int) bool {
-	return c[i].id < c[j].id
-}
-func (c collection) Swap(i, j int) {
-	c[i], c[j] = c[j], c[i]
-}

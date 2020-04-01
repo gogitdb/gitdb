@@ -1,0 +1,44 @@
+<html>
+
+<head></head>
+<link rel="stylesheet" href="/css/app.css">
+<script src="/js/app.js"></script>
+
+<body>
+    {{template "sidebar" $}}
+    <div class="content">
+        <h1>{{.Title}}</h1>
+
+        <table>
+            <tr>
+                <th>Dataset</th>
+                <th>No. of blocks</th>
+                <th>No. of records</th>
+                <th>Size</th>
+                <th>Errors</th>
+                <th>Indexes</th>
+                <th>Last Modified</th>
+            </tr>
+            {{range $key, $value := .DataSets}}
+            <tr class="datasetRow" data-view="/list/{{ $value.Name }}">
+                <td>{{ $value.Name }}</td>
+                <td>{{ $value.BlockCount }}</td>
+                <td>{{ $value.RecordCount }}</td>
+                <td>{{ $value.HumanSize }}</td>
+                <td><a href="/errors/{{ $value.Name }}">{{ $value.BadBlocksCount }} block(s) / {{ $value.BadRecordsCount }} record(s)</a></td>
+                <td>
+                    <ul>
+                        {{range $indexName := $value.Indexes}}
+                        <li>{{ $indexName }}</li>
+                        {{end}}
+                    </ul>
+                </td>
+                <td>{{ $value.LastModifiedDate }}</td>
+            </tr>
+            {{end}}
+        </table>
+    </div>
+
+</body>
+
+</html>

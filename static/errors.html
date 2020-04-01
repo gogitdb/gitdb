@@ -1,0 +1,30 @@
+<html>
+
+<head></head>
+<link rel="stylesheet" href="/css/app.css">
+
+<body>
+    {{template "sidebar" $}}
+    <div class="content">
+        <h1>{{.Title}}</h1>
+
+        {{if .DataSet.BadBlocks}}
+        <h2>Bad Blocks</h2>
+        <ul>
+            {{range $key, $value := .DataSet.BadBlocks}}
+            <li><a href="/edit/{{ $value }}">{{ $value }}</a></li>
+            {{end}}
+        </ul>
+        {{end}} {{if .DataSet.BadRecords}}
+        <h2>Bad Records</h2>
+        <ul>
+            {{range $key, $value := .DataSet.BadRecords}}
+            <li><a href="#">{{ $value }}</a></li>
+            {{end}}
+        </ul>
+        {{end}}
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,37 @@
+<html>
+
+<head></head>
+<link rel="stylesheet" href="/css/app.css">
+<script src="/js/app.js"></script>
+
+<body>
+    {{template "sidebar" $}}
+    <div class="content">
+        <h1>{{.DataSet.Name}}</h1>
+        <div><span>{{.DataSet.BlockCount}} blocks</span> <span>{{.DataSet.HumanSize}}</span></div>
+
+        <div class="listWindow">
+            <table>
+                <tr>
+                    {{range $key, $value := .Table.Headers}}
+                    <th>{{ $value }}</th>
+                    {{end}}
+                </tr>
+                {{range $key, $value := .Table.Rows}}
+                <tr class="recordRow" data-view="/view/{{$.DataSet.Name}}/b0/r{{ $key }}">
+                    {{range $k, $v := $value}} {{if eq $k 0}}
+                    <td>{{ $v }}</td>
+                    {{else}}
+                    <td>{{ $v }}</td>
+                    {{end}} {{end}}
+                    <tr>
+                        {{end}}
+            </table>
+        </div>
+
+    </div>
+
+
+</body>
+
+</html>

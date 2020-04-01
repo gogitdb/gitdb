@@ -1,0 +1,102 @@
+body {
+    padding: 0;
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+div {
+    box-sizing: border-box;
+}
+
+h1 {
+    padding: 0;
+    margin: 0;
+    margin-bottom: 30px;
+}
+
+h1 a {
+    text-decoration: none;
+    color: darkseagreen;
+}
+
+.sidebar {
+    float: left;
+    width: 20%;
+    height: 800px;
+    background-color: #eee;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+}
+
+.content {
+    padding: 30px;
+    padding-top: 10px;
+    float: left;
+    width: 80%;
+    height: 800px;
+}
+
+.nav {
+    list-style: none;
+    margin: 0;
+    padding: 0
+}
+
+.nav li {
+    color: #000;
+}
+
+.nav a {
+    color: #000;
+    text-decoration: none;
+    display: block;
+    padding-top: 10px;
+    padding-bottom: 5px;
+    padding-left: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+.nav a:hover {
+    background-color: #ddd;
+}
+
+table tr:hover td {
+    cursor: pointer;
+    background-color: #ccc;
+}
+
+table th {
+    background-color: darkseagreen;
+    color: #fff;
+    text-align: left;
+}
+
+table {
+    width: 100%;
+    /* border:         1px solid #000; */
+    border-spacing: 0px;
+}
+
+table td,
+table th {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+pre {
+    background-color: #222;
+    color: #fff;
+    padding: 10px;
+    font-size: 14px;
+    width: 800px;
+    overflow: hidden;
+}
+
+textarea {
+    display: block;
+}
+
+.listWindow {
+    width: 100%;
+    overflow-x: scroll;
+}

@@ -1,0 +1,11 @@
+{{define "sidebar"}}
+<div class="sidebar">
+    <h1><a href="/">GitDB</a></h1>
+    <strong>Data Sets</strong>
+    <ul class="nav">
+        {{range $key, $value := .DataSets}}
+        <li><a href="/list/{{ $value.Name }}">{{ $value.Name }}</a></li>
+        {{end}}
+    </ul>
+</div>
+{{end}}

@@ -2,12 +2,12 @@ language: go
 go_import_path: github.com/fobilow/github
 
 sudo: false
-
 go:
     - 1.14
-
+branches:
+    only:
+    - master
 script:
     - make test
-
 after_success:
     - bash <(curl -s https://codecov.io/bash)

@@ -140,14 +140,12 @@ func loadDatasets(dbPath string) []*DataSet {
 	var dataSets []*DataSet
 
 	dirs, err := ioutil.ReadDir(dbPath)
-	log(dbPath)
 	if err != nil {
 		logError(err.Error())
 		return dataSets
 	}
 
 	for _, dir := range dirs {
-		log(dir.Name())
 		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
 			dataset := &DataSet{
 				Name:         dir.Name(),

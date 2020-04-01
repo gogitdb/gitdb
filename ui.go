@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -55,6 +56,8 @@ type gui struct {
 	files  map[string]string
 }
 
+var nextDatasetRefresh time.Time
+
 func (e *gui) Serve(db GitDb) {
 
 	_, filename, _, ok := runtime.Caller(0)
@@ -62,10 +65,7 @@ func (e *gui) Serve(db GitDb) {
 		serverRoot = path.Dir(filename)
 	}
 
-	uh := &uiHandler{
-		datasets: loadDatasets(db.Config().DbPath + "/data"),
-	}
-
+	uh := &uiHandler{}
 	eps := uh.getEndpoints()
 	router := mux.NewRouter()
 	for _, ep := range eps {
@@ -80,6 +80,17 @@ func (e *gui) Serve(db GitDb) {
 	addr := fmt.Sprintf("localhost:%d", port)
 	log(fmt.Sprintf("Server Root : %q", path.Dir(filename)))
 	log("GitDB GUI will run at http://" + addr)
+
+	//refresh dataset after 1 minute
+	router.Use(func(h http.Handler) http.Handler {
+
+		if nextDatasetRefresh.IsZero() || nextDatasetRefresh.Before(time.Now()) {
+			uh.datasets = loadDatasets(db.Config().DbPath + "/data")
+			nextDatasetRefresh = time.Now().Add(time.Minute * 1)
+		}
+
+		return h
+	})
 
 	e.server = &http.Server{Addr: addr, Handler: router}
 

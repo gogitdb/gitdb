@@ -87,10 +87,10 @@ func newConnection() *gitdb {
 	//initialize channels
 	db.events = make(chan *dbEvent, 1)
 	db.locked = make(chan bool, 1)
-	//initialize shutdown channel with capacity 2
-	//to represent the event loop and sync clock
+	//initialize shutdown channel with capacity 3
+	//to represent the event loop, sync clock, UI server
 	//goroutines
-	db.shutdown = make(chan bool, 2)
+	db.shutdown = make(chan bool, 3)
 
 	return db
 }

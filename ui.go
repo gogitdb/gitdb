@@ -27,6 +27,23 @@ func UI() GUI {
 	return ui
 }
 
+func (g *gitdb) startUI() {
+	go UI().Serve(g)
+	//listen for shutdown event
+	go func() {
+		for {
+			select {
+			case <-g.shutdown:
+				if ui.server != nil {
+					ui.server.Close()
+				}
+				logTest("shutting down UI server")
+				return
+			}
+		}
+	}()
+}
+
 //GUI interface
 type GUI interface {
 	Serve(GitDb)
@@ -34,7 +51,8 @@ type GUI interface {
 }
 
 type gui struct {
-	files map[string]string
+	server *http.Server
+	files  map[string]string
 }
 
 func (e *gui) Serve(db GitDb) {
@@ -49,9 +67,9 @@ func (e *gui) Serve(db GitDb) {
 	}
 
 	eps := uh.getEndpoints()
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 	for _, ep := range eps {
-		r.HandleFunc(ep.Path, ep.Handler)
+		router.HandleFunc(ep.Path, ep.Handler)
 	}
 
 	port := db.Config().UIPort
@@ -63,11 +81,10 @@ func (e *gui) Serve(db GitDb) {
 	log(fmt.Sprintf("Server Root : %q", path.Dir(filename)))
 	log("GitDB GUI will run at http://" + addr)
 
-	err := http.ListenAndServe(addr, r)
-	if err != nil {
+	e.server = &http.Server{Addr: addr, Handler: router}
+
+	if err := e.server.ListenAndServe(); err != nil {
 		logError(err.Error())
-	} else {
-		fmt.Println("Server started!")
 	}
 }
 

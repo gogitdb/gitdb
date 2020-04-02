@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-func (g *gitdb) loadBlock(blockFile string, dataset string) (*gBlock, error) {
+func (g *gitdb) loadBlock(blockFile string, dataset string) (*block, error) {
 
 	if len(g.loadedBlocks) == 0 {
-		g.loadedBlocks = map[string]*gBlock{}
+		g.loadedBlocks = map[string]*block{}
 	}
 
 	//if block file exist, read it and load into map else return an empty block
@@ -30,7 +30,7 @@ func (g *gitdb) loadBlock(blockFile string, dataset string) (*gBlock, error) {
 	return g.loadedBlocks[blockFile], nil
 }
 
-func (g *gitdb) readBlock(blockFile string, block *gBlock) error {
+func (g *gitdb) readBlock(blockFile string, block *block) error {
 
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
@@ -104,10 +104,10 @@ func (g *gitdb) Fetch(dataDir string) ([]*record, error) {
 	}
 
 	log(fmt.Sprintf("%d records found in %s", dataBlock.size(), dataDir))
-	return dataBlock.records(g.config.EncryptionKey), nil
+	return dataBlock.grecords(g.config.EncryptionKey), nil
 }
 
-func (g *gitdb) dofetch(dataBlock *gBlock) error {
+func (g *gitdb) dofetch(dataBlock *block) error {
 
 	fullPath := filepath.Join(g.dbDir(), dataBlock.dataset)
 	//events <- newReadEvent("...", fullPath)
@@ -194,5 +194,5 @@ func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 	}
 
 	//log.PutInfo(fmt.Sprintf("Found %d results in %s namespace by %s for '%s'", len(records), query.DataDir, query.Index, strings.Join(query.Values, ",")))
-	return dataBlock.records(g.config.EncryptionKey), nil
+	return dataBlock.grecords(g.config.EncryptionKey), nil
 }

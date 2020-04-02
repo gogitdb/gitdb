@@ -2,7 +2,7 @@ package gitdb
 
 type baseViewModel struct {
 	Title    string
-	DataSets []*DataSet
+	DataSets []*dataset
 }
 
 type overviewViewModel struct {
@@ -11,18 +11,18 @@ type overviewViewModel struct {
 
 type viewDataSetViewModel struct {
 	baseViewModel
-	DataSet *DataSet
+	DataSet *dataset
 	Pager   *pager
 	Content string
 }
 
 type listDataSetViewModel struct {
 	baseViewModel
-	DataSet *DataSet
+	DataSet *dataset
 	Table   *table
 }
 
 type errorsViewModel struct {
 	baseViewModel
-	DataSet *DataSet
+	DataSet *dataset
 }

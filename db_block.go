@@ -11,39 +11,43 @@ import (
 	"strings"
 )
 
-//Block represents a block file
-type Block struct {
-	DataSet    *DataSet
+//block represents a block file
+type block struct {
+	Dataset    *dataset
 	Name       string
 	Size       int64
 	Records    []*record
 	BadRecords []string
+
+	//recs used to provide hydration and sorting
+	recs    map[string]*record
+	dataset string
 }
 
 //HumanSize returns human readable size of a block
-func (b *Block) HumanSize() string {
+func (b *block) HumanSize() string {
 	return formatBytes(uint64(b.Size))
 }
 
 //RecordCount returns the number of records in a block
-func (b *Block) RecordCount() int {
+func (b *block) RecordCount() int {
 	b.loadRecords()
 	return len(b.Records)
 }
 
 //loadRecords loads all records in a block into memory
-func (b *Block) loadRecords() {
+func (b *block) loadRecords() {
 	//only load record once per block
 	if len(b.Records) == 0 {
 		b.Records = b.records()
 	}
 }
 
-func (b *Block) readBlock() ([]string, error) {
+func (b *block) readBlock() ([]string, error) {
 
 	var result []string
 
-	blockFile := filepath.Join(b.DataSet.DbPath, b.DataSet.Name, b.Name+".json")
+	blockFile := filepath.Join(b.Dataset.DbPath, b.Dataset.Name, b.Name+".json")
 	log("Reading block: " + blockFile)
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
@@ -79,19 +83,19 @@ func (b *Block) readBlock() ([]string, error) {
 	return result, err
 }
 
-func (b *Block) records() []*record {
+func (b *block) records() []*record {
 
 	var records []*record
-	b.DataSet.BadBlocks = []string{}
-	b.DataSet.BadRecords = []string{}
+	b.Dataset.BadBlocks = []string{}
+	b.Dataset.BadRecords = []string{}
 
 	recs, err := b.readBlock()
 
 	if err != nil {
 		if be, ok := err.(*badBlockError); ok {
-			b.DataSet.BadBlocks = append(b.DataSet.BadBlocks, be.blockFile)
+			b.Dataset.BadBlocks = append(b.Dataset.BadBlocks, be.blockFile)
 		} else if re, ok := err.(*badRecordError); ok {
-			b.DataSet.BadRecords = append(b.DataSet.BadRecords, re.recordID)
+			b.Dataset.BadRecords = append(b.Dataset.BadRecords, re.recordID)
 		}
 
 		return records
@@ -105,7 +109,7 @@ func (b *Block) records() []*record {
 }
 
 //table returns a tabular representation of a Block
-func (b *Block) table() *table {
+func (b *block) table() *table {
 	b.loadRecords()
 	t := &table{}
 	var jsonMap map[string]interface{}
@@ -148,19 +152,13 @@ func (b *Block) table() *table {
 	return t
 }
 
-type gBlock struct {
-	//recs used to provide hydration and sorting
-	recs    map[string]*record
-	dataset string
-}
-
-func newBlock(dataset string) *gBlock {
-	block := &gBlock{dataset: dataset}
+func newBlock(dataset string) *block {
+	block := &block{dataset: dataset}
 	block.recs = map[string]*record{}
 	return block
 }
 
-func (b *gBlock) MarshalJSON() ([]byte, error) {
+func (b *block) MarshalJSON() ([]byte, error) {
 	raw := map[string]string{}
 	for k, v := range b.recs {
 		raw[k] = v.data
@@ -169,7 +167,7 @@ func (b *gBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(raw)
 }
 
-func (b *gBlock) UnmarshalJSON(data []byte) error {
+func (b *block) UnmarshalJSON(data []byte) error {
 	var raw map[string]string
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -183,11 +181,11 @@ func (b *gBlock) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (b *gBlock) add(key string, value string) {
+func (b *block) add(key string, value string) {
 	b.recs[key] = newRecord(key, value)
 }
 
-func (b *gBlock) get(key string) (*record, error) {
+func (b *block) get(key string) (*record, error) {
 	if _, ok := b.recs[key]; ok {
 		return b.recs[key], nil
 	}
@@ -195,7 +193,7 @@ func (b *gBlock) get(key string) (*record, error) {
 	return nil, errors.New("key does not exist")
 }
 
-func (b *gBlock) delete(key string) error {
+func (b *block) delete(key string) error {
 	if _, ok := b.recs[key]; ok {
 		delete(b.recs, key)
 		return nil
@@ -204,11 +202,11 @@ func (b *gBlock) delete(key string) error {
 	return errors.New("key does not exist")
 }
 
-func (b *gBlock) size() int {
+func (b *block) size() int {
 	return len(b.recs)
 }
 
-func (b *gBlock) records(key string) []*record {
+func (b *block) grecords(key string) []*record {
 	var records []*record
 	for _, v := range b.recs {
 		v.key = key

@@ -44,7 +44,7 @@ func init() {
 func main() {
 	db.SetLogLevel(db.LogLevelInfo)
 	defer dbconn.Close()
-	//	write()
+	write()
 	//	fetch()
 	testUI()
 }

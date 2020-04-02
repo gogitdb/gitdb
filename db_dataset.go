@@ -7,18 +7,18 @@ import (
 	"time"
 )
 
-//DataSet represent a collection of blocks
-type DataSet struct {
+//dataset represent a collection of blocks
+type dataset struct {
 	Name         string
 	DbPath       string
-	Blocks       []*Block
+	Blocks       []*block
 	BadBlocks    []string
 	BadRecords   []string
 	LastModified time.Time
 }
 
 //Size returns the total size of all blocks in a DataSet
-func (d *DataSet) Size() int64 {
+func (d *dataset) Size() int64 {
 	size := int64(0)
 	for _, block := range d.Blocks {
 		size += block.Size
@@ -28,17 +28,17 @@ func (d *DataSet) Size() int64 {
 }
 
 //HumanSize returns human friendly size of a DataSet
-func (d *DataSet) HumanSize() string {
+func (d *dataset) HumanSize() string {
 	return formatBytes(uint64(d.Size()))
 }
 
 //BlockCount returns the number of blocks in a DataSet
-func (d *DataSet) BlockCount() int {
+func (d *dataset) BlockCount() int {
 	return len(d.Blocks)
 }
 
 //RecordCount returns the number of records in a DataSet
-func (d *DataSet) RecordCount() int {
+func (d *dataset) RecordCount() int {
 	count := 0
 	for _, block := range d.Blocks {
 		count += block.RecordCount()
@@ -48,7 +48,7 @@ func (d *DataSet) RecordCount() int {
 }
 
 //BadBlocksCount returns the number of bad blocks in a DataSet
-func (d *DataSet) BadBlocksCount() int {
+func (d *dataset) BadBlocksCount() int {
 	if len(d.BadBlocks) == 0 {
 		d.RecordCount() //hack to get records loaded so errors can be populated in dataset
 	}
@@ -57,7 +57,7 @@ func (d *DataSet) BadBlocksCount() int {
 }
 
 //BadRecordsCount returns the number of bad records in a DataSet
-func (d *DataSet) BadRecordsCount() int {
+func (d *dataset) BadRecordsCount() int {
 	if len(d.BadRecords) == 0 {
 		d.RecordCount() //hack to get records loaded so errors can be populated in dataset
 	}
@@ -66,49 +66,31 @@ func (d *DataSet) BadRecordsCount() int {
 }
 
 //LastModifiedDate returns the last modifidation time of a DataSet
-func (d *DataSet) LastModifiedDate() string {
+func (d *dataset) LastModifiedDate() string {
 	return d.LastModified.Format("02 Jan 2006 15:04:05")
 }
 
 //loadBlocks reads all blocks in a Dataset into memory
-func (d *DataSet) loadBlocks() {
-	var blocks []*Block
+func (d *dataset) loadBlocks() {
+	d.Blocks = d.blocks()
+}
+
+func (d *dataset) blocks() []*block {
+	var blocks []*block
 	blks, err := ioutil.ReadDir(filepath.Join(d.DbPath, d.Name))
 	if err != nil {
 		logError(err.Error())
-	}
-	for _, block := range blks {
-		if !block.IsDir() && strings.HasSuffix(block.Name(), ".json") {
-			blockName := strings.TrimSuffix(block.Name(), ".json")
-
-			b := &Block{
-				DataSet: d,
-				Name:    blockName,
-				Size:    block.Size(),
-			}
-
-			blocks = append(blocks, b)
-		}
-	}
-
-	d.Blocks = blocks
-}
-
-func (d *DataSet) blocks() []*Block {
-	var blocks []*Block
-	blks, err := ioutil.ReadDir(filepath.Join(d.DbPath, d.Name))
-	if err != nil {
 		return blocks
 	}
 
-	for _, block := range blks {
-		if !block.IsDir() && strings.HasSuffix(block.Name(), ".json") {
-			blockName := strings.TrimSuffix(block.Name(), ".json")
+	for _, blk := range blks {
+		if !blk.IsDir() && strings.HasSuffix(blk.Name(), ".json") {
+			blockName := strings.TrimSuffix(blk.Name(), ".json")
 
-			b := &Block{
-				DataSet: d,
+			b := &block{
+				Dataset: d,
 				Name:    blockName,
-				Size:    block.Size(),
+				Size:    blk.Size(),
 			}
 
 			blocks = append(blocks, b)
@@ -119,7 +101,7 @@ func (d *DataSet) blocks() []*Block {
 }
 
 //Indexes returns the indexes set on a DataSet
-func (d *DataSet) Indexes() []string {
+func (d *dataset) Indexes() []string {
 	//grab indexes
 	var indexes []string
 
@@ -136,26 +118,26 @@ func (d *DataSet) Indexes() []string {
 }
 
 //loadDatasets loads all datasets in given gitdb path
-func loadDatasets(dbPath string) []*DataSet {
-	var dataSets []*DataSet
+func loadDatasets(dbPath string) []*dataset {
+	var datasets []*dataset
 
 	dirs, err := ioutil.ReadDir(dbPath)
 	if err != nil {
 		logError(err.Error())
-		return dataSets
+		return datasets
 	}
 
 	for _, dir := range dirs {
 		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
-			dataset := &DataSet{
+			ds := &dataset{
 				Name:         dir.Name(),
 				DbPath:       dbPath,
 				LastModified: dir.ModTime(),
 			}
 
-			dataset.loadBlocks()
-			dataSets = append(dataSets, dataset)
+			ds.loadBlocks()
+			datasets = append(datasets, ds)
 		}
 	}
-	return dataSets
+	return datasets
 }

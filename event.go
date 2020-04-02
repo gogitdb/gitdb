@@ -97,7 +97,7 @@ func (g *gitdb) startSyncClock() {
 				}
 
 				//reset loaded blocks
-				g.loadedBlocks = map[string]*gBlock{}
+				g.loadedBlocks = map[string]*block{}
 
 				g.buildIndex()
 				g.writeMu.Unlock()

@@ -30,7 +30,7 @@ func UI() GUI {
 }
 
 func (g *gitdb) startUI() {
-	go UI().Serve(g)
+	go UI().serve(g)
 	//listen for shutdown event
 	go func() {
 		for {
@@ -48,7 +48,7 @@ func (g *gitdb) startUI() {
 
 //GUI interface
 type GUI interface {
-	Serve(GitDb)
+	serve(GitDb)
 	Embed(name, src string)
 }
 
@@ -59,7 +59,7 @@ type gui struct {
 
 var nextDatasetRefresh time.Time
 
-func (e *gui) Serve(db GitDb) {
+func (e *gui) serve(db GitDb) {
 
 	_, filename, _, ok := runtime.Caller(0)
 	if ok {
@@ -128,7 +128,7 @@ type endpoint struct {
 
 //uiHandler provides all the http handlers for the UI
 type uiHandler struct {
-	datasets []*DataSet
+	datasets []*dataset
 }
 
 func (u *uiHandler) getEndpoints() []*endpoint {
@@ -201,19 +201,12 @@ func (u *uiHandler) list(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	viewDs := vars["dataset"]
 
-	var dataSet *DataSet
-	for _, ds := range u.datasets {
-		if ds.Name == viewDs {
-			dataSet = ds
-			break
-		}
-	}
-
-	if dataSet != nil {
-		block := dataSet.Blocks[0]
+	dataset := u.findDataset(viewDs)
+	if dataset != nil {
+		block := dataset.Blocks[0]
 		table := block.table()
 
-		viewModel := &listDataSetViewModel{DataSet: dataSet, Table: table}
+		viewModel := &listDataSetViewModel{DataSet: dataset, Table: table}
 		viewModel.DataSets = u.datasets
 
 		u.render(w, viewModel, "static/list.html", "static/sidebar.html")
@@ -240,18 +233,11 @@ func (u *uiHandler) view(w http.ResponseWriter, r *http.Request) {
 		viewModel.Pager.set(blockFlag, recordFlag)
 	}
 
-	var dataSet *DataSet
-	for _, ds := range u.datasets {
-		if ds.Name == viewDs {
-			dataSet = ds
-			break
-		}
-	}
+	dataset := u.findDataset(viewDs)
+	if dataset != nil {
+		block := dataset.Blocks[viewModel.Pager.blockPage]
 
-	if dataSet != nil {
-		block := dataSet.Blocks[viewModel.Pager.blockPage]
-
-		viewModel.Pager.totalBlocks = dataSet.BlockCount()
+		viewModel.Pager.totalBlocks = dataset.BlockCount()
 		viewModel.Pager.totalRecords = block.RecordCount()
 
 		content := "No record found"
@@ -259,7 +245,7 @@ func (u *uiHandler) view(w http.ResponseWriter, r *http.Request) {
 			content = block.Records[viewModel.Pager.recordPage].Content
 		}
 
-		viewModel.DataSet = dataSet
+		viewModel.DataSet = dataset
 		viewModel.Content = content
 		viewModel.DataSets = u.datasets
 
@@ -274,16 +260,9 @@ func (u *uiHandler) viewErrors(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	viewDs := vars["dataset"]
 
-	var dataSet *DataSet
-	for _, ds := range u.datasets {
-		if ds.Name == viewDs {
-			dataSet = ds
-			break
-		}
-	}
-
-	if dataSet != nil {
-		viewModel := &errorsViewModel{DataSet: dataSet}
+	dataset := u.findDataset(viewDs)
+	if dataset != nil {
+		viewModel := &errorsViewModel{DataSet: dataset}
 		viewModel.Title = "Errors"
 		viewModel.DataSets = u.datasets
 
@@ -291,6 +270,15 @@ func (u *uiHandler) viewErrors(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Write([]byte("Dataset (" + viewDs + ") does not exist"))
 	}
+}
+
+func (u *uiHandler) findDataset(name string) *dataset {
+	for _, ds := range u.datasets {
+		if ds.Name == name {
+			return ds
+		}
+	}
+	return nil
 }
 
 func fq(path string) string {

@@ -75,7 +75,7 @@ type gitdb struct {
 	closed       bool
 
 	indexCache   gdbIndexCache
-	loadedBlocks map[string]*gBlock
+	loadedBlocks map[string]*block
 	writeQueue   map[string]Model
 
 	mails []*mail
@@ -158,7 +158,7 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 	}
 
 	oldBlocks := map[string]string{}
-	for _, record := range block.records("") {
+	for _, record := range block.grecords("") {
 
 		_, blockID, _, _ := ParseID(record.id)
 		if _, ok := oldBlocks[blockID]; !ok {

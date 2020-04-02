@@ -137,7 +137,7 @@ func (g *gitdb) waitForCommit() {
 	}
 }
 
-func (g *gitdb) writeBlock(blockFile string, block *gBlock) error {
+func (g *gitdb) writeBlock(blockFile string, block *block) error {
 	g.writeMu.Lock()
 	defer g.writeMu.Unlock()
 

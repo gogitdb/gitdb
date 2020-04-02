@@ -111,18 +111,18 @@ func (g *gitdb) buildIndex() {
 }
 
 func getDatasets(dbDir string) []string {
-	var dataSets []string
+	var datasets []string
 	dirs, err := ioutil.ReadDir(dbDir)
 	if err != nil {
 		log(err.Error())
-		return dataSets
+		return datasets
 	}
 
 	for _, dir := range dirs {
 		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
-			dataSets = append(dataSets, dir.Name())
+			datasets = append(datasets, dir.Name())
 		}
 	}
 
-	return dataSets
+	return datasets
 }

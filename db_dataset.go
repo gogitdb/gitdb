@@ -15,6 +15,8 @@ type dataset struct {
 	BadBlocks    []string
 	BadRecords   []string
 	LastModified time.Time
+
+	cryptoKey string
 }
 
 //Size returns the total size of all blocks in a DataSet
@@ -118,9 +120,10 @@ func (d *dataset) Indexes() []string {
 }
 
 //loadDatasets loads all datasets in given gitdb path
-func loadDatasets(dbPath string) []*dataset {
+func loadDatasets(cfg Config) []*dataset {
 	var datasets []*dataset
 
+	dbPath := filepath.Join(cfg.DbPath, "data")
 	dirs, err := ioutil.ReadDir(dbPath)
 	if err != nil {
 		logError(err.Error())
@@ -133,6 +136,7 @@ func loadDatasets(dbPath string) []*dataset {
 				Name:         dir.Name(),
 				DbPath:       dbPath,
 				LastModified: dir.ModTime(),
+				cryptoKey:    cfg.EncryptionKey,
 			}
 
 			ds.loadBlocks()

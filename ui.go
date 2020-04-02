@@ -86,7 +86,7 @@ func (e *gui) serve(db GitDb) {
 	router.Use(func(h http.Handler) http.Handler {
 
 		if nextDatasetRefresh.IsZero() || nextDatasetRefresh.Before(time.Now()) {
-			uh.datasets = loadDatasets(db.Config().DbPath + "/data")
+			uh.datasets = loadDatasets(db.Config())
 			nextDatasetRefresh = time.Now().Add(time.Minute * 1)
 		}
 

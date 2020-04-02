@@ -67,13 +67,17 @@ func (b *block) readBlock() ([]string, error) {
 	//validates each record json and return a formatted version of the record
 	for _, k := range recordKeys {
 		//TODO handle encrypted records
-		recordJSON := dataBlock[k].(string)
-		if jsonErr := json.Unmarshal([]byte(recordJSON), &record); jsonErr != nil {
+		recordStr := dataBlock[k].(string)
+
+		//we need to decrypt before we unmarshall
+		recordStr = b.decrypt(recordStr)
+
+		if jsonErr := json.Unmarshal([]byte(recordStr), &record); jsonErr != nil {
 			return result, &badRecordError{jsonErr.Error() + " - " + k, k}
 		}
 
 		var buf bytes.Buffer
-		if jsonErr := json.Indent(&buf, []byte(recordJSON), "", "\t"); jsonErr != nil {
+		if jsonErr := json.Indent(&buf, []byte(recordStr), "", "\t"); jsonErr != nil {
 			return result, &badRecordError{jsonErr.Error() + " - " + k, k}
 		}
 
@@ -81,6 +85,15 @@ func (b *block) readBlock() ([]string, error) {
 	}
 
 	return result, err
+}
+
+func (b *block) decrypt(str string) string {
+	dec := decrypt(b.Dataset.cryptoKey, str)
+	if len(dec) > 0 {
+		return dec
+	}
+
+	return str
 }
 
 func (b *block) records() []*record {

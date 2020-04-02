@@ -1,6 +1,7 @@
 package gitdb
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"html/template"
@@ -36,7 +37,7 @@ func (g *gitdb) startUI() {
 			select {
 			case <-g.shutdown:
 				if ui.server != nil {
-					ui.server.Close()
+					ui.server.Shutdown(context.TODO())
 				}
 				logTest("shutting down UI server")
 				return

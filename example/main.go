@@ -1,4 +1,3 @@
-//go:generate gitdb embed-ui -o ./ui_gitdb.go
 package main
 
 import (
@@ -23,6 +22,7 @@ func init() {
 		SyncInterval:  time.Second * 5,
 		EncryptionKey: "XVlBzgbaiCMRAjWwhTHctcuAxhxKQFDa", //this has to be 32 bytes to select AES-256
 		User:          db.NewUser("dev", "dev@gitdb.io"),
+		EnableUI:      true,
 	}
 
 	if logToFile {

@@ -15,6 +15,7 @@ type Config struct {
 	GitDriver      dbDriver
 	User           *DbUser
 	Factory        func(string) Model
+	EnableUI       bool
 	UIPort         int
 }
 

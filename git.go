@@ -18,7 +18,7 @@ type dbDriver interface {
 	addRemote() error
 	pull() error
 	push() error
-	commit(filePath string, msg string, user *DbUser) error
+	commit(filePath string, msg string, user *User) error
 	undo() error
 }
 
@@ -36,7 +36,7 @@ func (g *baseGitDriver) configure(db *gitdb) {
 //very first time. In this case we must clone the online repo
 func (g *gitdb) gitInit() error {
 	//we take this very seriously
-	err := g.config.GitDriver.init()
+	err := g.gitDriver.init()
 	if err != nil {
 		os.RemoveAll(g.dbDir())
 	}
@@ -47,7 +47,7 @@ func (g *gitdb) gitInit() error {
 func (g *gitdb) gitClone() error {
 	//we take this very seriously
 	log("cloning down database...")
-	err := g.config.GitDriver.clone()
+	err := g.gitDriver.clone()
 	if err != nil {
 		//TODO if err is authentication related generate key pair
 		//TODO inform users to ask admin to add their public key to repo
@@ -75,7 +75,7 @@ func (g *gitdb) gitClone() error {
 
 func (g *gitdb) gitAddRemote() error {
 	//we take this very seriously
-	err := g.config.GitDriver.addRemote()
+	err := g.gitDriver.addRemote()
 	if err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
 			os.RemoveAll(g.dbDir()) //TODO is this necessary?
@@ -90,17 +90,17 @@ func (g *gitdb) gitAddRemote() error {
 //fails silently, logs error message and determine if we need to put the
 //application in an error state
 func (g *gitdb) gitPull() error {
-	return g.config.GitDriver.pull()
+	return g.gitDriver.pull()
 }
 
 func (g *gitdb) gitPush() error {
-	return g.config.GitDriver.push()
+	return g.gitDriver.push()
 }
 
-func (g *gitdb) gitCommit(filePath string, msg string, user *DbUser) {
+func (g *gitdb) gitCommit(filePath string, msg string, user *User) {
 	mu.Lock()
 	defer mu.Unlock()
-	err := g.config.GitDriver.commit(filePath, msg, user)
+	err := g.gitDriver.commit(filePath, msg, user)
 	if err != nil {
 		// todo: update to return this error but for now at least log it
 		logError(err.Error())
@@ -108,7 +108,7 @@ func (g *gitdb) gitCommit(filePath string, msg string, user *DbUser) {
 }
 
 func (g *gitdb) gitUndo() error {
-	return g.config.GitDriver.undo()
+	return g.gitDriver.undo()
 }
 
 func (g *gitdb) gitLastCommitTime() (time.Time, error) {

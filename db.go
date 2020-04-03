@@ -53,7 +53,7 @@ type GitDb interface {
 	GetMails() []*mail
 	StartTransaction(name string) *transaction
 	GetLastCommitTime() (time.Time, error)
-	SetUser(user *DbUser) error
+	SetUser(user *User) error
 	Config() Config
 }
 
@@ -140,13 +140,13 @@ func (g *gitdb) configure(cfg *Config) {
 		cfg.SyncInterval = defaultSyncInterval
 	}
 
-	if cfg.GitDriver == nil {
-		cfg.GitDriver = defaultDbDriver
+	if g.gitDriver == nil {
+		g.gitDriver = defaultDbDriver
 	}
 
 	g.config = cfg
 
-	g.config.GitDriver.configure(g)
+	g.gitDriver.configure(g)
 }
 
 //todo add revert logic if migrate fails mid way

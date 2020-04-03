@@ -99,7 +99,7 @@ func (g *gitBinary) push() error {
 	return nil
 }
 
-func (g *gitBinary) commit(filePath string, msg string, user *DbUser) error {
+func (g *gitBinary) commit(filePath string, msg string, user *User) error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "config", "user.email", user.Email)
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {

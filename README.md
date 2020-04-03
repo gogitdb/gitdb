@@ -31,6 +31,7 @@ GitDB allows developers to create Models of objects in their application which i
 - Record locking.
 - Simple Indexing System
 - Transactions
+- Web UI 
 
 
 ## Project versioning
@@ -43,6 +44,7 @@ New minor versions may add additional features to the API.
 
   - [Getting Started](#getting-started)
     - [Installing](#installing)
+    - [Configuration](#configuration)
     - [Opening a database](#opening-a-database)
     - [Inserting/Updating a record](#insertingupdating-a-record)
     - [Fetching a single record](#fetching-a-single-record)
@@ -65,6 +67,92 @@ To start using GitDB, install Go and run `go get`:
 ```sh
 $ go get github.com/fobilow/gitdb/v2
 ```
+
+
+### Configuration
+
+Below are configuration options provided by GitDB
+<table>
+  <tr style="font-weight:bold;">
+    <td>Name</td>
+    <td width="600">Description</td>
+    <td>Type</td>
+    <td>Required</td>
+    <td>Default</td>
+  <tr>
+  <tr>
+    <td>DbPath</td>
+    <td>Path on computer where you want GitDB to create/clone your database</td>
+    <td>string</td>
+    <td>Y</td>
+    <td>N/A</td>
+  </tr>
+  <tr>
+    <td>ConnectionName</td>
+    <td>Unique name for gitdb connection. Use this when opening multiple GitDB connections</td>
+    <td>string</td>
+    <td>N</td>
+    <td>"default"</td>
+  </tr>
+  <tr>
+    <td>OnlineRemote</td>
+    <td>URL for remote git server you want GitDB to sync with e.g git@github.com:user/db.git or https://github.com/user/db.git.
+    <p>Note: GitDB automatically generates ssh keys for every database and will automatically use this key to sync with the OnlineRemote,
+    therefore ensure that the generated keys are added to this git server. The ssh keys can be found at <i>Config.DbPath/.gitdb/.ssh</i></p>
+    </td>
+    <td>string</td>
+    <td>N</td>
+    <td>""</td>
+  </tr>
+  <tr>
+    <td>SyncInterval</td>
+    <td>This controls how often you want GitDB to sync with the online remote</td>
+    <td>time.Duration.</td>
+    <td>N</td>
+    <td>5s</td>
+  </tr>
+  <tr>
+    <td>EncryptionKey</td>
+    <td>16,24, or 32 byte string used to provide AES encryption for Models that implement ShouldEncrypt</td>
+    <td>string</td>
+    <td>N</td>
+    <td>""</td>
+  </tr>
+  <tr>
+    <td>User</td>
+    <td>This specifies the user connected to the Gitdb and will be used to commit all changes to the database</td>
+    <td>gitdb.User</td>
+    <td>N</td>
+    <td>ghost &#x3C;ghost@local&#x3E;</td>
+  </tr>
+  <tr>
+    <td>UIPort</td>
+    <td>Use this option to change the default port which GitDB uses to serve it's web user interface</td>
+    <td>int</td>
+    <td>N</td>
+    <td>4120</td>
+  </tr>
+  <tr>
+    <td>Factory</td>
+    <td>For backward compatibity with v1. In v1 GitDB needed a factory method to be able construct concrete Model for certain database operations.
+    This has now been dropped in v2
+    </td>
+    <td>func(dataset string) gitdb.Model</td>
+    <td>N</td>
+    <td>nil</td>
+  </tr>
+</table>
+
+You can configure GitDB either using the constructor or constructing it yourself
+
+```go	
+cfg := gitdb.NewConfig(path)
+//or
+cfg := gitdb.Config{
+  DbPath: path
+}
+```
+
 
 <!-- This will retrieve the library and install the `gitdb` command line utility into
 your `$GOBIN` path. -->
@@ -113,7 +201,7 @@ func main() {
 
 A Model is a struct that represents a record in GitDB. GitDB only works with models that implement the gidb.Model interface
 
-gitdb.TimeStampedModel is a simple struct that allows you to easily CreatedAt and UpdatedAt to all the Models in your application and will automatically time stamp them before persisting to GitDB. You can write your own base Models to embed common fields across your application Models
+gitdb.TimeStampedModel is a simple struct that allows you to easily add CreatedAt and UpdatedAt to all the Models in your application and will automatically time stamp them before persisting to GitDB. You can write your own base Models to embed common fields across your application Models
 
 ```go
 type BankAccount struct {

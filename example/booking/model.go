@@ -47,31 +47,18 @@ func (b *BookingModel) NumberOfNights() int {
 func (b *BookingModel) GetSchema() *gitdb.Schema {
 
 	//Name of schema
-	name := func() string {
-		return "Booking"
-	}
-
+	name := "Booking"
 	//Block of schema
-	block := func() string {
-		return b.CreatedAt.Format("200601")
-	}
-
+	block := b.CreatedAt.Format("200601")
 	//Record of schema
-	record := func() string {
-		return string(b.Type) + "_" + b.CreatedAt.Format("20060102150405")
-	}
+	record := string(b.Type) + "_" + b.CreatedAt.Format("20060102150405")
 
 	//Indexes speed up searching
-	indexes := func() map[string]interface{} {
-		indexes := make(map[string]interface{})
-
-		indexes["RoomId"] = b.RoomId
-		indexes["Guests"] = b.Guests
-		indexes["CustomerId"] = b.CustomerId
-		indexes["CreationDate"] = b.CreatedAt.Format("2006-01-02")
-
-		return indexes
-	}
+	indexes := make(map[string]interface{})
+	indexes["RoomId"] = b.RoomId
+	indexes["Guests"] = b.Guests
+	indexes["CustomerId"] = b.CustomerId
+	indexes["CreationDate"] = b.CreatedAt.Format("2006-01-02")
 
 	return gitdb.NewSchema(name, block, record, indexes)
 }

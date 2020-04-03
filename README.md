@@ -127,20 +127,16 @@ type BankAccount struct {
 
 func (b *BankAccount) GetSchema() *gitdb.Schema {
   //Dataset Name
-  name := func() string {return "Accounts"}
+  name := "Accounts"
   //Block ID
-  block := func() string {return b.CreatedAt.Format("200601")}
+  block := b.CreatedAt.Format("200601")
   //Record ID
-  record := func() string {return b.AccountNo}
+  record := b.AccountNo
 
   //Indexes speed up searching
-  indexes := func() map[string]interface{} {
-     indexes := make(map[string]interface{})
-
-     indexes["AccountType"] = b.AccountType
-     return indexes
-  }
-
+  indexes := make(map[string]interface{})
+  indexes["AccountType"] = b.AccountType
+ 
   return gitdb.NewSchema(name, block, record, indexes)
 }
 

@@ -32,7 +32,7 @@ func (g *gitdb) updateIndexesV1(dataset string, records ...*record) {
 	model := g.config.Factory(dataset)
 	for _, record := range records {
 		record.gHydrate(model, g.config.EncryptionKey)
-		for name, value := range model.GetSchema().indexes() {
+		for name, value := range model.GetSchema().indexes {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)

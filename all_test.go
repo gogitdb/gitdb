@@ -152,18 +152,14 @@ type Message struct {
 
 func (m *Message) GetSchema() *gitdb.Schema {
 
-	name := func() string { return "Message" }
-	block := func() string { return "b0" }
+	name := "Message"
+	block := "b0"
 	// block := gitdb.AutoBlock(dbPath, m, gitdb.BlockByCount, 2)
-	record := func() string { return fmt.Sprintf("%d", m.MessageId) }
+	record := fmt.Sprintf("%d", m.MessageId)
 
 	//Indexes speed up searching
-	indexes := func() map[string]interface{} {
-		indexes := make(map[string]interface{})
-
-		indexes["From"] = m.From
-		return indexes
-	}
+	indexes := make(map[string]interface{})
+	indexes["From"] = m.From
 
 	return gitdb.NewSchema(name, block, record, indexes)
 }
@@ -185,17 +181,13 @@ type MessageV2 struct {
 
 func (m *MessageV2) GetSchema() *gitdb.Schema {
 
-	name := func() string { return "MessageV2" }
-	block := func() string { return m.CreatedAt.Format("200601") }
-	record := func() string { return fmt.Sprintf("%d", m.MessageId) }
+	name := "MessageV2"
+	block := m.CreatedAt.Format("200601")
+	record := fmt.Sprintf("%d", m.MessageId)
 
 	//Indexes speed up searching
-	indexes := func() map[string]interface{} {
-		indexes := make(map[string]interface{})
-
-		indexes["From"] = m.From
-		return indexes
-	}
+	indexes := make(map[string]interface{})
+	indexes["From"] = m.From
 
 	return gitdb.NewSchema(name, block, record, indexes)
 }

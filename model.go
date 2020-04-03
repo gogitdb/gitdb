@@ -43,7 +43,7 @@ type gRecord struct {
 func wrapModel(m Model) *gRecord {
 	return &gRecord{
 		Version: RecVersion,
-		Indexes: m.GetSchema().indexes(),
+		Indexes: m.GetSchema().indexes,
 		Data:    m,
 	}
 }

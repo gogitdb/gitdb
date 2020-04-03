@@ -82,7 +82,7 @@ func (g *gitdb) write(m Model) error {
 	}
 
 	schema := m.GetSchema()
-	blockFilePath := g.blockFilePath(schema.name(), schema.blockIDFunc())
+	blockFilePath := g.blockFilePath(schema.name(), schema.block)
 	dataBlock, err := g.loadBlock(blockFilePath, schema.name())
 	if err != nil {
 		return err

@@ -14,14 +14,14 @@ func TestAutoBlock(t *testing.T) {
 	m := getTestMessage()
 
 	want := "b0"
-	got := gitdb.AutoBlock(cfg.DbPath, m, gitdb.BlockByCount, 10)()
+	got := gitdb.AutoBlock(cfg.DbPath, m, gitdb.BlockByCount, 10)
 	if got != want {
 		t.Errorf("want: %s, got: %s", want, got)
 	}
 
 	m.MessageId = 11
 	want = "b1"
-	got = gitdb.AutoBlock(cfg.DbPath, m, gitdb.BlockByCount, 10)()
+	got = gitdb.AutoBlock(cfg.DbPath, m, gitdb.BlockByCount, 10)
 	if got != want {
 		t.Errorf("want: %s, got: %s", want, got)
 	}

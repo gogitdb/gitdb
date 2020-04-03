@@ -169,7 +169,7 @@ func (m *Message) IsLockable() bool           { return false }
 func (m *Message) ShouldEncrypt() bool        { return false }
 func (m *Message) GetLockFileNames() []string { return []string{} }
 
-// func (m *Message) SetBaseModel() {}
+// func (m *Message) BeforeInsert() error { return nil }
 
 type MessageV2 struct {
 	gitdb.TimeStampedModel
@@ -197,7 +197,7 @@ func (m *MessageV2) IsLockable() bool           { return false }
 func (m *MessageV2) ShouldEncrypt() bool        { return false }
 func (m *MessageV2) GetLockFileNames() []string { return []string{} }
 
-// func (m *MessageV2) SetBaseModel() {}
+// func (m *MessageV2) BeforeInsert() error { return nil }
 
 //count the number of records in fetched block
 func countRecords(dataset string) int {

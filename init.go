@@ -90,7 +90,7 @@ func GetConn(name string) GitDb {
 
 func (g *gitdb) boot() error {
 	g.lastIds = make(map[string]int64)
-	log("Booting up db using " + g.config.GitDriver.name() + " driver")
+	log("Booting up db using " + g.gitDriver.name() + " driver")
 
 	//create .ssh dir
 	err := g.generateSSHKeyPair()

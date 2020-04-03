@@ -15,8 +15,8 @@ type Model interface {
 	GetLockFileNames() []string
 	//ShouldEncrypt informs GitDb if a Model support encryption
 	ShouldEncrypt() bool
-	//SetBaseModel sets shared fields and is called by gitdb before insert
-	SetBaseModel()
+	//BeforeInsert is called by gitdb before insert
+	BeforeInsert() error
 }
 
 //TimeStampedModel provides time stamp fields
@@ -25,46 +25,48 @@ type TimeStampedModel struct {
 	UpdatedAt time.Time
 }
 
-//SetBaseModel sets shared fields and is called by gitdb before insert
-func (m *TimeStampedModel) SetBaseModel() {
+//BeforeInsert implements Model.BeforeInsert
+func (m *TimeStampedModel) BeforeInsert() error {
 	stampTime := time.Now()
 	if m.CreatedAt.IsZero() {
 		m.CreatedAt = stampTime
 	}
 	m.UpdatedAt = stampTime
+
+	return nil
 }
 
-type gRecord struct {
+type model struct {
 	Version string
 	Indexes map[string]interface{}
 	Data    Model
 }
 
-func wrapModel(m Model) *gRecord {
-	return &gRecord{
+func wrap(m Model) *model {
+	return &model{
 		Version: RecVersion,
 		Indexes: m.GetSchema().indexes,
 		Data:    m,
 	}
 }
 
-func (m *gRecord) GetSchema() *Schema {
+func (m *model) GetSchema() *Schema {
 	return m.Data.GetSchema()
 }
 
-func (m *gRecord) Validate() error {
+func (m *model) Validate() error {
 	return m.Data.Validate()
 }
-func (m *gRecord) IsLockable() bool {
+func (m *model) IsLockable() bool {
 	return m.Data.IsLockable()
 }
-func (m *gRecord) ShouldEncrypt() bool {
+func (m *model) ShouldEncrypt() bool {
 	return m.Data.ShouldEncrypt()
 }
-func (m *gRecord) GetLockFileNames() []string {
+func (m *model) GetLockFileNames() []string {
 	return m.Data.GetLockFileNames()
 }
 
-func (m *gRecord) SetBaseModel() {
-	m.Data.SetBaseModel()
+func (m *model) BeforeInsert() error {
+	return m.Data.BeforeInsert()
 }

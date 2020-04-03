@@ -31,6 +31,7 @@ GitDB allows developers to create Models of objects in their application which i
 - Record locking.
 - Simple Indexing System
 - Transactions
+- Web UI 
 
 
 ## Project versioning
@@ -43,6 +44,7 @@ New minor versions may add additional features to the API.
 
   - [Getting Started](#getting-started)
     - [Installing](#installing)
+    - [Configuration](#configuration)
     - [Opening a database](#opening-a-database)
     - [Inserting/Updating a record](#insertingupdating-a-record)
     - [Fetching a single record](#fetching-a-single-record)
@@ -206,7 +208,7 @@ func main() {
 
 A Model is a struct that represents a record in GitDB. GitDB only works with models that implement the gidb.Model interface
 
-gitdb.TimeStampedModel is a simple struct that allows you to easily CreatedAt and UpdatedAt to all the Models in your application and will automatically time stamp them before persisting to GitDB. You can write your own base Models to embed common fields across your application Models
+gitdb.TimeStampedModel is a simple struct that allows you to easily add CreatedAt and UpdatedAt to all the Models in your application and will automatically time stamp them before persisting to GitDB. You can write your own base Models to embed common fields across your application Models
 
 ```go
 type BankAccount struct {

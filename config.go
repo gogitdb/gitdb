@@ -12,8 +12,7 @@ type Config struct {
 	OnlineRemote   string
 	EncryptionKey  string
 	SyncInterval   time.Duration
-	GitDriver      dbDriver
-	User           *DbUser
+	User           *User
 	Factory        func(string) Model
 	EnableUI       bool
 	UIPort         int
@@ -32,7 +31,6 @@ func NewConfig(dbPath string) *Config {
 		SyncInterval:   defaultSyncInterval,
 		User:           defaultUser,
 		ConnectionName: defaultConnectionName,
-		GitDriver:      defaultDbDriver,
 		UIPort:         defaultUIPort,
 	}
 }

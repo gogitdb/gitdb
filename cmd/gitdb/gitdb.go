@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	output = flag.String("o", "./ui_gitdb.go", "output file name; default srcdir/ui_gitdb.go")
-	dbpath = flag.String("p", "", "path do gitdb")
+	packageRoot = "../../"
+	output      = flag.String("o", "./ui_gitdb.go", "output file name; default srcdir/ui_gitdb.go")
+	dbpath      = flag.String("p", "", "path do gitdb")
 )
 
 func main() {
@@ -46,8 +47,6 @@ type staticFile struct {
 }
 
 func embedUI() error {
-
-	packageRoot := "../../"
 	_, filename, _, ok := runtime.Caller(0)
 	if ok {
 		packageRoot = path.Dir(path.Dir(path.Dir(filename))) + "/"
@@ -98,7 +97,9 @@ func readAllStaticFiles(path string, files *[]staticFile) error {
 			b = bytes.Replace(b, []byte("\n"), []byte(""), -1)
 
 			content := base64.StdEncoding.EncodeToString(b)
-			*files = append(*files, staticFile{fileName, content})
+
+			fileKey := strings.Replace(fileName, packageRoot, "", 1)
+			*files = append(*files, staticFile{fileKey, content})
 		}
 
 		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {

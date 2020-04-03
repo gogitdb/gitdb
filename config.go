@@ -14,6 +14,7 @@ type Config struct {
 	SyncInterval   time.Duration
 	User           *User
 	Factory        func(string) Model
+	EnableUI       bool
 	UIPort         int
 }
 

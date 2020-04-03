@@ -1,3 +1,4 @@
+//go:generate gitdb embed-ui -o ./ui_static.go
 package gitdb
 
 import (
@@ -8,20 +9,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
-	"path/filepath"
 	"runtime"
 	"time"
 
 	"github.com/gorilla/mux"
 )
 
-//add to your package: //go:generate gitdb emded-ui -o ./ui_gitdb.go
-
 var serverRoot = "./"
 var ui *gui
 
-//UI provides an API to run UI server from outside this package
-func UI() GUI {
+//getUI provides an API to run getUI server from outside this package
+func getUI() GUI {
 	if ui == nil {
 		ui = &gui{}
 		ui.files = make(map[string]string)
@@ -30,26 +28,22 @@ func UI() GUI {
 }
 
 func (g *gitdb) startUI() {
-	go UI().serve(g)
+	go getUI().serve(g)
 	//listen for shutdown event
 	go func() {
-		for {
-			select {
-			case <-g.shutdown:
-				if ui.server != nil {
-					ui.server.Shutdown(context.TODO())
-				}
-				logTest("shutting down UI server")
-				return
-			}
+		<-g.shutdown
+		if ui.server != nil {
+			ui.server.Shutdown(context.TODO())
 		}
+		logTest("shutting down UI server")
+		return
 	}()
 }
 
 //GUI interface
 type GUI interface {
 	serve(GitDb)
-	Embed(name, src string)
+	embed(name, src string)
 }
 
 type gui struct {
@@ -100,7 +94,7 @@ func (e *gui) serve(db GitDb) {
 	}
 }
 
-func (e *gui) Embed(name, src string) {
+func (e *gui) embed(name, src string) {
 	e.files[name] = src
 }
 
@@ -148,7 +142,7 @@ func (u *uiHandler) render(w http.ResponseWriter, data interface{}, templates ..
 	parseFiles := false
 	fTemplates := make([]string, len(templates))
 	for i, template := range templates {
-		fTemplates[i] = fq(template)
+		fTemplates[i] = template
 		if !ui.has(fTemplates[i]) {
 			parseFiles = true
 		}
@@ -281,14 +275,9 @@ func (u *uiHandler) findDataset(name string) *dataset {
 	return nil
 }
 
-func fq(path string) string {
-	return filepath.Join(serverRoot, path)
-}
-
 func readView(fileName string) string {
-	fqFilename := fq(fileName)
-	if ui.has(fqFilename) {
-		return ui.get(fqFilename)
+	if ui.has(fileName) {
+		return ui.get(fileName)
 	}
 
 	data, err := ioutil.ReadFile(fileName)

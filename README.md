@@ -126,6 +126,13 @@ Below are configuration options provided by GitDB
     <td>ghost &#x3C;ghost@local&#x3E;</td>
   </tr>
   <tr>
+    <td>EnableUI</td>
+    <td>Use this option to enable GitDB web user interface</td>
+    <td>bool</td>
+    <td>N</td>
+    <td>false</td>
+  </tr>
+  <tr>
     <td>UIPort</td>
     <td>Use this option to change the default port which GitDB uses to serve it's web user interface</td>
     <td>int</td>

@@ -1,4 +1,4 @@
-module github.com/fobilow/gitdb
+module github.com/fobilow/gitdb/v2
 
 go 1.14
 

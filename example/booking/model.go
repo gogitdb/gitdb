@@ -3,7 +3,7 @@ package booking
 import (
 	"time"
 
-	"github.com/fobilow/gitdb"
+	"github.com/fobilow/gitdb/v2"
 )
 
 type BookingModel struct {

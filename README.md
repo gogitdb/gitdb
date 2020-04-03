@@ -63,7 +63,7 @@ New minor versions may add additional features to the API.
 To start using GitDB, install Go and run `go get`:
 
 ```sh
-$ go get github.com/fobilow/gitdb
+$ go get github.com/fobilow/gitdb/v2
 ```
 
 <!-- This will retrieve the library and install the `gitdb` command line utility into
@@ -74,7 +74,7 @@ your `$GOBIN` path. -->
 To use GitDB as an embedded document store, import as:
 
 ```go
-import "github.com/fobilow/gitdb"
+import "github.com/fobilow/gitdb/v2"
 
 cfg := gitdb.NewConfig(path)
 db, err := gitdb.Open(cfg)
@@ -91,7 +91,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main() {
@@ -159,7 +159,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main(){
@@ -199,7 +199,7 @@ func main(){
 package main
 import (
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main(){
@@ -225,7 +225,7 @@ package main
 import (
   "fmt"
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main(){
@@ -258,7 +258,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main(){
@@ -283,7 +283,7 @@ package main
 import (
   "fmt"
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main(){
@@ -318,7 +318,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main() {
@@ -353,7 +353,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb"
+  "github.com/fobilow/gitdb/v2"
 )
 
 func main(){

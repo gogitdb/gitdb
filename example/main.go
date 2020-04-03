@@ -9,8 +9,8 @@ import (
 	"log"
 	"os"
 
-	db "github.com/fobilow/gitdb"
-	"github.com/fobilow/gitdb/example/booking"
+	db "github.com/fobilow/gitdb/v2"
+	"github.com/fobilow/gitdb/v2/example/booking"
 )
 
 var dbconn db.GitDb

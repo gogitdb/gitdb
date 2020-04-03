@@ -3,7 +3,7 @@ package gitdb_test
 import (
 	"testing"
 
-	"github.com/fobilow/gitdb"
+	"github.com/fobilow/gitdb/v2"
 )
 
 func TestNewUser(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fobilow/gitdb"
+	"github.com/fobilow/gitdb/v2"
 )
 
 var testDb gitdb.GitDb

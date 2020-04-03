@@ -35,7 +35,7 @@ func (a *Schema) blockID() string {
 
 //recordID returns record id of schema
 func (a *Schema) recordID() string {
-	return a.block + "/" + a.record
+	return a.blockID() + "/" + a.record
 }
 
 //Validate ensures *Schema is valid

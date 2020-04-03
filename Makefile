@@ -8,3 +8,5 @@ test:
 	go tool cover -func=cover.out
 example:
 	cd example && rm -Rf data && go generate && go run *.go && cd -
+install:
+	go install github.com/fobilow/gitdb/v2/cmd/gitdb

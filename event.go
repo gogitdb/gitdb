@@ -109,7 +109,8 @@ func (g *gitdb) startSyncClock() {
 func hasSufficientBatteryPower(threshold float64) bool {
 	batt, err := battery.Get(0)
 	if err != nil {
-		return false
+		//device is probably running on direct power
+		return true
 	}
 
 	percentageCharge := batt.Current / batt.Full * 100

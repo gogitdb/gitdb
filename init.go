@@ -14,9 +14,7 @@ var conns map[string]GitDb
 //Open opens a connection to GitDB
 func Open(config *Config) (GitDb, error) {
 
-	//clone config to avoid changes from outside of package
-	x := *config
-	cfg := &x
+	cfg := *config
 
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -89,7 +87,6 @@ func GetConn(name string) GitDb {
 }
 
 func (g *gitdb) boot() error {
-	g.lastIds = make(map[string]int64)
 	log("Booting up db using " + g.gitDriver.name() + " driver")
 
 	//create .ssh dir

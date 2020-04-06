@@ -23,7 +23,7 @@ type dbDriver interface {
 }
 
 type baseGitDriver struct {
-	config    *Config
+	config    Config
 	absDbPath string
 }
 

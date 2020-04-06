@@ -65,8 +65,7 @@ type gitdb struct {
 	shutdown chan bool
 	events   chan *dbEvent
 
-	lastIds   map[string]int64
-	config    *Config
+	config    Config
 	gitDriver dbDriver
 
 	autoCommit   bool

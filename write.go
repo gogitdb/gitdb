@@ -50,7 +50,7 @@ func (g *gitdb) InsertMany(models []Model) error {
 
 func (g *gitdb) queue(m Model) error {
 
-	if len(g.writeQueue) == 0 {
+	if g.writeQueue == nil {
 		g.writeQueue = map[string]Model{}
 	}
 

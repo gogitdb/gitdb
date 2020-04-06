@@ -12,7 +12,7 @@ import (
 
 func (g *gitdb) loadBlock(blockFile string, dataset string) (*block, error) {
 
-	if len(g.loadedBlocks) == 0 {
+	if g.loadedBlocks == nil {
 		g.loadedBlocks = map[string]*block{}
 	}
 

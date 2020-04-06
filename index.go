@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type gdbIndex map[string]interface{}
@@ -90,39 +89,22 @@ func (g *gitdb) readIndex(indexFile string) gdbIndex {
 }
 
 func (g *gitdb) buildIndex() {
-	datasets := getDatasets(g.dbDir())
+	datasets := loadDatasets(g.config)
 	for _, dataset := range datasets {
-		log("Building index for Dataset: " + dataset)
-		records, err := g.Fetch(dataset)
+		log("Building index for Dataset: " + dataset.Name)
+		records, err := g.Fetch(dataset.Name)
 		if err != nil {
 			continue
 		}
 
 		if len(records) > 0 {
 			if records[0].version() == "v1" {
-				g.updateIndexesV1(dataset, records...)
+				g.updateIndexesV1(dataset.Name, records...)
 				continue
 			}
 
-			g.updateIndexes(dataset, records...)
+			g.updateIndexes(dataset.Name, records...)
 		}
 	}
 	log("Building index complete")
-}
-
-func getDatasets(dbDir string) []string {
-	var datasets []string
-	dirs, err := ioutil.ReadDir(dbDir)
-	if err != nil {
-		log(err.Error())
-		return datasets
-	}
-
-	for _, dir := range dirs {
-		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
-			datasets = append(datasets, dir.Name())
-		}
-	}
-
-	return datasets
 }

@@ -16,15 +16,19 @@ import (
 
 var (
 	packageRoot = "../../"
-	output      = flag.String("o", "./ui_gitdb.go", "output file name; default srcdir/ui_gitdb.go")
-	dbpath      = flag.String("p", "", "path do gitdb")
+
+	embedCommand = flag.NewFlagSet("embed", flag.ExitOnError)
+	output       = embedCommand.String("o", "./ui_static.go", "output file name; default ./ui_static.go")
+
+	// dbpath      = flag.String("p", "", "path do gitdb")
 )
 
 func main() {
-	flag.Parse()
+
 	command := os.Args[1]
 	switch command {
 	case "embed-ui":
+		embedCommand.Parse(os.Args[2:])
 		err := embedUI()
 		if err != nil {
 			fmt.Println(err.Error())

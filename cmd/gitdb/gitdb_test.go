@@ -10,5 +10,5 @@ func Test_embedUI(t *testing.T) {
 	if err != nil {
 		t.Errorf("embedUI() failed: %s", err)
 	}
-	os.Remove("./ui_gitdb.go")
+	os.Remove("./ui_static.go")
 }

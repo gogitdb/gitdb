@@ -10,6 +10,7 @@ import (
 
 var logger *golog.Logger
 var verbosity LogLevel
+var verbositySet bool
 
 //LogLevel is used to set verbosity of GitDB
 type LogLevel int
@@ -27,9 +28,18 @@ const (
 	LogLevelInfo LogLevel = 4
 )
 
+//getVerbosity defaults verbosity to LogLevelWarning if a verbosity is not set
+func getVerbosity() LogLevel {
+	if !verbositySet {
+		return LogLevelWarning
+	}
+	return verbosity
+}
+
 //SetLogLevel sets log level
 func SetLogLevel(l LogLevel) {
 	verbosity = l
+	verbositySet = true
 }
 
 //SetLogger sets Logger
@@ -46,27 +56,27 @@ func printlog(message string) {
 }
 
 func log(message string) {
-	if verbosity >= LogLevelInfo {
+	if getVerbosity() >= LogLevelInfo {
 		printlog(message)
 	}
 }
 
 func logError(message string) {
-	if verbosity >= LogLevelError {
+	if getVerbosity() >= LogLevelError {
 		_, fn, line, _ := runtime.Caller(1)
-		printlog(fmt.Sprintf("ERROR: %s | %s:%d", message, fn, line))
+		printlog(fmt.Sprintf("ERROR: %s (%s:%d)", message, filepath.Base(fn), line))
 	}
 }
 
 func logWarning(message string) {
-	if verbosity >= LogLevelWarning {
+	if getVerbosity() >= LogLevelWarning {
 		_, fn, line, _ := runtime.Caller(1)
-		printlog(fmt.Sprintf("WARNING: %s | %s:%d", message, fn, line))
+		printlog(fmt.Sprintf("WARNING: %s (%s:%d)", message, filepath.Base(fn), line))
 	}
 }
 
 func logTest(message string) {
-	if verbosity == LogLevelTest {
+	if getVerbosity() == LogLevelTest {
 		_, fn, line, _ := runtime.Caller(1)
 		printlog(fmt.Sprintf("DEBUG: %s (%s:%d)", message, filepath.Base(fn), line))
 	}

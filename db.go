@@ -95,7 +95,7 @@ func newConnection() *gitdb {
 }
 
 func (g *gitdb) Config() Config {
-	return *g.config
+	return g.config
 }
 
 func (g *gitdb) Close() error {
@@ -129,7 +129,7 @@ func (g *gitdb) Close() error {
 	return nil
 }
 
-func (g *gitdb) configure(cfg *Config) {
+func (g *gitdb) configure(cfg Config) {
 
 	if len(cfg.ConnectionName) == 0 {
 		cfg.ConnectionName = defaultConnectionName

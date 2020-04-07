@@ -46,6 +46,8 @@ func (b *block) loadRecords() {
 func (b *block) readBlock() ([]string, error) {
 
 	var result []string
+	var dataBlock map[string]interface{}
+	var record map[string]interface{}
 
 	blockFile := filepath.Join(b.Dataset.DbPath, b.Dataset.Name, b.Name+".json")
 	log("Reading block: " + blockFile)
@@ -54,31 +56,35 @@ func (b *block) readBlock() ([]string, error) {
 		return result, err
 	}
 
-	var dataBlock map[string]interface{}
-	var record map[string]interface{}
+	b.Dataset.BadBlocks = []string{}
+	b.Dataset.BadRecords = []string{}
 
 	if err := json.Unmarshal(data, &dataBlock); err != nil {
 		logError(err.Error())
-		return result, &badBlockError{err.Error() + " - " + blockFile, blockFile}
+		b.Dataset.BadBlocks = append(b.Dataset.BadBlocks, blockFile)
+		return result, errBadBlock
 	}
 
 	recordKeys := orderMapKeys(dataBlock)
 
 	//validates each record json and return a formatted version of the record
-	for _, k := range recordKeys {
-		//TODO handle encrypted records
-		recordStr := dataBlock[k].(string)
+	for _, recordID := range recordKeys {
+		recordStr := dataBlock[recordID].(string)
 
 		//we need to decrypt before we unmarshall
 		recordStr = b.decrypt(recordStr)
 
-		if jsonErr := json.Unmarshal([]byte(recordStr), &record); jsonErr != nil {
-			return result, &badRecordError{jsonErr.Error() + " - " + k, k}
+		if err := json.Unmarshal([]byte(recordStr), &record); err != nil {
+			logError(err.Error())
+			b.Dataset.BadRecords = append(b.Dataset.BadRecords, recordID)
+			return result, errBadRecord
 		}
 
 		var buf bytes.Buffer
-		if jsonErr := json.Indent(&buf, []byte(recordStr), "", "\t"); jsonErr != nil {
-			return result, &badRecordError{jsonErr.Error() + " - " + k, k}
+		if err := json.Indent(&buf, []byte(recordStr), "", "\t"); err != nil {
+			logError(err.Error())
+			b.Dataset.BadRecords = append(b.Dataset.BadRecords, recordID)
+			return result, errBadRecord
 		}
 
 		result = append(result, buf.String())
@@ -99,18 +105,8 @@ func (b *block) decrypt(str string) string {
 func (b *block) records() []*record {
 
 	var records []*record
-	b.Dataset.BadBlocks = []string{}
-	b.Dataset.BadRecords = []string{}
-
 	recs, err := b.readBlock()
-
 	if err != nil {
-		if be, ok := err.(*badBlockError); ok {
-			b.Dataset.BadBlocks = append(b.Dataset.BadBlocks, be.blockFile)
-		} else if re, ok := err.(*badRecordError); ok {
-			b.Dataset.BadRecords = append(b.Dataset.BadRecords, re.recordID)
-		}
-
 		return records
 	}
 

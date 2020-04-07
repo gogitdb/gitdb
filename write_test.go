@@ -64,8 +64,17 @@ func TestDelete(t *testing.T) {
 func TestDeleteOrFail(t *testing.T) {
 	teardown := setup(t, nil)
 	defer teardown(t)
-	err := testDb.DeleteOrFail("non_existent_id")
-	if err == nil {
+
+	m := getTestMessageWithId(0)
+	if err := insert(m, flagFakeRemote); err != nil {
+		t.Errorf("Error: %s", err.Error())
+	}
+
+	if err := testDb.DeleteOrFail("non_existent_id"); err == nil {
+		t.Errorf("Error: %s", err.Error())
+	}
+
+	if err := testDb.DeleteOrFail("Message/b0/1"); err == nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 }
@@ -75,7 +84,7 @@ func TestLock(t *testing.T) {
 	defer teardown(t)
 	m := getTestMessage()
 	err := testDb.Lock(m)
-	if err == nil {
+	if err != nil {
 		t.Errorf("testDb.Lock returned - %s", err)
 	}
 
@@ -86,7 +95,7 @@ func TestUnlock(t *testing.T) {
 	defer teardown(t)
 	m := getTestMessage()
 	err := testDb.Unlock(m)
-	if err == nil {
+	if err != nil {
 		t.Errorf("testDb.Unlock returned - %s", err)
 	}
 }
@@ -94,7 +103,7 @@ func TestUnlock(t *testing.T) {
 func TestGetLockFileNames(t *testing.T) {
 	m := getTestMessage()
 	locks := m.GetLockFileNames()
-	if len(locks) > 0 {
+	if len(locks) != 1 {
 		t.Errorf("testMessage return %d lock files", len(locks))
 	}
 }

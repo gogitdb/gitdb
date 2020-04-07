@@ -38,10 +38,8 @@ func (g *gitdb) generateSSHKeyPair() error {
 		return g.generatePublicKey(privateKey)
 	}
 
-	if _, err := os.Stat(g.sshDir()); err != nil {
-		if err := os.MkdirAll(g.sshDir(), os.ModePerm); err != nil {
-			return err
-		}
+	if err := os.MkdirAll(g.sshDir(), os.ModePerm); err != nil {
+		return err
 	}
 
 	log("Generating ssh key pairs")

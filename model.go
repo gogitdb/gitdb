@@ -45,7 +45,6 @@ type model struct {
 func wrap(m Model) *model {
 	return &model{
 		Version: RecVersion,
-		Indexes: m.GetSchema().indexes,
 		Data:    m,
 	}
 }
@@ -68,5 +67,7 @@ func (m *model) GetLockFileNames() []string {
 }
 
 func (m *model) BeforeInsert() error {
-	return m.Data.BeforeInsert()
+	err := m.Data.BeforeInsert()
+	m.Indexes = m.GetSchema().indexes
+	return err
 }

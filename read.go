@@ -83,7 +83,7 @@ func (g *gitdb) Get(id string, result Model) error {
 	}
 
 	g.events <- newReadEvent("...", id)
-	return record.gHydrate(result, g.config.EncryptionKey)
+	return record.hydrateUsingKey(result, g.config.EncryptionKey)
 }
 
 func (g *gitdb) Exists(id string) error {
@@ -104,7 +104,7 @@ func (g *gitdb) Fetch(dataDir string) ([]*record, error) {
 	}
 
 	log(fmt.Sprintf("%d records found in %s", dataBlock.size(), dataDir))
-	return dataBlock.grecords(g.config.EncryptionKey), nil
+	return dataBlock.records(g.config.EncryptionKey), nil
 }
 
 func (g *gitdb) dofetch(dataBlock *block) error {
@@ -194,5 +194,5 @@ func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 	}
 
 	//log.PutInfo(fmt.Sprintf("Found %d results in %s namespace by %s for '%s'", len(records), query.DataDir, query.Index, strings.Join(query.Values, ",")))
-	return dataBlock.grecords(g.config.EncryptionKey), nil
+	return dataBlock.records(g.config.EncryptionKey), nil
 }

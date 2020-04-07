@@ -12,6 +12,7 @@ type overviewViewModel struct {
 type viewDataSetViewModel struct {
 	baseViewModel
 	DataSet *dataset
+	Block   *block
 	Pager   *pager
 	Content string
 }

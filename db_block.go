@@ -39,21 +39,20 @@ func (b *block) RecordCount() int {
 func (b *block) loadRecords() {
 	//only load record once per block
 	if len(b.Records) == 0 {
-		b.Records = b.records()
+		b.Records = b.readBlock()
 	}
 }
 
-func (b *block) readBlock() ([]string, error) {
-
-	var result []string
+func (b *block) readBlock() []*record {
+	var records []*record
 	var dataBlock map[string]interface{}
-	var record map[string]interface{}
 
 	blockFile := filepath.Join(b.Dataset.DbPath, b.Dataset.Name, b.Name+".json")
 	log("Reading block: " + blockFile)
 	data, err := ioutil.ReadFile(blockFile)
 	if err != nil {
-		return result, err
+		logError(err.Error())
+		return records
 	}
 
 	b.Dataset.BadBlocks = []string{}
@@ -62,7 +61,7 @@ func (b *block) readBlock() ([]string, error) {
 	if err := json.Unmarshal(data, &dataBlock); err != nil {
 		logError(err.Error())
 		b.Dataset.BadBlocks = append(b.Dataset.BadBlocks, blockFile)
-		return result, errBadBlock
+		return records
 	}
 
 	recordKeys := orderMapKeys(dataBlock)
@@ -71,47 +70,18 @@ func (b *block) readBlock() ([]string, error) {
 	for _, recordID := range recordKeys {
 		recordStr := dataBlock[recordID].(string)
 
-		//we need to decrypt before we unmarshall
-		recordStr = b.decrypt(recordStr)
-
-		if err := json.Unmarshal([]byte(recordStr), &record); err != nil {
-			logError(err.Error())
-			b.Dataset.BadRecords = append(b.Dataset.BadRecords, recordID)
-			return result, errBadRecord
-		}
+		//we need to decrypt before we can make it pretty
+		record := newRecord(recordID, recordStr)
+		record.decrypt(b.Dataset.cryptoKey)
 
 		var buf bytes.Buffer
-		if err := json.Indent(&buf, []byte(recordStr), "", "\t"); err != nil {
+		if err := json.Indent(&buf, []byte(record.data), "", "\t"); err != nil {
 			logError(err.Error())
 			b.Dataset.BadRecords = append(b.Dataset.BadRecords, recordID)
-			return result, errBadRecord
+			return records
 		}
-
-		result = append(result, buf.String())
-	}
-
-	return result, err
-}
-
-func (b *block) decrypt(str string) string {
-	dec := decrypt(b.Dataset.cryptoKey, str)
-	if len(dec) > 0 {
-		return dec
-	}
-
-	return str
-}
-
-func (b *block) records() []*record {
-
-	var records []*record
-	recs, err := b.readBlock()
-	if err != nil {
-		return records
-	}
-
-	for _, rec := range recs {
-		records = append(records, &record{Content: rec})
+		record.data = buf.String()
+		records = append(records, record)
 	}
 
 	return records
@@ -123,24 +93,11 @@ func (b *block) table() *table {
 	t := &table{}
 	var jsonMap map[string]interface{}
 
-	//TODO support backward compatibility
-	var rawV2 struct {
-		Indexes map[string]interface{}
-		Data    map[string]interface{}
-	}
-
 	for i, record := range b.Records {
-		if err := json.Unmarshal([]byte(record.Content), &rawV2); err != nil {
-			logError(err.Error())
-		}
 
-		b, err := json.Marshal(rawV2.Data)
-		if err != nil {
+		if err := record.hydrate(&jsonMap); err != nil {
 			logError(err.Error())
-		}
-
-		if err := json.Unmarshal(b, &jsonMap); err != nil {
-			logError(err.Error())
+			continue
 		}
 
 		var row []string
@@ -215,10 +172,10 @@ func (b *block) size() int {
 	return len(b.recs)
 }
 
-func (b *block) grecords(key string) []*record {
+func (b *block) records(key string) []*record {
 	var records []*record
 	for _, v := range b.recs {
-		v.key = key
+		v.decrypt(key)
 		records = append(records, v)
 	}
 

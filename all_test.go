@@ -99,7 +99,7 @@ func getDbConn(t testing.TB, cfg *gitdb.Config) gitdb.GitDb {
 
 func getConfig() *gitdb.Config {
 	config := gitdb.NewConfig(dbPath)
-	// config.SyncInterval = time.Second * 120
+	config.EncryptionKey = "b61ba8270ccc3c1d42b4417e7bd60b71"
 	if flagFakeRemote {
 		config.OnlineRemote = fakeRemote
 	}
@@ -164,10 +164,14 @@ func (m *Message) GetSchema() *gitdb.Schema {
 	return gitdb.NewSchema(name, block, record, indexes)
 }
 
-func (m *Message) Validate() error            { return nil }
-func (m *Message) IsLockable() bool           { return false }
-func (m *Message) ShouldEncrypt() bool        { return false }
-func (m *Message) GetLockFileNames() []string { return []string{} }
+func (m *Message) Validate() error     { return nil }
+func (m *Message) IsLockable() bool    { return true }
+func (m *Message) ShouldEncrypt() bool { return true }
+func (m *Message) GetLockFileNames() []string {
+	return []string{
+		fmt.Sprintf("%d-%s", m.MessageId, m.From),
+	}
+}
 
 // func (m *Message) BeforeInsert() error { return nil }
 
@@ -237,7 +241,7 @@ func insert(m gitdb.Model, benchmark bool) error {
 		return err
 	}
 
-	if !benchmark {
+	if !benchmark && !m.ShouldEncrypt() {
 		//check that block file exist
 		recordID := gitdb.ID(m)
 		dataset, block, _, err := gitdb.ParseID(recordID)

@@ -1,6 +1,11 @@
 package gitdb_test
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+
+	"github.com/fobilow/gitdb/v2"
+)
 
 func TestMigrate(t *testing.T) {
 	teardown := setup(t, nil)
@@ -15,5 +20,24 @@ func TestMigrate(t *testing.T) {
 
 	if err := testDb.Migrate(m, m2); err != nil {
 		t.Errorf("testDb.Migrate() returned error - %s", err)
+	}
+}
+
+func TestNewConfig(t *testing.T) {
+	cfg := gitdb.NewConfig(dbPath)
+	db, err := gitdb.Open(cfg)
+	if err != nil {
+		t.Errorf("gitdb.Open failed: %s", err)
+	}
+
+	if reflect.DeepEqual(db.Config(), cfg) {
+		t.Errorf("Config does not match. want: %v, got: %v", cfg, db.Config())
+	}
+}
+
+func TestConfigValidate(t *testing.T) {
+	cfg := &gitdb.Config{}
+	if err := cfg.Validate(); err == nil {
+		t.Errorf("cfg.Validate should fail if DbPath is %s", cfg.DbPath)
 	}
 }

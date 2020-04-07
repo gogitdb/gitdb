@@ -8,8 +8,9 @@ import (
 	"strings"
 )
 
-func (g *gitdb) Lock(m Model) error {
+func (g *gitdb) Lock(mo Model) error {
 
+	m := wrap(mo)
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
 	}
@@ -32,7 +33,7 @@ func (g *gitdb) Lock(m Model) error {
 		//when locking a model, lockfile should not exist
 		if _, err := os.Stat(lockFile); err == nil {
 			if derr := g.deleteLockFiles(lockFilesWritten); derr != nil {
-				//log.PutError(derr.Error())
+				logError(derr.Error())
 			}
 			return errors.New("Lock file already exist: " + lockFile)
 		}
@@ -40,7 +41,7 @@ func (g *gitdb) Lock(m Model) error {
 		err := ioutil.WriteFile(lockFile, []byte(""), 0644)
 		if err != nil {
 			if derr := g.deleteLockFiles(lockFilesWritten); derr != nil {
-				//log.PutError(derr.Error())
+				logError(derr.Error())
 			}
 			return errors.New("Failed to write lock " + lockFile + ": " + err.Error())
 		}
@@ -48,13 +49,18 @@ func (g *gitdb) Lock(m Model) error {
 		lockFilesWritten = append(lockFilesWritten, lockFile)
 	}
 
+	g.commit.Add(1)
 	commitMsg := "Created Lock Files for: " + ID(m)
 	g.events <- newWriteEvent(commitMsg, fullPath, g.autoCommit)
+
+	//block here until write has been committed
+	g.waitForCommit()
 	return nil
 }
 
-func (g *gitdb) Unlock(m Model) error {
+func (g *gitdb) Unlock(mo Model) error {
 
+	m := wrap(mo)
 	if !m.IsLockable() {
 		return errors.New("Model is not lockable")
 	}
@@ -74,8 +80,12 @@ func (g *gitdb) Unlock(m Model) error {
 		}
 	}
 
+	g.commit.Add(1)
 	commitMsg := "Removing Lock Files for: " + ID(m)
 	g.events <- newWriteEvent(commitMsg, fullPath, g.autoCommit)
+
+	//block here until write has been committed
+	g.waitForCommit()
 	return nil
 }
 

@@ -1,5 +1,7 @@
 package gitdb
 
+import "fmt"
+
 type operation func() error
 
 type transaction struct {
@@ -13,11 +15,12 @@ func (t *transaction) Commit() error {
 	for _, o := range t.operations {
 		if err := o(); err != nil {
 			log("Reverting transaction: " + err.Error())
-			err := t.db.gitUndo()
-			if err != nil {
-				return err
-			}
+			err2 := t.db.gitUndo()
 			t.db.autoCommit = true
+			if err2 != nil {
+				err = fmt.Errorf("%s - %s", err.Error(), err2.Error())
+			}
+
 			return err
 		}
 	}

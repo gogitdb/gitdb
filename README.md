@@ -12,7 +12,7 @@ GitDB
 
 > GitDB is not a binary. It’s a library!
 
-GitDB is a decentralized document database written in Go. It provides database-like functionalities via strictly defined interfaces. 
+GitDB is a decentralized document database written in Go that uses [Git](https://git-scm.com/) under the hood to provide database-like functionalities via strictly defined interfaces. 
 
 GitDB allows developers to create Models of objects in their application which implement a Model Interface that can access it's persistence features. This allows GitDB to work with these objects in database operations. 
 
@@ -82,7 +82,7 @@ Below are configuration options provided by GitDB
   <tr>
   <tr>
     <td>DbPath</td>
-    <td>Path on computer where you want GitDB to create/clone your database</td>
+    <td>Path on your machine where you want GitDB to create/clone your database</td>
     <td>string</td>
     <td>Y</td>
     <td>N/A</td>
@@ -97,8 +97,8 @@ Below are configuration options provided by GitDB
   <tr>
     <td>OnlineRemote</td>
     <td>URL for remote git server you want GitDB to sync with e.g git@github.com:user/db.git or https://github.com/user/db.git.
-    <p>Note: GitDB automatically generates ssh keys for every database and will automatically use this key to sync with the OnlineRemote,
-    therefore ensure that the generated keys are added to this git server. The ssh keys can be found at <i>Config.DbPath/.gitdb/.ssh</i></p>
+    <p><strong>Note: The first time GitDB runs, it will automatically generate ssh keys and will automatically attempt to use this key to sync with the OnlineRemote,
+    therefore ensure that the generated keys are added to this git server. The ssh keys can be found at <i>Config.DbPath/.gitdb/ssh</i></strong></p>
     </td>
     <td>string</td>
     <td>N</td>
@@ -113,7 +113,7 @@ Below are configuration options provided by GitDB
   </tr>
   <tr>
     <td>EncryptionKey</td>
-    <td>16,24, or 32 byte string used to provide AES encryption for Models that implement ShouldEncrypt</td>
+    <td>16,24 or 32 byte string used to provide AES encryption for Models that implement ShouldEncrypt</td>
     <td>string</td>
     <td>N</td>
     <td>""</td>
@@ -123,7 +123,7 @@ Below are configuration options provided by GitDB
     <td>This specifies the user connected to the Gitdb and will be used to commit all changes to the database</td>
     <td>gitdb.User</td>
     <td>N</td>
-    <td>ghost &#x3C;ghost@local&#x3E;</td>
+    <td>ghost &#x3C;ghost@gitdb.local&#x3E;</td>
   </tr>
   <tr>
     <td>EnableUI</td>

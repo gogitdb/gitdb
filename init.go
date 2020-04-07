@@ -95,10 +95,11 @@ func (g *gitdb) boot() error {
 		return err
 	}
 
-	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i '%s' -o 'StrictHostKeyChecking no'", g.privateKeyFilePath()))
+	//force git to only use generated ssh key and not fallback to ssh_config or ssh-agent
+	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -F none -i '%s' -o IdentitiesOnly=yes -o StrictHostKeyChecking=no", g.privateKeyFilePath()))
 
-	// if .db directory does not exist and create it and attempt
-	// to do a git pull from remote
+	// if .db directory does not exist, create it and attempt
+	// to do a git clone from remote
 	dataDir := g.dbDir()
 	dotGitDir := filepath.Join(dataDir, ".git")
 	if _, err := os.Stat(dataDir); err != nil {

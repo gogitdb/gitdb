@@ -20,8 +20,7 @@ type block struct {
 	BadRecords []string
 
 	//recs used to provide hydration and sorting
-	recs    map[string]*record
-	dataset string
+	recs map[string]*record
 }
 
 //HumanSize returns human readable size of a block
@@ -118,8 +117,8 @@ func (b *block) table() *table {
 	return t
 }
 
-func newBlock(dataset string) *block {
-	block := &block{dataset: dataset}
+func newBlock() *block {
+	block := &block{}
 	block.recs = map[string]*record{}
 	return block
 }

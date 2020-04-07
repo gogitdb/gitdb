@@ -18,7 +18,7 @@ func (g *gitdb) loadBlock(blockFile string, dataset string) (*block, error) {
 
 	//if block file exist, read it and load into map else return an empty block
 	if _, ok := g.loadedBlocks[blockFile]; !ok {
-		g.loadedBlocks[blockFile] = newBlock(dataset)
+		g.loadedBlocks[blockFile] = newBlock()
 		if _, err := os.Stat(blockFile); err == nil {
 			err := g.readBlock(blockFile, g.loadedBlocks[blockFile])
 			if err != nil {
@@ -56,7 +56,7 @@ func (g *gitdb) doget(id string) (*record, error) {
 		return nil, errors.New(dataDir + " Not Found - " + id)
 	}
 
-	dataBlock := newBlock(dataDir)
+	dataBlock := newBlock()
 	err = g.readBlock(dataFilePath, dataBlock)
 	if err != nil {
 		logError(err.Error())
@@ -95,21 +95,21 @@ func (g *gitdb) Exists(id string) error {
 	return err
 }
 
-func (g *gitdb) Fetch(dataDir string) ([]*record, error) {
+func (g *gitdb) Fetch(dataset string) ([]*record, error) {
 
-	dataBlock := newBlock(dataDir)
-	err := g.dofetch(dataBlock)
+	dataBlock := newBlock()
+	err := g.dofetch(dataset, dataBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	log(fmt.Sprintf("%d records found in %s", dataBlock.size(), dataDir))
+	log(fmt.Sprintf("%d records found in %s", dataBlock.size(), dataset))
 	return dataBlock.records(g.config.EncryptionKey), nil
 }
 
-func (g *gitdb) dofetch(dataBlock *block) error {
+func (g *gitdb) dofetch(dataset string, dataBlock *block) error {
 
-	fullPath := filepath.Join(g.dbDir(), dataBlock.dataset)
+	fullPath := filepath.Join(g.dbDir(), dataset)
 	//events <- newReadEvent("...", fullPath)
 	log("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
@@ -170,7 +170,7 @@ func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 
 	}
 
-	dataBlock := newBlock(dataDir)
+	dataBlock := newBlock()
 
 	//filter out the blocks that we need to search
 	searchBlocks := map[string]string{}

@@ -19,13 +19,6 @@ type pager struct {
 	totalRecords int
 }
 
-//reset the pager
-func (p *pager) reset() {
-	log("Resetting pager")
-	p.blockPage = 0
-	p.recordPage = 0
-}
-
 //set page of Pager
 func (p *pager) set(blockFlag string, recordFlag string) {
 	logTest("Setting pager: " + blockFlag + "," + recordFlag)
@@ -33,7 +26,7 @@ func (p *pager) set(blockFlag string, recordFlag string) {
 	p.recordPage, _ = strconv.Atoi(recordFlag)
 }
 
-//NextRecordURI returns the uri for the next page
+//NextRecordURI returns the uri for the next record
 func (p *pager) NextRecordURI() string {
 	recordPage := p.recordPage
 	if p.recordPage < p.totalRecords-1 {
@@ -43,7 +36,7 @@ func (p *pager) NextRecordURI() string {
 	return fmt.Sprintf("b%d/r%d", p.blockPage, recordPage)
 }
 
-//PrevRecordURI returns uri for the previous page
+//PrevRecordURI returns uri for the previous record
 func (p *pager) PrevRecordURI() string {
 	recordPage := p.recordPage
 	if p.recordPage > 0 {

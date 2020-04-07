@@ -8,7 +8,7 @@ var packageTmpl = template.Must(template.New("package").Parse(`package gitdb
 func init() {
 	//Embed Files
 	{{range .Files}}
-	getUI().embed("{{.Name}}", "{{.Content}}")
+	getFs().embed("{{.Name}}", "{{.Content}}")
 	{{end}}
 }
 `))

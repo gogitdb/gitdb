@@ -8,142 +8,207 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
-	"path"
-	"runtime"
 	"time"
 
 	"github.com/gorilla/mux"
 )
 
-var serverRoot = "./"
-var ui *gui
+var fs *fileSystem
 
-//getUI provides an API to run getUI server from outside this package
-func getUI() GUI {
-	if ui == nil {
-		ui = &gui{}
-		ui.files = make(map[string]string)
+func getFs() *fileSystem {
+	if fs == nil {
+		fs = &fileSystem{}
 	}
-	return ui
+	return fs
 }
 
 func (g *gitdb) startUI() {
-	go getUI().serve(g)
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf("localhost:%d", g.config.UIPort),
+		Handler: new(router).configure(g.config),
+	}
+
+	log("GitDB GUI will run at http://" + server.Addr)
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			logError(err.Error())
+		}
+	}()
+
 	//listen for shutdown event
 	go func() {
 		<-g.shutdown
-		if ui.server != nil {
-			ui.server.Shutdown(context.TODO())
+		if server != nil {
+			server.Shutdown(context.TODO())
 		}
 		logTest("shutting down UI server")
 		return
 	}()
 }
 
-//GUI interface
-type GUI interface {
-	serve(GitDb)
-	embed(name, src string)
+type fileSystem struct {
+	files map[string]string
 }
 
-type gui struct {
-	server *http.Server
-	files  map[string]string
+func (e *fileSystem) embed(name, src string) {
+	if e.files == nil {
+		e.files = make(map[string]string)
+	}
+	e.files[name] = src
 }
 
-var nextDatasetRefresh time.Time
+func (e *fileSystem) has(name string) bool {
+	_, ok := e.files[name]
+	return ok
+}
 
-func (e *gui) serve(db GitDb) {
-
-	_, filename, _, ok := runtime.Caller(0)
-	if ok {
-		serverRoot = path.Dir(filename)
+func (e *fileSystem) get(name string) []byte {
+	content := e.files[name]
+	decoded, err := base64.StdEncoding.DecodeString(content)
+	if err != nil {
+		logError(err.Error())
+		return []byte("")
 	}
 
-	uh := &uiHandler{}
-	eps := uh.getEndpoints()
+	return decoded
+}
+
+//router provides all the http handlers for the UI
+type router struct {
+	datasets  []*dataset
+	refreshAt time.Time
+}
+
+func (u *router) configure(cfg Config) *mux.Router {
 	router := mux.NewRouter()
-	for _, ep := range eps {
-		router.HandleFunc(ep.Path, ep.Handler)
+	for path, handler := range u.getEndpoints() {
+		router.HandleFunc(path, handler)
 	}
-
-	port := db.Config().UIPort
-	if port == 0 {
-		port = defaultUIPort
-	}
-
-	addr := fmt.Sprintf("localhost:%d", port)
-	log(fmt.Sprintf("Server Root : %q", path.Dir(filename)))
-	log("GitDB GUI will run at http://" + addr)
 
 	//refresh dataset after 1 minute
 	router.Use(func(h http.Handler) http.Handler {
-
-		if nextDatasetRefresh.IsZero() || nextDatasetRefresh.Before(time.Now()) {
-			uh.datasets = loadDatasets(db.Config())
-			nextDatasetRefresh = time.Now().Add(time.Minute * 1)
+		if u.refreshAt.IsZero() || u.refreshAt.Before(time.Now()) {
+			u.datasets = loadDatasets(cfg)
+			u.refreshAt = time.Now().Add(time.Second * 10)
 		}
 
 		return h
 	})
 
-	e.server = &http.Server{Addr: addr, Handler: router}
+	return router
+}
 
-	if err := e.server.ListenAndServe(); err != nil {
-		logError(err.Error())
+//getEndpoints maps a path to a http handler
+func (u *router) getEndpoints() map[string]http.HandlerFunc {
+	return map[string]http.HandlerFunc{
+		"/css/app.css":              u.appCSS,
+		"/js/app.js":                u.appJS,
+		"/":                         u.overview,
+		"/errors/{dataset}":         u.viewErrors,
+		"/list/{dataset}":           u.list,
+		"/view/{dataset}":           u.view,
+		"/view/{dataset}/b{b}/r{r}": u.view,
 	}
 }
 
-func (e *gui) embed(name, src string) {
-	e.files[name] = src
+func (u *router) appCSS(w http.ResponseWriter, r *http.Request) {
+	src := readView("static/css/app.css")
+	w.Header().Set("Content-Type", "text/css")
+	w.Write(src)
 }
 
-func (e *gui) has(name string) bool {
-	_, ok := e.files[name]
-	return ok
+func (u *router) appJS(w http.ResponseWriter, r *http.Request) {
+	src := readView("static/js/app.js")
+	w.Header().Set("Content-Type", "text/javascript")
+	w.Write(src)
 }
 
-func (e *gui) get(name string) string {
-	content := e.files[name]
-	decoded, err := base64.StdEncoding.DecodeString(content)
-	if err != nil {
-		logError(err.Error())
-		return ""
+func (u *router) overview(w http.ResponseWriter, r *http.Request) {
+	viewModel := &overviewViewModel{}
+	viewModel.Title = "Overview"
+	viewModel.DataSets = u.datasets
+
+	render(w, viewModel, "static/index.html", "static/sidebar.html")
+}
+
+func (u *router) list(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	viewDs := vars["dataset"]
+
+	dataset := u.findDataset(viewDs)
+	if dataset == nil {
+		w.Write([]byte("Dataset (" + viewDs + ") does not exist"))
+		return
 	}
 
-	return string(decoded)
+	block := dataset.Block(0)
+	table := block.table()
+	viewModel := &listDataSetViewModel{DataSet: dataset, Table: table}
+	viewModel.DataSets = u.datasets
+
+	render(w, viewModel, "static/list.html", "static/sidebar.html")
 }
 
-//endpoint maps a path to a http handler
-type endpoint struct {
-	Path    string
-	Handler func(w http.ResponseWriter, r *http.Request)
-}
+func (u *router) view(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	viewDs := vars["dataset"]
 
-//uiHandler provides all the http handlers for the UI
-type uiHandler struct {
-	datasets []*dataset
-}
-
-func (u *uiHandler) getEndpoints() []*endpoint {
-	return []*endpoint{
-		{"/css/app.css", u.appCSS},
-		{"/js/app.js", u.appJS},
-		{"/", u.overview},
-		{"/errors/{dataset}", u.viewErrors},
-		{"/list/{dataset}", u.list},
-		{"/view/{dataset}", u.view},
-		{"/view/{dataset}/b{b}/r{r}", u.view},
+	dataset := u.findDataset(viewDs)
+	if dataset == nil {
+		w.Write([]byte("Dataset (" + viewDs + ") does not exist"))
+		return
 	}
+
+	viewModel := &viewDataSetViewModel{
+		DataSet: dataset,
+		Content: "No record found",
+		Pager:   &pager{totalBlocks: dataset.BlockCount()},
+	}
+	viewModel.DataSets = u.datasets
+	if vars["b"] != "" && vars["r"] != "" {
+		viewModel.Pager.set(vars["b"], vars["r"])
+	}
+	block := dataset.Block(viewModel.Pager.blockPage)
+	viewModel.Block = block
+	viewModel.Pager.totalRecords = block.RecordCount()
+	if viewModel.Pager.totalRecords > viewModel.Pager.recordPage {
+		viewModel.Content = block.Records[viewModel.Pager.recordPage].data
+	}
+
+	render(w, viewModel, "static/view.html", "static/sidebar.html")
 }
 
-func (u *uiHandler) render(w http.ResponseWriter, data interface{}, templates ...string) {
+func (u *router) viewErrors(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	viewDs := vars["dataset"]
+
+	dataset := u.findDataset(viewDs)
+	if dataset == nil {
+		w.Write([]byte("Dataset (" + viewDs + ") does not exist"))
+		return
+	}
+	viewModel := &errorsViewModel{DataSet: dataset}
+	viewModel.Title = "Errors"
+	viewModel.DataSets = u.datasets
+
+	render(w, viewModel, "static/errors.html", "static/sidebar.html")
+}
+
+func (u *router) findDataset(name string) *dataset {
+	for _, ds := range u.datasets {
+		if ds.Name == name {
+			return ds
+		}
+	}
+	return nil
+}
+
+func render(w http.ResponseWriter, data interface{}, templates ...string) {
 
 	parseFiles := false
-	fTemplates := make([]string, len(templates))
-	for i, template := range templates {
-		fTemplates[i] = template
-		if !ui.has(fTemplates[i]) {
+	for _, template := range templates {
+		if !getFs().has(template) {
 			parseFiles = true
 		}
 	}
@@ -151,15 +216,15 @@ func (u *uiHandler) render(w http.ResponseWriter, data interface{}, templates ..
 	var t *template.Template
 	var err error
 	if parseFiles {
-		t, err = template.ParseFiles(fTemplates...)
+		t, err = template.ParseFiles(templates...)
 		if err != nil {
 			logError(err.Error())
 		}
 	} else {
 		t = template.New("overview")
-		for _, template := range fTemplates {
+		for _, template := range templates {
 			logTest("Reading EMBEDDED file - " + template)
-			t, err = t.Parse(ui.get(template))
+			t, err = t.Parse(string(getFs().get(template)))
 			if err != nil {
 				logError(err.Error())
 			}
@@ -169,122 +234,16 @@ func (u *uiHandler) render(w http.ResponseWriter, data interface{}, templates ..
 	t.Execute(w, data)
 }
 
-func (u *uiHandler) appCSS(w http.ResponseWriter, r *http.Request) {
-	src := readView("static/css/app.css")
-	w.Header().Set("Content-Type", "text/css")
-	w.Write([]byte(src))
-}
-
-func (u *uiHandler) appJS(w http.ResponseWriter, r *http.Request) {
-	src := readView("static/js/app.js")
-	w.Header().Set("Content-Type", "text/javascript")
-	w.Write([]byte(src))
-}
-
-func (u *uiHandler) overview(w http.ResponseWriter, r *http.Request) {
-
-	viewModel := &overviewViewModel{}
-	viewModel.Title = "Overview"
-	viewModel.DataSets = u.datasets
-
-	u.render(w, viewModel, "static/index.html", "static/sidebar.html")
-}
-
-func (u *uiHandler) list(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	viewDs := vars["dataset"]
-
-	dataset := u.findDataset(viewDs)
-	if dataset != nil {
-		block := dataset.Blocks[0]
-		table := block.table()
-
-		viewModel := &listDataSetViewModel{DataSet: dataset, Table: table}
-		viewModel.DataSets = u.datasets
-
-		u.render(w, viewModel, "static/list.html", "static/sidebar.html")
-	} else {
-		w.Write([]byte("Dataset (" + viewDs + ") does not exist"))
-	}
-}
-
-func (u *uiHandler) view(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	viewModel := &viewDataSetViewModel{}
-	if viewModel.Pager == nil {
-		viewModel.Pager = &pager{}
-	}
-
-	viewDs := vars["dataset"]
-	blockFlag := vars["b"]
-	recordFlag := vars["r"]
-
-	if blockFlag == "" && recordFlag == "" {
-		viewModel.Pager.reset()
-	} else {
-		viewModel.Pager.set(blockFlag, recordFlag)
-	}
-
-	dataset := u.findDataset(viewDs)
-	if dataset != nil {
-		block := dataset.Blocks[viewModel.Pager.blockPage]
-
-		viewModel.Pager.totalBlocks = dataset.BlockCount()
-		viewModel.Pager.totalRecords = block.RecordCount()
-
-		content := "No record found"
-		if block.RecordCount() > viewModel.Pager.recordPage {
-			content = block.Records[viewModel.Pager.recordPage].Content
-		}
-
-		viewModel.DataSet = dataset
-		viewModel.Content = content
-		viewModel.DataSets = u.datasets
-
-		u.render(w, viewModel, "static/view.html", "static/sidebar.html")
-	} else {
-		w.Write([]byte("Dataset (" + viewDs + ") does not exist"))
-	}
-}
-
-func (u *uiHandler) viewErrors(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	viewDs := vars["dataset"]
-
-	dataset := u.findDataset(viewDs)
-	if dataset != nil {
-		viewModel := &errorsViewModel{DataSet: dataset}
-		viewModel.Title = "Errors"
-		viewModel.DataSets = u.datasets
-
-		u.render(w, viewModel, "static/errors.html", "static/sidebar.html")
-	} else {
-		w.Write([]byte("Dataset (" + viewDs + ") does not exist"))
-	}
-}
-
-func (u *uiHandler) findDataset(name string) *dataset {
-	for _, ds := range u.datasets {
-		if ds.Name == name {
-			return ds
-		}
-	}
-	return nil
-}
-
-func readView(fileName string) string {
-	if ui.has(fileName) {
-		return ui.get(fileName)
+func readView(fileName string) []byte {
+	if getFs().has(fileName) {
+		return getFs().get(fileName)
 	}
 
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		logError(err.Error())
-		return ""
+		return []byte("")
 	}
 
-	return string(data)
+	return data
 }

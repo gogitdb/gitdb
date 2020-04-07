@@ -139,6 +139,10 @@ func (g *gitdb) configure(cfg Config) {
 		cfg.SyncInterval = defaultSyncInterval
 	}
 
+	if cfg.UIPort == 0 {
+		cfg.UIPort = defaultUIPort
+	}
+
 	if g.gitDriver == nil {
 		g.gitDriver = defaultDbDriver
 	}
@@ -157,7 +161,7 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 	}
 
 	oldBlocks := map[string]string{}
-	for _, record := range block.grecords("") {
+	for _, record := range block.records(g.config.EncryptionKey) {
 
 		_, blockID, _, _ := ParseID(record.id)
 		if _, ok := oldBlocks[blockID]; !ok {
@@ -167,7 +171,7 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 			oldBlocks[blockID] = blockFilePath
 		}
 
-		err = record.gHydrate(to, g.config.EncryptionKey)
+		err = record.hydrate(to)
 		if err != nil {
 			return err
 		}

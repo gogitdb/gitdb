@@ -50,7 +50,6 @@ func (g *gitBinary) addRemote() error {
 	}
 
 	remoteStr := string(out)
-	log(remoteStr)
 	hasOriginRemote := strings.Contains(remoteStr, "origin")
 	hasOnlineRemote := strings.Contains(remoteStr, "online")
 

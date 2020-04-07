@@ -14,24 +14,7 @@ func (g *gitdb) updateIndexes(dataset string, records ...*record) {
 	g.indexUpdated = true
 	indexPath := g.indexPath(dataset)
 	for _, record := range records {
-		for name, value := range record.indexes(g.config.EncryptionKey) {
-			indexFile := filepath.Join(indexPath, name+".json")
-			if _, ok := g.indexCache[indexFile]; !ok {
-				g.indexCache[indexFile] = g.readIndex(indexFile)
-			}
-			g.indexCache[indexFile][record.id] = value
-		}
-	}
-}
-
-//for read-only backward compatibility with earlier versions of GitDB
-func (g *gitdb) updateIndexesV1(dataset string, records ...*record) {
-	g.indexUpdated = true
-	indexPath := g.indexPath(dataset)
-	model := g.config.Factory(dataset)
-	for _, record := range records {
-		record.gHydrate(model, g.config.EncryptionKey)
-		for name, value := range model.GetSchema().indexes {
+		for name, value := range record.indexes(dataset, g.config.Factory) {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)
@@ -97,14 +80,7 @@ func (g *gitdb) buildIndex() {
 			continue
 		}
 
-		if len(records) > 0 {
-			if records[0].version() == "v1" {
-				g.updateIndexesV1(dataset.Name, records...)
-				continue
-			}
-
-			g.updateIndexes(dataset.Name, records...)
-		}
+		g.updateIndexes(dataset.Name, records...)
 	}
 	log("Building index complete")
 }

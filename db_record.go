@@ -7,9 +7,6 @@ import (
 
 //record represents a model stored in gitdb
 type record struct {
-	//used by UI
-	Content string
-
 	id    string
 	data  string
 	index map[string]interface{}
@@ -20,31 +17,29 @@ func newRecord(id, data string) *record {
 	return &record{id: id, data: data}
 }
 
+//Hydrate assumes record has already been decrypted because
+//it is usually called after a Fetch or Search which means
+//block.grecords would have been called, which inturn
+//decrypts all records it returns
 func (r *record) Hydrate(model Model) error {
-	//check if decryption is required
-	if model.ShouldEncrypt() {
-		r = r.decrypt(r.key)
+	return r.hydrate(model)
+}
+
+func (r *record) hydrateUsingKey(model Model, key string) error {
+	if len(key) > 0 {
+		r.decrypt(key)
 	}
 
 	return r.hydrate(model)
 }
 
-func (r *record) gHydrate(model Model, key string) error {
-	if model.ShouldEncrypt() && len(key) > 0 {
-		r = r.decrypt(key)
-	}
-
-	return r.hydrate(model)
-}
-
-func (r *record) decrypt(key string) *record {
-	r2 := *r
+func (r *record) decrypt(key string) {
 	logTest("decrypting with: " + key)
-	dec := decrypt(key, r2.data)
+	dec := decrypt(key, r.data)
 	if len(dec) > 0 {
-		r2.data = dec
+		r.data = dec
 	}
-	return &r2
+
 }
 
 func (r *record) version() string {
@@ -100,9 +95,18 @@ func (r *record) hydrateByVersion(model interface{}, version string) error {
 	return nil
 }
 
-func (r *record) indexes(key string) map[string]interface{} {
-	var m map[string]interface{}
-	r.hydrate(&m)
+//indexes takes a factory for read-only backward compatibility with earlier versions of GitDB
+func (r *record) indexes(dataset string, factory func(name string) Model) map[string]interface{} {
+
+	if r.version() == "v1" && factory != nil {
+		//todo cache this model?
+		model := factory(dataset)
+		r.hydrateByVersion(model, "v1")
+	} else {
+		var m map[string]interface{}
+		r.hydrate(&m)
+	}
+
 	return r.index
 }
 

@@ -36,14 +36,19 @@ func (d *dataset) HumanSize() string {
 
 //BlockCount returns the number of blocks in a DataSet
 func (d *dataset) BlockCount() int {
+	if len(d.Blocks) == 0 {
+		d.loadBlocks()
+	}
 	return len(d.Blocks)
 }
 
 //RecordCount returns the number of records in a DataSet
 func (d *dataset) RecordCount() int {
 	count := 0
-	for _, block := range d.Blocks {
-		count += block.RecordCount()
+	if d.BlockCount() > 0 {
+		for _, block := range d.Blocks {
+			count += block.RecordCount()
+		}
 	}
 
 	return count
@@ -67,6 +72,15 @@ func (d *dataset) BadRecordsCount() int {
 	return len(d.BadRecords)
 }
 
+//Block returns the number of bad records in a DataSet
+func (d *dataset) Block(i int) *block {
+	if len(d.Blocks) == 0 {
+		d.loadBlocks() //hack to get records loaded so errors can be populated in dataset
+	}
+
+	return d.Blocks[i]
+}
+
 //LastModifiedDate returns the last modifidation time of a DataSet
 func (d *dataset) LastModifiedDate() string {
 	return d.LastModified.Format("02 Jan 2006 15:04:05")
@@ -74,15 +88,9 @@ func (d *dataset) LastModifiedDate() string {
 
 //loadBlocks reads all blocks in a Dataset into memory
 func (d *dataset) loadBlocks() {
-	d.Blocks = d.blocks()
-}
-
-func (d *dataset) blocks() []*block {
-	var blocks []*block
 	blks, err := ioutil.ReadDir(filepath.Join(d.DbPath, d.Name))
 	if err != nil {
 		logError(err.Error())
-		return blocks
 	}
 
 	for _, blk := range blks {
@@ -95,11 +103,9 @@ func (d *dataset) blocks() []*block {
 				Size:    blk.Size(),
 			}
 
-			blocks = append(blocks, b)
+			d.Blocks = append(d.Blocks, b)
 		}
 	}
-
-	return blocks
 }
 
 //Indexes returns the indexes set on a DataSet
@@ -139,7 +145,6 @@ func loadDatasets(cfg Config) []*dataset {
 				cryptoKey:    cfg.EncryptionKey,
 			}
 
-			ds.loadBlocks()
 			datasets = append(datasets, ds)
 		}
 	}

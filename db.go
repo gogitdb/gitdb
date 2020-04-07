@@ -154,8 +154,8 @@ func (g *gitdb) configure(cfg Config) {
 
 //todo add revert logic if migrate fails mid way
 func (g *gitdb) Migrate(from Model, to Model) error {
-	block := newBlock(from.GetSchema().name())
-	err := g.dofetch(block)
+	block := newBlock()
+	err := g.dofetch(from.GetSchema().name(), block)
 	if err != nil {
 		return err
 	}
@@ -163,11 +163,11 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 	oldBlocks := map[string]string{}
 	for _, record := range block.records(g.config.EncryptionKey) {
 
-		_, blockID, _, _ := ParseID(record.id)
+		dataset, blockID, _, _ := ParseID(record.id)
 		if _, ok := oldBlocks[blockID]; !ok {
 			blockFile := blockID + ".json"
 			logTest(blockFile)
-			blockFilePath := filepath.Join(g.dbDir(), block.dataset, blockFile)
+			blockFilePath := filepath.Join(g.dbDir(), dataset, blockFile)
 			oldBlocks[blockID] = blockFilePath
 		}
 

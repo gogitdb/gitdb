@@ -189,7 +189,7 @@ func (g *gitdb) delByID(id string, dataset string, blockFile string, failIfNotFo
 		return nil
 	}
 
-	dataBlock := newBlock(dataset)
+	dataBlock := newBlock()
 	err := g.readBlock(blockFile, dataBlock)
 	if err != nil {
 		return err

@@ -23,7 +23,6 @@ type BookingModel struct {
 	UserId       string
 	NextOfKin    string
 	Purpose      string
-	AutoId       int64
 }
 
 func NewBookingModel() *BookingModel {

@@ -17,15 +17,15 @@ type LogLevel int
 
 const (
 	//LogLevelNone - log nothing
-	LogLevelNone LogLevel = 0
+	LogLevelNone LogLevel = iota
 	//LogLevelError - logs only errors
-	LogLevelError LogLevel = 1
+	LogLevelError
 	//LogLevelWarning  - logs warning and errors
-	LogLevelWarning LogLevel = 2
+	LogLevelWarning
 	//LogLevelTest - logs only debug messages
-	LogLevelTest LogLevel = 3
+	LogLevelTest
 	//LogLevelInfo - logs info, warining and errors
-	LogLevelInfo LogLevel = 4
+	LogLevelInfo
 )
 
 //getVerbosity defaults verbosity to LogLevelWarning if a verbosity is not set

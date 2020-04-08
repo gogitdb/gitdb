@@ -75,7 +75,6 @@ type gitdb struct {
 
 	indexCache   gdbIndexCache
 	loadedBlocks map[string]*block
-	writeQueue   map[string]Model
 
 	mails []*mail
 }
@@ -108,11 +107,7 @@ func (g *gitdb) Close() error {
 		return nil
 	}
 
-	//flush queue and index to disk
-	if err := g.flushQueue(); err != nil {
-		return err
-	}
-
+	//flush index to disk
 	if err := g.flushIndex(); err != nil {
 		return err
 	}

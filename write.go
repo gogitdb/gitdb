@@ -23,9 +23,6 @@ func (g *gitdb) Insert(mo Model) error {
 		return err
 	}
 
-	if err := g.flushQueue(); err != nil {
-		log(err.Error())
-	}
 	return g.write(m)
 }
 
@@ -46,33 +43,6 @@ func (g *gitdb) InsertMany(models []Model) error {
 		tx.AddOperation(f)
 	}
 	return tx.Commit()
-}
-
-func (g *gitdb) queue(m Model) error {
-
-	if g.writeQueue == nil {
-		g.writeQueue = map[string]Model{}
-	}
-
-	g.writeQueue[ID(m)] = m
-	return nil
-}
-
-func (g *gitdb) flushQueue() error {
-
-	for id, model := range g.writeQueue {
-		log("Flushing: " + id)
-
-		err := g.write(model)
-		if err != nil {
-			logError(err.Error())
-			return err
-		}
-
-		delete(g.writeQueue, id)
-	}
-
-	return nil
 }
 
 func (g *gitdb) write(m Model) error {

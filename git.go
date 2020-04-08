@@ -20,6 +20,7 @@ type dbDriver interface {
 	push() error
 	commit(filePath string, msg string, user *User) error
 	undo() error
+	changedFiles() []string
 }
 
 type baseGitDriver struct {
@@ -131,4 +132,8 @@ func (g *gitdb) gitLastCommitTime() (time.Time, error) {
 
 func (g *gitdb) GetLastCommitTime() (time.Time, error) {
 	return g.gitLastCommitTime()
+}
+
+func (g *gitdb) gitChangeFiles() []string {
+	return g.gitDriver.changedFiles()
 }

@@ -72,6 +72,7 @@ func TestFetch(t *testing.T) {
 	}
 }
 
+//TODO test correctness of search results
 func TestSearch(t *testing.T) {
 	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(t)

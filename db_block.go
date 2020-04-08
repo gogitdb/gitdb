@@ -146,8 +146,8 @@ func (b *block) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (b *block) add(key string, value string) {
-	b.recs[key] = newRecord(key, value)
+func (b *block) add(r *record) {
+	b.recs[r.id] = r
 }
 
 func (b *block) get(key string) (*record, error) {

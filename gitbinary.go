@@ -2,7 +2,9 @@ package gitdb
 
 import (
 	"errors"
+	"io/ioutil"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -141,4 +143,66 @@ func (g *gitBinary) undo() error {
 
 	log("changes reverted")
 	return nil
+}
+
+func (g *gitBinary) changedFiles() []string {
+
+	logTest("getting list of changed files...")
+	files := []string{}
+	if len(g.config.OnlineRemote) > 0 {
+		//git fetch
+		cmd := exec.Command("git", "-C", g.absDbPath, "fetch", "online", "master")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			logError(string(out))
+			return files
+		}
+
+		//git diff --name-only ..online/master
+		cmd = exec.Command("git", "-C", g.absDbPath, "diff", "--name-only", "..online/master")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			logError(string(out))
+			return files
+		}
+
+		output := string(out)
+		if len(output) > 0 {
+			//strip out lock files
+			for _, file := range strings.Split(output, "\n") {
+				if strings.HasSuffix(file, ".json") {
+					files = append(files, file)
+				}
+			}
+
+			return files
+		}
+	}
+
+	//return everything??
+	dbDir, err := ioutil.ReadDir(g.absDbPath)
+	if err != nil {
+		logError(err.Error())
+		return files
+	}
+	for _, datasetDir := range dbDir {
+		fDatasetDir := filepath.Join(g.absDbPath, datasetDir.Name())
+
+		if datasetDir.Name()[0] == '.' {
+			continue
+		}
+
+		datasetFiles, err := ioutil.ReadDir(fDatasetDir)
+		if err != nil {
+			logError(err.Error())
+			return files
+		}
+
+		for _, file := range datasetFiles {
+			if filepath.Ext(file.Name()) == ".json" {
+				files = append(files, filepath.Join(datasetDir.Name(), file.Name()))
+			}
+		}
+	}
+
+	return files
 }

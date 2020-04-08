@@ -27,7 +27,7 @@ func (g *gitdb) Lock(mo Model) error {
 
 	lockFiles := m.GetLockFileNames()
 	for _, file := range lockFiles {
-		lockFile := filepath.Join(fullPath, file)
+		lockFile := filepath.Join(fullPath, file+".lock")
 		g.events <- newWriteBeforeEvent("...", lockFile)
 
 		//when locking a model, lockfile should not exist
@@ -69,7 +69,7 @@ func (g *gitdb) Unlock(mo Model) error {
 
 	lockFiles := m.GetLockFileNames()
 	for _, file := range lockFiles {
-		lockFile := filepath.Join(fullPath, file)
+		lockFile := filepath.Join(fullPath, file+".lock")
 
 		if _, err := os.Stat(lockFile); err == nil {
 			//log.PutInfo("Removing " + lockFile)

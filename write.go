@@ -27,11 +27,6 @@ func (g *gitdb) Insert(mo Model) error {
 }
 
 func (g *gitdb) InsertMany(models []Model) error {
-	//todo polish this up later
-	if len(models) > 100 {
-		return errors.New("max number of models InsertMany supports is 100")
-	}
-
 	tx := g.StartTransaction("InsertMany")
 	var model Model
 	for _, model = range models {
@@ -83,7 +78,7 @@ func (g *gitdb) write(m Model) error {
 		newRecordStr = encrypt(g.config.EncryptionKey, newRecordStr)
 	}
 
-	dataBlock.add(m.GetSchema().recordID(), newRecordStr)
+	dataBlock.add(newRecord(mID, newRecordStr))
 
 	g.events <- newWriteBeforeEvent("...", mID)
 	if err := g.writeBlock(blockFilePath, dataBlock); err != nil {
@@ -95,7 +90,7 @@ func (g *gitdb) write(m Model) error {
 	g.commit.Add(1)
 	g.events <- newWriteEvent(commitMsg, blockFilePath, g.autoCommit)
 	logTest("sent write event to loop")
-	g.updateIndexes(schema.name(), newRecord(mID, newRecordStr))
+	g.updateIndexes(schema.name(), dataBlock)
 
 	//block here until write has been committed
 	g.waitForCommit()

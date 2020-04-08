@@ -24,12 +24,6 @@ const (
 	SearchEndsWith SearchMode = 4
 )
 
-type searchQuery struct {
-	dataset      string
-	searchParams []*SearchParam
-	mode         SearchMode
-}
-
 //SearchParam represents search parameters against GitDB index
 type SearchParam struct {
 	Index string

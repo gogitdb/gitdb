@@ -1,6 +1,7 @@
 package gitdb
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,6 +43,49 @@ func (g *gitdb) readBlock(blockFile string, block *block) error {
 	}
 
 	return err
+}
+
+//pos must be []int{offset, position}
+func (g *gitdb) readBlockAt(blockFile string, block *block, positions ...[]int) error {
+	fd, err := os.Open(blockFile)
+	if err != nil {
+		return err
+	}
+
+	blockJSON := "{"
+	for i, pos := range positions {
+
+		fd.Seek(int64(pos[0]), 0)
+		b := make([]byte, pos[1])
+		fd.Read(b)
+		//fmt.Printf("%v = %s (%d)\n", pos, string(b), n)
+
+		b = bytes.TrimSpace(b)
+
+		line := string(b)
+
+		ln := len(line) - 1
+		//are we at the end of seek
+		if i < len(positions)-1 {
+			//ensure line ends with a comma
+			if line[ln] != ',' {
+				line += ","
+			}
+		} else {
+			//make sure last line has no comma
+			if line[ln] == ',' {
+				line = line[0:ln]
+			}
+		}
+		blockJSON += line + "\n"
+
+	}
+	blockJSON += "}"
+	if err := json.Unmarshal([]byte(blockJSON), &block); err != nil {
+		return errBadBlock
+	}
+
+	return nil
 }
 
 func (g *gitdb) doget(id string) (*record, error) {
@@ -131,28 +175,23 @@ func (g *gitdb) dofetch(dataset string, dataBlock *block) error {
 	return nil
 }
 
-func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error) {
+func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error) {
 
-	query := &searchQuery{
-		dataset:      dataDir,
-		searchParams: searchParams,
-		mode:         searchMode,
-	}
-
-	matchingRecords := make(map[string]string)
-	for _, searchParam := range query.searchParams {
-		indexFile := filepath.Join(g.indexDir(), query.dataset, searchParam.Index+".json")
+	//searchBlocks return the position of the record in the block
+	searchBlocks := map[string][][]int{}
+	for _, searchParam := range searchParams {
+		indexFile := filepath.Join(g.indexDir(), dataset, searchParam.Index+".json")
 		if _, ok := g.indexCache[indexFile]; !ok {
-			g.indexCache[indexFile] = g.readIndex(indexFile)
+			g.buildIndex()
 		}
 
 		g.events <- newReadEvent("...", indexFile)
 
 		queryValue := strings.ToLower(searchParam.Value)
-		for k, v := range g.indexCache[indexFile] {
+		for recordID, iv := range g.indexCache[indexFile] {
 			addResult := false
-			dbValue := strings.ToLower(v.(string))
-			switch query.mode {
+			dbValue := strings.ToLower(iv.Value.(string))
+			switch searchMode {
 			case SearchEquals:
 				addResult = dbValue == queryValue
 			case SearchContains:
@@ -164,35 +203,25 @@ func (g *gitdb) Search(dataDir string, searchParams []*SearchParam, searchMode S
 			}
 
 			if addResult {
-				matchingRecords[k] = v.(string)
+				_, block, _, err := ParseID(recordID)
+				if err != nil {
+					return nil, err
+				}
+
+				searchBlocks[block] = append(searchBlocks[block], []int{iv.Offset, iv.Len})
 			}
 		}
 
 	}
 
-	dataBlock := newBlock()
-
-	//filter out the blocks that we need to search
-	searchBlocks := map[string]string{}
-	for recordID := range matchingRecords {
-		_, block, _, err := ParseID(recordID)
-		if err != nil {
-			return nil, err
-		}
-
-		searchBlocks[block] = block
-	}
-
-	var blockFile string
-	for _, block := range searchBlocks {
-
-		blockFile = filepath.Join(g.dbDir(), query.dataset, block+".json")
-		err := g.readBlock(blockFile, dataBlock)
+	resultBlock := newBlock()
+	for block, pos := range searchBlocks {
+		blockFile := filepath.Join(g.dbDir(), dataset, block+".json")
+		err := g.readBlockAt(blockFile, resultBlock, pos...)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	//log.PutInfo(fmt.Sprintf("Found %d results in %s namespace by %s for '%s'", len(records), query.DataDir, query.Index, strings.Join(query.Values, ",")))
-	return dataBlock.records(g.config.EncryptionKey), nil
+	return resultBlock.records(g.config.EncryptionKey), nil
 }

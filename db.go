@@ -147,15 +147,15 @@ func (g *gitdb) configure(cfg Config) {
 	g.gitDriver.configure(g)
 }
 
-//todo add revert logic if migrate fails mid way
+//Migrate model from one schema to another
 func (g *gitdb) Migrate(from Model, to Model) error {
 	block := newBlock()
-	err := g.dofetch(from.GetSchema().name(), block)
-	if err != nil {
+	if err := g.dofetch(from.GetSchema().name(), block); err != nil {
 		return err
 	}
 
 	oldBlocks := map[string]string{}
+	migrate := []Model{}
 	for _, record := range block.records(g.config.EncryptionKey) {
 
 		dataset, blockID, _, _ := ParseID(record.id)
@@ -166,15 +166,16 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 			oldBlocks[blockID] = blockFilePath
 		}
 
-		err = record.hydrate(to)
-		if err != nil {
+		if err := record.hydrate(to); err != nil {
 			return err
 		}
 
-		err = g.Insert(to)
-		if err != nil {
-			return err
-		}
+		migrate = append(migrate, to)
+	}
+
+	//InsertMany will rollback if any insert fails
+	if err := g.InsertMany(migrate); err != nil {
+		return err
 	}
 
 	//remove all old block files

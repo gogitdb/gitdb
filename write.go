@@ -51,7 +51,7 @@ func (g *gitdb) write(m Model) error {
 
 	schema := m.GetSchema()
 	blockFilePath := g.blockFilePath(schema.name(), schema.block)
-	dataBlock, err := g.loadBlock(blockFilePath, schema.name())
+	dataBlock, err := g.loadBlock(blockFilePath)
 	if err != nil {
 		return err
 	}

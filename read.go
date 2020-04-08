@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func (g *gitdb) loadBlock(blockFile string, dataset string) (*block, error) {
+func (g *gitdb) loadBlock(blockFile string) (*block, error) {
 
 	if g.loadedBlocks == nil {
 		g.loadedBlocks = map[string]*block{}

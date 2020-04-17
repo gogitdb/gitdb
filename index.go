@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
-	"sort"
 	"strings"
+
+	"github.com/bouggo/log"
+	"github.com/fobilow/gitdb/v2/internal/db"
 )
 
 type gdbIndex map[string]gdbIndexValue
@@ -18,19 +19,38 @@ type gdbIndexValue struct {
 	Value  interface{} `json:"v"`
 }
 
-func (g *gitdb) updateIndexes(dataset string, dataBlock *block) {
+//TODO handle deletes
+func (g *gitdb) updateIndexes(dataBlock *db.Block) {
 	g.indexUpdated = true
+	dataset := dataBlock.Dataset().Name()
 	indexPath := g.indexPath(dataset)
-	log("updating in-memory index")
+	log.Info("updating in-memory index")
 	//get line position of each record in the block
-	p := pos(dataBlock)
-	for recordID, record := range dataBlock.recs {
-		for name, value := range record.indexes(dataset, g.config.Factory) {
+	p := extractPositions(dataBlock)
+
+	var model Model
+	var indexes map[string]interface{}
+	for _, record := range dataBlock.Records() {
+		if record.Version() == "v1" && g.config.Factory != nil {
+			if model == nil {
+				model = g.config.Factory(dataset)
+			}
+			record.Hydrate(model)
+			indexes = model.GetSchema().indexes
+		} else {
+			indexes = record.Indexes()
+		}
+
+		//append index for id
+		recordID := record.ID()
+		indexes["id"] = recordID
+
+		for name, value := range indexes {
 			indexFile := filepath.Join(indexPath, name+".json")
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)
 			}
-			g.indexCache[indexFile][record.id] = gdbIndexValue{
+			g.indexCache[indexFile][recordID] = gdbIndexValue{
 				Offset: p[recordID][0],
 				Len:    p[recordID][1],
 				Value:  value,
@@ -41,14 +61,14 @@ func (g *gitdb) updateIndexes(dataset string, dataBlock *block) {
 
 func (g *gitdb) flushIndex() error {
 	if g.indexUpdated {
-		logTest("flushing index")
+		log.Test("flushing index")
 		for indexFile, data := range g.indexCache {
 
 			indexPath := filepath.Dir(indexFile)
 			if _, err := os.Stat(indexPath); err != nil {
 				err = os.MkdirAll(indexPath, 0755)
 				if err != nil {
-					logError("Failed to write to index: " + indexFile)
+					log.Error("Failed to write to index: " + indexFile)
 					return err
 				}
 			}
@@ -56,13 +76,13 @@ func (g *gitdb) flushIndex() error {
 			// indexBytes, err := json.MarshalIndent(data, "", "\t")
 			indexBytes, err := json.Marshal(data)
 			if err != nil {
-				logError("Failed to write to index [" + indexFile + "]: " + err.Error())
+				log.Error("Failed to write to index [" + indexFile + "]: " + err.Error())
 				return err
 			}
 
 			err = ioutil.WriteFile(indexFile, indexBytes, 0744)
 			if err != nil {
-				logError("Failed to write to index: " + indexFile)
+				log.Error("Failed to write to index: " + indexFile)
 				return err
 			}
 		}
@@ -81,53 +101,56 @@ func (g *gitdb) readIndex(indexFile string) gdbIndex {
 		}
 
 		if err != nil {
-			logError(err.Error())
+			log.Error(err.Error())
 		}
 	}
 	return rMap
 }
 
-func (g *gitdb) buildIndex() {
+func (g *gitdb) buildIndexSmart(changedFiles []string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	changedFiles := g.gitChangeFiles()
 	for _, blockFile := range changedFiles {
-		log("Building index for block: " + blockFile)
-		fullPath := filepath.Join(g.dbDir(), blockFile)
-		block := newBlock()
-		if err := g.readBlock(fullPath, block); err != nil {
-			logError(err.Error())
-			continue
-		}
-
-		g.updateIndexes(path.Dir(blockFile), block)
+		log.Info("Building index for block: " + blockFile)
+		block := db.LoadBlock(filepath.Join(g.dbDir(), blockFile), g.config.EncryptionKey)
+		g.updateIndexes(block)
 	}
-	g.flushIndex()
-	log("Building index complete")
+	log.Info("Building index complete")
 }
 
-//pos returns the position of all records in a block as they would
-//appear in the physical block file
-func pos(b *block) map[string][]int {
-	var records []*record
-	for _, v := range b.recs {
-		records = append(records, v)
+func (g *gitdb) buildIndexTargeted(target string) {
+	ds := db.LoadDataset(filepath.Join(g.dbDir(), target), g.config.EncryptionKey)
+	for _, block := range ds.Blocks() {
+		g.updateIndexes(block)
 	}
-	sort.Sort(collection(records))
+}
+
+func (g *gitdb) buildIndexFull() {
+	datasets := db.LoadDatasets(g.dbDir(), g.config.EncryptionKey)
+	for _, ds := range datasets {
+		g.buildIndexTargeted(ds.Name())
+	}
+	g.flushIndex()
+}
+
+//extractPositions returns the position of all records in a block
+//as they would appear in the physical block file
+func extractPositions(b *db.Block) map[string][]int {
+
+	records := b.Records()
 
 	//a block can contain records from multiple physical block files
 	//especially when *gitdb.dofetch is called so proceed with caution
-
 	var positions = map[string][]int{}
 	offset := 2
 	length := 0
 	for i, record := range records {
-		recordStr := record.data
+		recordStr := record.Data()
 		recordStr = strings.Replace(recordStr, `'`, `\'`, -1)
 		recordStr = strings.Replace(recordStr, `"`, `\"`, -1)
 		//stop line just after the comma
-		recordLine := "\t" + `"` + record.id + `": "` + recordStr + `",`
+		recordLine := "\t" + `"` + record.ID() + `": "` + recordStr + `",`
 
 		if i > 0 {
 			offset = length + offset
@@ -139,7 +162,7 @@ func pos(b *block) map[string][]int {
 			length++
 		}
 
-		positions[record.id] = []int{offset, length}
+		positions[record.ID()] = []int{offset, length}
 	}
 	return positions
 }

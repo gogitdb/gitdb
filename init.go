@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/bouggo/log"
 )
 
 var mu sync.Mutex
@@ -29,7 +31,7 @@ func Open(config *Config) (GitDb, error) {
 		logMsg = fmt.Sprintf("Db booted with errors - %s", err)
 	}
 
-	log(logMsg)
+	log.Info(logMsg)
 
 	if err != nil {
 		return nil, err
@@ -87,7 +89,7 @@ func GetConn(name string) GitDb {
 }
 
 func (g *gitdb) boot() error {
-	log("Booting up db using " + g.gitDriver.name() + " driver")
+	log.Info("Booting up db using " + g.gitDriver.name() + " driver")
 
 	//create .ssh dir
 	err := g.generateSSHKeyPair()
@@ -103,7 +105,7 @@ func (g *gitdb) boot() error {
 	dataDir := g.dbDir()
 	dotGitDir := filepath.Join(dataDir, ".git")
 	if _, err := os.Stat(dataDir); err != nil {
-		log("database not initialized")
+		log.Info("database not initialized")
 
 		//create db directory
 		err = os.MkdirAll(dataDir, 0755)
@@ -127,7 +129,7 @@ func (g *gitdb) boot() error {
 			}
 		}
 	} else if _, err := os.Stat(dotGitDir); err != nil {
-		log(err.Error())
+		log.Info(err.Error())
 		return errors.New(g.config.DbPath + " is not a git repository")
 	} else if len(g.config.OnlineRemote) > 0 { //TODO Review this properly
 		//if remote is configured i.e stat .git/refs/remotes/online
@@ -144,7 +146,7 @@ func (g *gitdb) boot() error {
 	//rebuild index if we have to
 	if _, err := os.Stat(g.indexDir()); err != nil {
 		//no index directory found so we need to re-index the whole db
-		go g.buildIndex()
+		go g.buildIndexFull()
 	}
 
 	return nil

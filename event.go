@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bouggo/log"
 	"github.com/distatus/battery"
+	"github.com/fobilow/gitdb/v2/internal/db"
 )
 
 type eventType string
@@ -41,24 +43,24 @@ func newDeleteEvent(description string, dataset string, commit bool) *dbEvent {
 
 func (g *gitdb) startEventLoop() {
 	go func(g *gitdb) {
-		logTest("starting event loop")
+		log.Test("starting event loop")
 
 		for {
 			select {
 			case <-g.shutdown:
-				log("event shutdown")
-				logTest("shutting down event loop")
+				log.Info("event shutdown")
+				log.Test("shutting down event loop")
 				return
 			case e := <-g.events:
 				switch e.Type {
 				case w, d:
 					if e.Commit {
 						g.gitCommit(e.Dataset, e.Description, g.config.User)
-						logTest("handled write event for " + e.Description)
+						log.Test("handled write event for " + e.Description)
 					}
 					g.commit.Done()
 				default:
-					log("No handler found for " + string(e.Type) + " event")
+					log.Info("No handler found for " + string(e.Type) + " event")
 				}
 			}
 		}
@@ -70,36 +72,37 @@ func (g *gitdb) startSyncClock() {
 
 	go func(g *gitdb) {
 		if len(g.config.OnlineRemote) <= 0 {
-			log("Syncing disabled: online remote is not set")
+			log.Info("Syncing disabled: online remote is not set")
 			return
 		}
 
-		logTest(fmt.Sprintf("starting sync clock @ interval %s", g.config.SyncInterval))
+		log.Test(fmt.Sprintf("starting sync clock @ interval %s", g.config.SyncInterval))
 		ticker := time.NewTicker(g.config.SyncInterval)
 		for {
 			select {
 			case <-g.shutdown:
-				logTest("shutting down sync clock")
+				log.Test("shutting down sync clock")
 				return
 			case <-ticker.C:
 				g.writeMu.Lock()
 				//if client PC has at least 20% battery life
 				if !hasSufficientBatteryPower(20) {
-					log("Syncing disabled: insufficient battery power")
+					log.Info("Syncing disabled: insufficient battery power")
 					return
 				}
 
-				log("Syncing database...")
+				log.Info("Syncing database...")
+				changedFiles := g.gitChangedFiles()
 				err1 := g.gitPull()
 				err2 := g.gitPush()
 				if err1 != nil || err2 != nil {
-					log("Database sync failed")
+					log.Info("Database sync failed")
 				}
 
 				//reset loaded blocks
-				g.loadedBlocks = map[string]*block{}
+				g.loadedBlocks = map[string]*db.Block{}
 
-				g.buildIndex()
+				g.buildIndexSmart(changedFiles)
 				g.writeMu.Unlock()
 			}
 		}
@@ -115,7 +118,7 @@ func hasSufficientBatteryPower(threshold float64) bool {
 
 	percentageCharge := batt.Current / batt.Full * 100
 
-	log(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
+	log.Info(fmt.Sprintf("Battery Level: %6.2f%%", percentageCharge))
 
 	//return true if battery life is above threshold
 	return percentageCharge >= threshold

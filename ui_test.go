@@ -25,6 +25,7 @@ func TestServer(t *testing.T) {
 	}
 
 	for _, req := range requests {
+		t.Logf("Testing %s", req.URL.String())
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Errorf("GitDB UI Server request failed: %s", err)

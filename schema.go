@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/bouggo/log"
 )
 
 //Schema holds functions for generating a model id
@@ -44,12 +46,20 @@ func (a *Schema) Validate() error {
 		return errors.New("Invalid Schema Name")
 	}
 
+	if strings.ToLower(a.dataset) == "gitdb" {
+		return fmt.Errorf("%s is a reserved Schema Name", a.dataset)
+	}
+
 	if len(a.block) == 0 {
 		return errors.New("Invalid Schema Block ID")
 	}
 
 	if len(a.record) == 0 {
 		return errors.New("Invalid Schema Record ID")
+	}
+
+	if _, ok := a.indexes["id"]; ok {
+		return fmt.Errorf("%s is a reserved index name", "id")
 	}
 
 	return nil
@@ -110,13 +120,13 @@ func AutoBlock(dbPath string, m Model, method BlockMethod, n int64) string {
 
 	files, err := ioutil.ReadDir(fullPath)
 	if err != nil {
-		logError(err.Error())
-		logTest("AutoBlock: " + err.Error())
+		log.Error(err.Error())
+		log.Test("AutoBlock: " + err.Error())
 		return ""
 	}
 
 	if len(files) == 0 {
-		logTest("AutoBlock: no blocks found at " + fullPath)
+		log.Test("AutoBlock: no blocks found at " + fullPath)
 		return fmt.Sprintf("b%d", currentBlock)
 	}
 
@@ -131,24 +141,24 @@ func AutoBlock(dbPath string, m Model, method BlockMethod, n int64) string {
 		//TODO OPTIMIZE read file
 		b, err := ioutil.ReadFile(currentBlockFileName)
 		if err != nil {
-			logTest("AutoBlock: " + err.Error())
-			logError(err.Error())
+			log.Test("AutoBlock: " + err.Error())
+			log.Error(err.Error())
 			continue
 		}
 
 		currentBlockrecords = make(map[string]interface{})
 		if err := json.Unmarshal(b, &currentBlockrecords); err != nil {
-			logError(err.Error())
+			log.Error(err.Error())
 			continue
 		}
 
 		block := strings.Replace(filepath.Base(currentBlockFileName), filepath.Ext(currentBlockFileName), "", 1)
 		id := fmt.Sprintf("%s/%s/%s", dataset, block, m.GetSchema().record)
 
-		logTest("AutoBlock: searching for  - " + id)
+		log.Test("AutoBlock: searching for  - " + id)
 		//model already exists return its block
 		if _, ok := currentBlockrecords[id]; ok {
-			logTest("AutoBlock: found - " + id)
+			log.Test("AutoBlock: found - " + id)
 			return block
 		}
 	}
@@ -160,7 +170,7 @@ func AutoBlock(dbPath string, m Model, method BlockMethod, n int64) string {
 	}
 
 	//record size check
-	logTest(fmt.Sprintf("AutoBlock: current block count - %d", len(currentBlockrecords)))
+	log.Test(fmt.Sprintf("AutoBlock: current block count - %d", len(currentBlockrecords)))
 	if method == BlockByCount && len(currentBlockrecords) >= int(n) {
 		currentBlock++
 	}

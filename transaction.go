@@ -1,6 +1,10 @@
 package gitdb
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/bouggo/log"
+)
 
 type operation func() error
 
@@ -14,7 +18,7 @@ func (t *transaction) Commit() error {
 	t.db.autoCommit = false
 	for _, o := range t.operations {
 		if err := o(); err != nil {
-			log("Reverting transaction: " + err.Error())
+			log.Info("Reverting transaction: " + err.Error())
 			err2 := t.db.gitUndo()
 			t.db.autoCommit = true
 			if err2 != nil {

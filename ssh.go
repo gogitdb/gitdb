@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/bouggo/log"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -22,7 +23,7 @@ func (g *gitdb) generateSSHKeyPair() error {
 			return nil
 		}
 
-		log("Re-generating public key")
+		log.Info("Re-generating public key")
 		//public key is missing - recreate public key
 		pkPem, err := ioutil.ReadFile(g.privateKeyFilePath())
 		if err != nil {
@@ -42,7 +43,7 @@ func (g *gitdb) generateSSHKeyPair() error {
 		return err
 	}
 
-	log("Generating ssh key pairs")
+	log.Info("Generating ssh key pairs")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return err

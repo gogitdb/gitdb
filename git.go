@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/bouggo/log"
 )
 
 type dbDriver interface {
@@ -47,7 +49,7 @@ func (g *gitdb) gitInit() error {
 
 func (g *gitdb) gitClone() error {
 	//we take this very seriously
-	log("cloning down database...")
+	log.Info("cloning down database...")
 	err := g.gitDriver.clone()
 	if err != nil {
 		//TODO if err is authentication related generate key pair
@@ -61,8 +63,8 @@ func (g *gitdb) gitClone() error {
 			notification := "Contact your database admin to add your public key to git server\n"
 			notification += "Public key: " + fmt.Sprintf("%s", fb)
 
-			log(notification)
-			logTest(notification)
+			log.Info(notification)
+			log.Test(notification)
 
 			g.sendMail(newMail("Database Setup Error", notification))
 		}
@@ -104,7 +106,7 @@ func (g *gitdb) gitCommit(filePath string, msg string, user *User) {
 	err := g.gitDriver.commit(filePath, msg, user)
 	if err != nil {
 		// todo: update to return this error but for now at least log it
-		logError(err.Error())
+		log.Error(err.Error())
 	}
 }
 
@@ -134,6 +136,6 @@ func (g *gitdb) GetLastCommitTime() (time.Time, error) {
 	return g.gitLastCommitTime()
 }
 
-func (g *gitdb) gitChangeFiles() []string {
+func (g *gitdb) gitChangedFiles() []string {
 	return g.gitDriver.changedFiles()
 }

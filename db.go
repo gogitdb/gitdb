@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/bouggo/log"
+	"github.com/fobilow/gitdb/v2/internal/db"
 )
 
 //RecVersion of gitdb
@@ -30,15 +33,15 @@ type SearchParam struct {
 	Value string
 }
 
-//GitDb interface defines all export funcs an implementation must have
+//GitDb interface defines all exported funcs an implementation must have
 type GitDb interface {
 	Close() error
 	Insert(m Model) error
 	InsertMany(m []Model) error
 	Get(id string, m Model) error
 	Exists(id string) error
-	Fetch(dataset string) ([]*record, error)
-	Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*record, error)
+	Fetch(dataset string) ([]*db.Record, error)
+	Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*db.Record, error)
 	Delete(id string) error
 	DeleteOrFail(id string) error
 	Lock(m Model) error
@@ -68,7 +71,7 @@ type gitdb struct {
 	closed       bool
 
 	indexCache   gdbIndexCache
-	loadedBlocks map[string]*block
+	loadedBlocks map[string]*db.Block
 
 	mails []*mail
 }
@@ -95,9 +98,9 @@ func (g *gitdb) Close() error {
 
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	logTest("shutting down gitdb")
+	log.Test("shutting down gitdb")
 	if g.closed {
-		logTest("connection already closed")
+		log.Test("connection already closed")
 		return nil
 	}
 
@@ -133,7 +136,7 @@ func (g *gitdb) configure(cfg Config) {
 	}
 
 	if g.gitDriver == nil {
-		g.gitDriver = defaultDbDriver
+		g.gitDriver = &gitBinary{}
 	}
 
 	g.config = cfg
@@ -143,24 +146,29 @@ func (g *gitdb) configure(cfg Config) {
 
 //Migrate model from one schema to another
 func (g *gitdb) Migrate(from Model, to Model) error {
-	block := newBlock()
+
+	//TODO add test case for this
+	//schema has not changed
+	/*if from.GetSchema().recordID() == to.GetSchema().recordID() {
+		return errors.New("Invalid migration - no change found in schema")
+	}*/
+
+	block := db.NewEmptyBlock(g.config.EncryptionKey)
 	if err := g.dofetch(from.GetSchema().name(), block); err != nil {
 		return err
 	}
 
 	oldBlocks := map[string]string{}
 	migrate := []Model{}
-	for _, record := range block.records(g.config.EncryptionKey) {
+	for _, record := range block.Records() {
 
-		dataset, blockID, _, _ := ParseID(record.id)
+		dataset, blockID, _, _ := ParseID(record.ID())
 		if _, ok := oldBlocks[blockID]; !ok {
-			blockFile := blockID + ".json"
-			logTest(blockFile)
-			blockFilePath := filepath.Join(g.dbDir(), dataset, blockFile)
+			blockFilePath := filepath.Join(g.dbDir(), dataset, blockID+".json")
 			oldBlocks[blockID] = blockFilePath
 		}
 
-		if err := record.hydrate(to); err != nil {
+		if err := record.Hydrate(to); err != nil {
 			return err
 		}
 
@@ -174,7 +182,7 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 
 	//remove all old block files
 	for _, blockFilePath := range oldBlocks {
-		log("Removing old block: " + blockFilePath)
+		log.Info("Removing old block: " + blockFilePath)
 		err := os.Remove(blockFilePath)
 		if err != nil {
 			return err

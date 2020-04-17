@@ -1,8 +1,10 @@
 package gitdb
 
+import "github.com/fobilow/gitdb/v2/internal/db"
+
 type baseViewModel struct {
 	Title    string
-	DataSets []*dataset
+	DataSets []*db.Dataset
 }
 
 type overviewViewModel struct {
@@ -11,19 +13,19 @@ type overviewViewModel struct {
 
 type viewDataSetViewModel struct {
 	baseViewModel
-	DataSet *dataset
-	Block   *block
+	DataSet *db.Dataset
+	Block   *db.Block
 	Pager   *pager
 	Content string
 }
 
 type listDataSetViewModel struct {
 	baseViewModel
-	DataSet *dataset
+	DataSet *db.Dataset
 	Table   *table
 }
 
 type errorsViewModel struct {
 	baseViewModel
-	DataSet *dataset
+	DataSet *db.Dataset
 }

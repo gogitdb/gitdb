@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/bouggo/log"
 )
 
 func (g *gitdb) Lock(mo Model) error {
@@ -33,7 +35,7 @@ func (g *gitdb) Lock(mo Model) error {
 		//when locking a model, lockfile should not exist
 		if _, err := os.Stat(lockFile); err == nil {
 			if derr := g.deleteLockFiles(lockFilesWritten); derr != nil {
-				logError(derr.Error())
+				log.Error(derr.Error())
 			}
 			return errors.New("Lock file already exist: " + lockFile)
 		}
@@ -41,7 +43,7 @@ func (g *gitdb) Lock(mo Model) error {
 		err := ioutil.WriteFile(lockFile, []byte(""), 0644)
 		if err != nil {
 			if derr := g.deleteLockFiles(lockFilesWritten); derr != nil {
-				logError(derr.Error())
+				log.Error(derr.Error())
 			}
 			return errors.New("Failed to write lock " + lockFile + ": " + err.Error())
 		}

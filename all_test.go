@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bouggo/log"
 	"github.com/fobilow/gitdb/v2"
 )
 
@@ -28,13 +29,13 @@ var flagLogLevel int
 var flagFakeRemote bool
 
 func TestMain(m *testing.M) {
-	flag.IntVar(&flagLogLevel, "loglevel", int(gitdb.LogLevelTest), "control verbosity of test logs")
+	flag.IntVar(&flagLogLevel, "loglevel", int(log.LevelTest), "control verbosity of test logs")
 	flag.BoolVar(&flagFakeRemote, "fakerepo", true, "create fake remote repo for tests")
 	flag.Parse()
 
 	//fail test if git is not installed
 	if _, err := exec.LookPath("git"); err != nil {
-		fmt.Println("git is required to run tests")
+		log.Test("git is required to run tests")
 		return
 	}
 
@@ -67,14 +68,14 @@ func setup(t testing.TB, cfg *gitdb.Config) func(t testing.TB) {
 func teardown(t testing.TB) {
 	testDb.Close()
 
-	fmt.Println("truncating test data")
+	log.Test("truncating test data")
 	if err := os.RemoveAll(testData); err != nil {
 		t.Errorf("cleanup failed - %s", err.Error())
 	}
 }
 
 func fakeOnlineRepo(t testing.TB) {
-	fmt.Println("creating fake online repo")
+	log.Test("creating fake online repo")
 	if err := os.MkdirAll(fakeRemote, 0755); err != nil {
 		t.Errorf("fake repo failed: %s", err.Error())
 		return
@@ -92,7 +93,7 @@ func getDbConn(t testing.TB, cfg *gitdb.Config) gitdb.GitDb {
 	if err != nil {
 		t.Errorf("getDbConn failed: %s", err)
 	}
-	fmt.Println("test db connection opened")
+	log.Test("test db connection opened")
 	conn.SetUser(gitdb.NewUser("Tester", "tester@io"))
 	return conn
 }
@@ -226,14 +227,14 @@ func countRecords(dataset string) int {
 }
 
 func generateInserts(t testing.TB, count int) {
-	fmt.Printf("inserting %d records\n", count)
+	log.Test(fmt.Sprintf("inserting %d records\n", count))
 	for i := 0; i < count; i++ {
 		if err := testDb.Insert(getTestMessage()); err != nil {
 			t.Errorf("generateInserts failed: %s", err)
 		}
 
 	}
-	fmt.Println("done inserting")
+	log.Test("done inserting")
 }
 
 func insert(m gitdb.Model, benchmark bool) error {

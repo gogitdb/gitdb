@@ -14,21 +14,19 @@ import (
 //Dataset represent a collection of blocks
 type Dataset struct {
 	path         string
-	dbPath       string
 	blocks       []*Block
 	badBlocks    []string
 	badRecords   []string
 	lastModified time.Time
 
-	cryptoKey string
+	key string
 }
 
 //LoadDataset loads the dataset at path
 func LoadDataset(datasetPath, key string) *Dataset {
 	ds := &Dataset{
-		path:      datasetPath,
-		dbPath:    path.Dir(datasetPath),
-		cryptoKey: key,
+		path: datasetPath,
+		key:  key,
 	}
 	ds.loadBlocks()
 
@@ -49,9 +47,8 @@ func LoadDatasets(dbPath, key string) []*Dataset {
 		if !strings.HasPrefix(dir.Name(), ".") && dir.IsDir() {
 			ds := &Dataset{
 				path:         filepath.Join(dbPath, dir.Name()),
-				dbPath:       dbPath,
 				lastModified: dir.ModTime(),
-				cryptoKey:    key,
+				key:          key,
 			}
 
 			datasets = append(datasets, ds)
@@ -123,7 +120,7 @@ func (d *Dataset) BadRecordsCount() int {
 	return len(d.badRecords)
 }
 
-//Block returns the number of bad records in a DataSet
+//Block returns block at index i of a DataSet
 func (d *Dataset) Block(i int) *Block {
 	if len(d.blocks) == 0 {
 		//load blocks so errors can be populated in dataset
@@ -137,17 +134,17 @@ func (d *Dataset) Block(i int) *Block {
 	return nil
 }
 
-//Blocks todo
+//Blocks returns all the Blocks in a dataset
 func (d *Dataset) Blocks() []*Block {
 	return d.blocks
 }
 
-//BadBlocks todo
+//BadBlocks returns all the bad blocks in a dataset
 func (d *Dataset) BadBlocks() []string {
 	return d.badBlocks
 }
 
-//BadRecords todo
+//BadRecords returns all the bad records in a dataset
 func (d *Dataset) BadRecords() []string {
 	return d.badRecords
 }
@@ -155,11 +152,6 @@ func (d *Dataset) BadRecords() []string {
 //LastModifiedDate returns the last modifidation time of a DataSet
 func (d *Dataset) LastModifiedDate() string {
 	return d.lastModified.Format("02 Jan 2006 15:04:05")
-}
-
-//CryptoKey todo
-func (d *Dataset) CryptoKey() string {
-	return d.cryptoKey
 }
 
 //loadBlocks reads all blocks in a Dataset into memory
@@ -171,7 +163,7 @@ func (d *Dataset) loadBlocks() {
 
 	for _, blk := range blks {
 		if !blk.IsDir() && strings.HasSuffix(blk.Name(), ".json") {
-			b := LoadBlock(filepath.Join(d.path, blk.Name()), d.CryptoKey())
+			b := LoadBlock(filepath.Join(d.path, blk.Name()), d.key)
 			d.blocks = append(d.blocks, b)
 		}
 	}
@@ -182,7 +174,7 @@ func (d *Dataset) Indexes() []string {
 	//grab indexes
 	var indexes []string
 
-	indexFiles, err := ioutil.ReadDir(filepath.Join(d.dbPath, ".gitdb/index/", d.path))
+	indexFiles, err := ioutil.ReadDir(filepath.Join(path.Dir(d.path), ".gitdb/index/", d.Name()))
 	if err != nil {
 		return indexes
 	}

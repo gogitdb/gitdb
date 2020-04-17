@@ -1,7 +1,7 @@
 .PHONY: test testdel example install release
 testdel:
 	go test ./... -coverprofile=cover.out -v
-	go tool cover -func=cover.out
+	go tool cover -html=cover.out
 	rm -f cover.out
 test:
 	go test ./... -coverprofile=cover.out

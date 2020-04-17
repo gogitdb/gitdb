@@ -1,4 +1,4 @@
-package gitdb
+package crypto
 
 import (
 	"crypto/aes"
@@ -8,7 +8,8 @@ import (
 	"io"
 )
 
-func encrypt(key string, message string) string {
+//Encrypt message with key
+func Encrypt(key string, message string) string {
 	plainText := []byte(message)
 
 	block, err := aes.NewCipher([]byte(key))
@@ -34,7 +35,8 @@ func encrypt(key string, message string) string {
 	return encmess
 }
 
-func decrypt(key string, secureMessage string) string {
+//Decrypt message with key
+func Decrypt(key string, secureMessage string) string {
 	cipherText, err := base64.URLEncoding.DecodeString(secureMessage)
 	if err != nil {
 		return ""

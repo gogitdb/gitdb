@@ -2,10 +2,10 @@ package gitdb
 
 import (
 	"errors"
-	"io/ioutil"
 	"os/exec"
-	"path/filepath"
 	"strings"
+
+	"github.com/bouggo/log"
 )
 
 type gitBinary struct {
@@ -21,7 +21,7 @@ func (g *gitBinary) init() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "init")
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log(string(out))
+		log.Info(string(out))
 		return err
 	}
 
@@ -33,7 +33,7 @@ func (g *gitBinary) clone() error {
 	cmd := exec.Command("git", "clone", g.config.OnlineRemote, g.absDbPath)
 	//log(fmt.Sprintf("%s", cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log(string(out))
+		log.Info(string(out))
 		return errors.New(string(out))
 	}
 
@@ -58,7 +58,7 @@ func (g *gitBinary) addRemote() error {
 	if hasOriginRemote {
 		cmd := exec.Command("git", "-C", g.absDbPath, "remote", "rm", "origin")
 		if out, err := cmd.CombinedOutput(); err != nil {
-			log(string(out))
+			log.Info(string(out))
 			//return err
 		}
 	}
@@ -67,7 +67,7 @@ func (g *gitBinary) addRemote() error {
 		cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)
 		//log(utils.CmdToString(cmd))
 		if out, err := cmd.CombinedOutput(); err != nil {
-			log(string(out))
+			log.Info(string(out))
 			return err
 		}
 	}
@@ -79,8 +79,8 @@ func (g *gitBinary) pull() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "pull", "online", "master")
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		logError("Failed to pull data from online remote.")
-		logError(string(out))
+		log.Error("Failed to pull data from online remote.")
+		log.Error(string(out))
 
 		return err
 	}
@@ -92,8 +92,8 @@ func (g *gitBinary) push() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "push", "online", "master")
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		logError("Failed to push data to online remotes.")
-		logError(string(out))
+		log.Error("Failed to push data to online remotes.")
+		log.Error(string(out))
 		return err
 	}
 
@@ -111,25 +111,25 @@ func (g *gitBinary) commit(filePath string, msg string, user *User) error {
 	cmd = exec.Command("git", "-C", g.absDbPath, "config", "user.name", user.Name)
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		logError(string(out))
+		log.Error(string(out))
 		return err
 	}
 
 	cmd = exec.Command("git", "-C", g.absDbPath, "add", filePath)
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		logError(string(out))
+		log.Error(string(out))
 		return err
 	}
 
 	cmd = exec.Command("git", "-C", g.absDbPath, "commit", "-am", msg)
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		logError(string(out))
+		log.Error(string(out))
 		return err
 	}
 
-	log("new changes committed")
+	log.Info("new changes committed")
 	return nil
 }
 
@@ -137,23 +137,23 @@ func (g *gitBinary) undo() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "checkout", ".")
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		logError(string(out))
+		log.Error(string(out))
 		return err
 	}
 
-	log("changes reverted")
+	log.Info("changes reverted")
 	return nil
 }
 
 func (g *gitBinary) changedFiles() []string {
 
-	logTest("getting list of changed files...")
 	files := []string{}
 	if len(g.config.OnlineRemote) > 0 {
+		log.Test("getting list of changed files...")
 		//git fetch
 		cmd := exec.Command("git", "-C", g.absDbPath, "fetch", "online", "master")
 		if out, err := cmd.CombinedOutput(); err != nil {
-			logError(string(out))
+			log.Error(string(out))
 			return files
 		}
 
@@ -161,7 +161,7 @@ func (g *gitBinary) changedFiles() []string {
 		cmd = exec.Command("git", "-C", g.absDbPath, "diff", "--name-only", "..online/master")
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			logError(string(out))
+			log.Error(string(out))
 			return files
 		}
 
@@ -175,32 +175,6 @@ func (g *gitBinary) changedFiles() []string {
 			}
 
 			return files
-		}
-	}
-
-	//return everything??
-	dbDir, err := ioutil.ReadDir(g.absDbPath)
-	if err != nil {
-		logError(err.Error())
-		return files
-	}
-	for _, datasetDir := range dbDir {
-		fDatasetDir := filepath.Join(g.absDbPath, datasetDir.Name())
-
-		if datasetDir.Name()[0] == '.' {
-			continue
-		}
-
-		datasetFiles, err := ioutil.ReadDir(fDatasetDir)
-		if err != nil {
-			logError(err.Error())
-			return files
-		}
-
-		for _, file := range datasetFiles {
-			if filepath.Ext(file.Name()) == ".json" {
-				files = append(files, filepath.Join(datasetDir.Name(), file.Name()))
-			}
 		}
 	}
 

@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/bouggo/log"
+	"github.com/fobilow/gitdb/v2/internal/crypto"
+	"github.com/fobilow/gitdb/v2/internal/db"
 )
 
 func (g *gitdb) Insert(mo Model) error {
@@ -56,7 +60,7 @@ func (g *gitdb) write(m Model) error {
 		return err
 	}
 
-	logTest(fmt.Sprintf("Size of block before write - %d", dataBlock.size()))
+	log.Test(fmt.Sprintf("Size of block before write - %d", dataBlock.Len()))
 
 	//...append new record to block
 	newRecordBytes, err := json.Marshal(m)
@@ -68,29 +72,29 @@ func (g *gitdb) write(m Model) error {
 
 	//construct a commit message
 	commitMsg := "Inserting " + mID + " into " + schema.blockID()
-	if _, err := dataBlock.get(mID); err == nil {
+	if _, err := dataBlock.Get(mID); err == nil {
 		commitMsg = "Updating " + mID + " in " + schema.blockID()
 	}
 
 	newRecordStr := string(newRecordBytes)
 	//encrypt data if need be
 	if m.ShouldEncrypt() {
-		newRecordStr = encrypt(g.config.EncryptionKey, newRecordStr)
+		newRecordStr = crypto.Encrypt(g.config.EncryptionKey, newRecordStr)
 	}
 
-	dataBlock.add(newRecord(mID, newRecordStr))
+	dataBlock.Add(mID, newRecordStr)
 
 	g.events <- newWriteBeforeEvent("...", mID)
 	if err := g.writeBlock(blockFilePath, dataBlock); err != nil {
 		return err
 	}
 
-	log(fmt.Sprintf("autoCommit: %v", g.autoCommit))
+	log.Info(fmt.Sprintf("autoCommit: %v", g.autoCommit))
 
 	g.commit.Add(1)
 	g.events <- newWriteEvent(commitMsg, blockFilePath, g.autoCommit)
-	logTest("sent write event to loop")
-	g.updateIndexes(schema.name(), dataBlock)
+	log.Test("sent write event to loop")
+	g.updateIndexes(dataBlock)
 
 	//block here until write has been committed
 	g.waitForCommit()
@@ -100,12 +104,12 @@ func (g *gitdb) write(m Model) error {
 
 func (g *gitdb) waitForCommit() {
 	if g.autoCommit {
-		logTest("waiting for gitdb to commit changes")
+		log.Test("waiting for gitdb to commit changes")
 		g.commit.Wait()
 	}
 }
 
-func (g *gitdb) writeBlock(blockFile string, block *block) error {
+func (g *gitdb) writeBlock(blockFile string, block *db.Block) error {
 	g.writeMu.Lock()
 	defer g.writeMu.Unlock()
 
@@ -136,7 +140,7 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 	err = g.delByID(id, dataset, blockFilePath, failNotFound)
 
 	if err == nil {
-		logTest("sending delete event to loop")
+		log.Test("sending delete event to loop")
 		g.commit.Add(1)
 		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath, g.autoCommit)
 		g.waitForCommit()
@@ -154,13 +158,8 @@ func (g *gitdb) delByID(id string, dataset string, blockFile string, failIfNotFo
 		return nil
 	}
 
-	dataBlock := newBlock()
-	err := g.readBlock(blockFile, dataBlock)
-	if err != nil {
-		return err
-	}
-
-	if err := dataBlock.delete(id); err != nil {
+	dataBlock := db.LoadBlock(blockFile, g.config.EncryptionKey)
+	if err := dataBlock.Delete(id); err != nil {
 		if failIfNotFound {
 			return errors.New("Could not delete [" + id + "]: record does not exist")
 		}

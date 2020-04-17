@@ -79,23 +79,16 @@ func TestDeleteOrFail(t *testing.T) {
 	}
 }
 
-func TestLock(t *testing.T) {
+func TestLockUnlock(t *testing.T) {
 	teardown := setup(t, nil)
 	defer teardown(t)
+
 	m := getTestMessage()
-	err := testDb.Lock(m)
-	if err != nil {
+	if err := testDb.Lock(m); err != nil {
 		t.Errorf("testDb.Lock returned - %s", err)
 	}
 
-}
-
-func TestUnlock(t *testing.T) {
-	teardown := setup(t, nil)
-	defer teardown(t)
-	m := getTestMessage()
-	err := testDb.Unlock(m)
-	if err != nil {
+	if err := testDb.Unlock(m); err != nil {
 		t.Errorf("testDb.Unlock returned - %s", err)
 	}
 }

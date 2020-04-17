@@ -8,8 +8,11 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"time"
 
+	"github.com/bouggo/log"
+	"github.com/fobilow/gitdb/v2/internal/db"
 	"github.com/gorilla/mux"
 )
 
@@ -29,10 +32,10 @@ func (g *gitdb) startUI() {
 		Handler: new(router).configure(g.config),
 	}
 
-	log("GitDB GUI will run at http://" + server.Addr)
+	log.Info("GitDB GUI will run at http://" + server.Addr)
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			logError(err.Error())
+			log.Error(err.Error())
 		}
 	}()
 
@@ -40,9 +43,9 @@ func (g *gitdb) startUI() {
 	go func() {
 		<-g.shutdown
 		if server != nil {
+			log.Test("shutting down UI server")
 			server.Shutdown(context.TODO())
 		}
-		logTest("shutting down UI server")
 		return
 	}()
 }
@@ -67,7 +70,7 @@ func (e *fileSystem) get(name string) []byte {
 	content := e.files[name]
 	decoded, err := base64.StdEncoding.DecodeString(content)
 	if err != nil {
-		logError(err.Error())
+		log.Error(err.Error())
 		return []byte("")
 	}
 
@@ -76,7 +79,7 @@ func (e *fileSystem) get(name string) []byte {
 
 //router provides all the http handlers for the UI
 type router struct {
-	datasets  []*dataset
+	datasets  []*db.Dataset
 	refreshAt time.Time
 }
 
@@ -89,7 +92,7 @@ func (u *router) configure(cfg Config) *mux.Router {
 	//refresh dataset after 1 minute
 	router.Use(func(h http.Handler) http.Handler {
 		if u.refreshAt.IsZero() || u.refreshAt.Before(time.Now()) {
-			u.datasets = loadDatasets(cfg)
+			u.datasets = db.LoadDatasets(filepath.Join(cfg.DbPath, "data"), cfg.EncryptionKey)
 			u.refreshAt = time.Now().Add(time.Second * 10)
 		}
 
@@ -143,7 +146,7 @@ func (u *router) list(w http.ResponseWriter, r *http.Request) {
 	}
 
 	block := dataset.Block(0)
-	table := block.table()
+	table := tablulate(block)
 	viewModel := &listDataSetViewModel{DataSet: dataset, Table: table}
 	viewModel.DataSets = u.datasets
 
@@ -173,7 +176,7 @@ func (u *router) view(w http.ResponseWriter, r *http.Request) {
 	viewModel.Block = block
 	viewModel.Pager.totalRecords = block.RecordCount()
 	if viewModel.Pager.totalRecords > viewModel.Pager.recordPage {
-		viewModel.Content = block.Records[viewModel.Pager.recordPage].data
+		viewModel.Content = block.Record(viewModel.Pager.recordPage).JSON()
 	}
 
 	render(w, viewModel, "static/view.html", "static/sidebar.html")
@@ -195,9 +198,9 @@ func (u *router) viewErrors(w http.ResponseWriter, r *http.Request) {
 	render(w, viewModel, "static/errors.html", "static/sidebar.html")
 }
 
-func (u *router) findDataset(name string) *dataset {
+func (u *router) findDataset(name string) *db.Dataset {
 	for _, ds := range u.datasets {
-		if ds.Name == name {
+		if ds.Name() == name {
 			return ds
 		}
 	}
@@ -218,15 +221,15 @@ func render(w http.ResponseWriter, data interface{}, templates ...string) {
 	if parseFiles {
 		t, err = template.ParseFiles(templates...)
 		if err != nil {
-			logError(err.Error())
+			log.Error(err.Error())
 		}
 	} else {
 		t = template.New("overview")
 		for _, template := range templates {
-			logTest("Reading EMBEDDED file - " + template)
+			log.Test("Reading EMBEDDED file - " + template)
 			t, err = t.Parse(string(getFs().get(template)))
 			if err != nil {
-				logError(err.Error())
+				log.Error(err.Error())
 			}
 		}
 	}
@@ -241,7 +244,7 @@ func readView(fileName string) []byte {
 
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		logError(err.Error())
+		log.Error(err.Error())
 		return []byte("")
 	}
 

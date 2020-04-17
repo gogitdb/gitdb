@@ -3,6 +3,7 @@ package gitdb_test
 import (
 	"testing"
 
+	"github.com/bouggo/log"
 	"github.com/fobilow/gitdb/v2"
 )
 
@@ -101,5 +102,17 @@ func BenchmarkFetch(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i <= b.N; i++ {
 		testDb.Fetch("Message")
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	teardown := setup(b, getReadTestConfig(gitdb.RecVersion))
+	defer teardown(b)
+
+	b.ReportAllocs()
+	m := &Message{}
+	for i := 0; i <= b.N; i++ {
+		testDb.Get("Message/b0/1", m)
+		log.Test(m.Body)
 	}
 }

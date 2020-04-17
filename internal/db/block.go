@@ -117,7 +117,7 @@ func LoadBlock(blockFilePath, key string) *Block {
 	block.records = map[string]*Record{}
 	block.badRecords = []string{}
 	//TODO figure out a neat way to inject key
-	block.dataset = &Dataset{path: path.Dir(block.path), cryptoKey: key}
+	block.dataset = &Dataset{path: path.Dir(block.path), key: key}
 	if err := block.loadBlock(); err != nil {
 		log.Error(err.Error())
 		block.dataset.badBlocks = append(block.dataset.badBlocks, blockFilePath)

@@ -148,6 +148,13 @@ Below are configuration options provided by GitDB
     <td>N</td>
     <td>nil</td>
   </tr>
+  <tr>
+    <td>Mock</td>
+    <td>Flag used for testing apps. If true, will return a mock GitDB connection</td>
+    <td>bool</td>
+    <td>N</td>
+    <td>false</td>
+  </tr>
 </table>
 
 You can configure GitDB either using the constructor or constructing it yourself

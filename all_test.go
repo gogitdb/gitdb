@@ -108,6 +108,12 @@ func getConfig() *gitdb.Config {
 	return config
 }
 
+func getMockConfig() *gitdb.Config {
+	config := gitdb.NewConfig("/mock")
+	config.Mock = true
+	return config
+}
+
 func getReadTestConfig(version string) *gitdb.Config {
 	cfg := gitdb.NewConfig("./testdata/" + version + "/data")
 	if version == "v1" {

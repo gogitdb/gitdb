@@ -22,6 +22,17 @@ func Open(config *Config) (GitDb, error) {
 		return nil, err
 	}
 
+	if conns == nil {
+		conns = make(map[string]GitDb)
+	}
+
+	if cfg.Mock {
+		conn := newMockConnection()
+		conn.configure(cfg)
+		conns[cfg.ConnectionName] = conn
+		return conn, nil
+	}
+
 	conn := newConnection()
 	conn.configure(cfg)
 
@@ -47,9 +58,6 @@ func Open(config *Config) (GitDb, error) {
 		conn.loopStarted = true
 	}
 
-	if conns == nil {
-		conns = make(map[string]GitDb)
-	}
 	conns[cfg.ConnectionName] = conn
 	return conn, nil
 }

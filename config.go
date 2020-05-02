@@ -16,6 +16,8 @@ type Config struct {
 	Factory        func(string) Model
 	EnableUI       bool
 	UIPort         int
+	//Mock is a hook for testing apps. If true will return a Mock DB connection
+	Mock bool
 }
 
 const defaultConnectionName = "default"

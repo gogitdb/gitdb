@@ -117,6 +117,12 @@ func (r *Record) Version() string {
 	return version
 }
 
+//ConvertModel converts a Model to a record
+func ConvertModel(id string, m interface{}) *Record {
+	b, _ := json.Marshal(m)
+	return newRecord(id, string(b))
+}
+
 //collection represents a sortable slice of Records
 type collection []*Record
 

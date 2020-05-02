@@ -17,6 +17,26 @@ type mockdb struct {
 	locks  map[string]bool
 }
 
+type mocktransaction struct {
+	name       string
+	operations []operation
+	db         *mockdb
+}
+
+func (t *mocktransaction) Commit() error {
+	for _, o := range t.operations {
+		if err := o(); err != nil {
+			log.Info("Reverting transaction: " + err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *mocktransaction) AddOperation(o operation) {
+	t.operations = append(t.operations, o)
+}
+
 func newMockConnection() *mockdb {
 	db := &mockdb{
 		data:  make(map[string]Model),
@@ -167,9 +187,9 @@ func (g *mockdb) GetMails() []*mail {
 	return []*mail{}
 }
 
-func (g *mockdb) StartTransaction(name string) *transaction {
+func (g *mockdb) StartTransaction(name string) Transaction {
 	//todo return mock transaction
-	return nil
+	return &mocktransaction{name: name, db: g}
 }
 
 func (g *mockdb) GetLastCommitTime() (time.Time, error) {
@@ -182,6 +202,25 @@ func (g *mockdb) SetUser(user *User) error {
 }
 
 func (g *mockdb) Migrate(from Model, to Model) error {
+
+	migrate := []Model{}
+	records, err := g.Fetch(from.GetSchema().dataset)
+	if err != nil {
+		return err
+	}
+
+	for _, record := range records {
+		if err := record.Hydrate(to); err != nil {
+			return err
+		}
+
+		migrate = append(migrate, to)
+	}
+
+	if err := g.InsertMany(migrate); err != nil {
+		return err
+	}
+
 	return nil
 }
 

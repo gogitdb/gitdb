@@ -48,7 +48,7 @@ type GitDb interface {
 	Unlock(m Model) error
 	Migrate(from Model, to Model) error
 	GetMails() []*mail
-	StartTransaction(name string) *transaction
+	StartTransaction(name string) Transaction
 	GetLastCommitTime() (time.Time, error)
 	SetUser(user *User) error
 	Config() Config

@@ -1,6 +1,7 @@
 package gitdb_test
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -189,8 +190,16 @@ func TestMockGetMails(t *testing.T) {
 func TestMockStartTransaction(t *testing.T) {
 	db := setupMock(t)
 	tx := db.StartTransaction("test")
-	if tx != nil {
-		t.Errorf("db.StartTransaction() returned: %v", tx)
+	if tx == nil {
+		t.Errorf("db.StartTransaction() returned: %v", nil)
+	}
+
+	tx.AddOperation(func() error { return nil })
+	tx.AddOperation(func() error { return nil })
+	tx.AddOperation(func() error { return errors.New("test error") })
+	tx.AddOperation(func() error { return nil })
+	if err := tx.Commit(); err == nil {
+		t.Error("transaction should fail on 3rd operation")
 	}
 }
 

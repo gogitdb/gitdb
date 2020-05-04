@@ -1,52 +1,53 @@
 package gitdb_test
 
 import (
-	"time"
-	"testing"
-	db "github.com/fobilow/gitdb"
 	"encoding/json"
-	"os"
-	"path/filepath"
-	"io/ioutil"
-	"strings"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"testing"
+	"time"
 	"unsafe"
+
+	db "github.com/gogitdb/gitdb"
 )
 
 var testDb *db.Gitdb
 var messageId int
 
-func init(){
+func init() {
 	db.SetLogLevel(db.LOGLEVEL_TEST)
 	//db.SetLogLevel(db.LOGLEVEL_NONE)
 }
 
-func setup(){
+func setup() {
 	testDb = db.Start(getConfig())
 	messageId = 0
 }
 
 func getConfig() *db.Config {
 	return &db.Config{
-		DbPath:         "/tmp/data",
-		OnlineRemote:   "",
-		SyncInterval:   time.Second * 120,
-		EncryptionKey:  "",
-		GitDriver: db.GitDriverBinary,
-		Factory: dbFactory,
-		User: db.NewUser("Tester", "tester@gitdb.io"),
+		DbPath:        "/tmp/data",
+		OnlineRemote:  "",
+		SyncInterval:  time.Second * 120,
+		EncryptionKey: "",
+		GitDriver:     db.GitDriverBinary,
+		Factory:       dbFactory,
+		User:          db.NewUser("Tester", "tester@gitdb.io"),
 	}
 }
 
 func getTestMessage() *Message {
 	m := &Message{
 		MessageId: messageId,
-		From: "alice@example.com",
-		To: "bob@example.com",
-		Body: "Hello",
+		From:      "alice@example.com",
+		To:        "bob@example.com",
+		Body:      "Hello",
 	}
 
 	messageId++
@@ -67,9 +68,9 @@ func dbFactory(name string) db.Model {
 type Message struct {
 	db.BaseModel
 	MessageId int
-	From string
-	To string
-	Body string
+	From      string
+	To        string
+	Body      string
 }
 
 func (m *Message) Zero() {
@@ -137,8 +138,7 @@ func doInsert(m db.Model, benchmark bool) error {
 			x, _ := json.Marshal(w)
 			want := string(x)
 
-
-			want = want[1:len(want)-1]
+			want = want[1 : len(want)-1]
 
 			if !strings.Contains(got, want) {
 				return errors.New(fmt.Sprintf("Want: %s, Got: %s", want, got))
@@ -149,11 +149,11 @@ func doInsert(m db.Model, benchmark bool) error {
 	return nil
 }
 
-func TestInsert(t *testing.T){
+func TestInsert(t *testing.T) {
 	setup()
 	defer testDb.Shutdown()
 	m := getTestMessage()
-	err := doInsert(m,false)
+	err := doInsert(m, false)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -165,7 +165,7 @@ func BenchmarkInsert(b *testing.B) {
 	defer testDb.Shutdown()
 	go db.MockSyncClock(testDb)
 	var m db.Model
-	for i :=0; i <= b.N; i++ {
+	for i := 0; i <= b.N; i++ {
 		m = getTestMessage()
 		err := doInsert(m, true)
 		if err != nil {
@@ -216,16 +216,16 @@ func TestFetch(t *testing.T) {
 		}
 	}
 
-
 	t.Logf("Want: %d, Got: %d", want, got)
 }
 
 func checkFetchResult(m db.Model) int {
 	dataset := m.GetSchema().Name()
-	datasetPath := getConfig().DbPath+"/data/"+dataset+"/"
+	datasetPath := getConfig().DbPath + "/data/" + dataset + "/"
 
 	cmd := exec.Command("/bin/bash", "-c", "grep "+dataset+" "+datasetPath+"*.json | wc -l | awk '{print $1}'")
-	b, err := cmd.CombinedOutput(); if err != nil {
+	b, err := cmd.CombinedOutput()
+	if err != nil {
 		println(err.Error())
 	}
 
@@ -264,7 +264,7 @@ func BenchmarkFetch(b *testing.B) {
 	setup()
 	defer testDb.Shutdown()
 	b.ReportAllocs()
-	for i :=0; i <= b.N; i++ {
+	for i := 0; i <= b.N; i++ {
 		testDb.Fetch("Message")
 	}
 }
@@ -273,7 +273,7 @@ func BenchmarkFetchMultithreaded(b *testing.B) {
 	setup()
 	defer testDb.Shutdown()
 	b.ReportAllocs()
-	for i :=0; i <= b.N; i++ {
+	for i := 0; i <= b.N; i++ {
 		testDb.FetchMt("Message")
 	}
 }
@@ -303,7 +303,7 @@ func TestMakeModelFromString(t *testing.T) {
 	messageId = 0
 	want := getTestMessage()
 	messageId = x
-	if got.String() != want.String()  {
+	if got.String() != want.String() {
 		t.Errorf("Got != Want")
 	}
 
@@ -334,31 +334,31 @@ func makeModelFromString() *Message {
 
 func BenchmarkMakeModelFromString(b *testing.B) {
 	b.ReportAllocs()
-	for i :=0; i <= b.N; i++ {
+	for i := 0; i <= b.N; i++ {
 		makeModelFromString()
 	}
 }
 
-func TestParseId(t *testing.T){
+func TestParseId(t *testing.T) {
 	testId := "DatasetName/Block/RecordId"
 	ds, block, recordId, err := testDb.ParseId(testId)
 
 	passed := ds == "DatasetName" && block == "Block" && recordId == "RecordId" && err == nil
 	if !passed {
-		t.Errorf("want: DatasetName|Block|RecordId, Got:%s|%s|%s", ds,block,recordId)
+		t.Errorf("want: DatasetName|Block|RecordId, Got:%s|%s|%s", ds, block, recordId)
 	}
 }
 
 func BenchmarkParseId(b *testing.B) {
 	b.ReportAllocs()
-	for i :=0; i <= b.N; i++ {
+	for i := 0; i <= b.N; i++ {
 		testDb.ParseId("DatasetName/Block/RecordId")
 	}
 }
 
 func BenchmarkIDParserParseId(b *testing.B) {
 	b.ReportAllocs()
-	for i :=0; i <= b.N; i++ {
+	for i := 0; i <= b.N; i++ {
 		db.NewIDParser("DatasetName/Block/RecordId")
 	}
 }
@@ -366,8 +366,8 @@ func BenchmarkIDParserParseId(b *testing.B) {
 func TestPointers(t *testing.T) {
 
 	m := Message{} //creates a new variable m which holds Message data
-	m2 := m //copies data in variable m into new variable m2
-	m3 := &m //copies the address of m into new variable m3 (m3 is a pointer)
+	m2 := m        //copies data in variable m into new variable m2
+	m3 := &m       //copies the address of m into new variable m3 (m3 is a pointer)
 	m3.To = "m"
 	m4 := *m3 //copies the data that m3 points to into new variable m4
 	m4.To = "m4"
@@ -380,7 +380,5 @@ func TestPointers(t *testing.T) {
 	fmt.Printf("m4: %T %p %v %d\n", m4, &m4, m4, unsafe.Sizeof(m4))
 	fmt.Printf("m5: %T %p %v %d\n", m5, &m5, m5, unsafe.Sizeof(m5))
 	fmt.Printf("m6: %T %p %v %d\n", m6, &m6, m6, unsafe.Sizeof(m6))
-
-
 
 }

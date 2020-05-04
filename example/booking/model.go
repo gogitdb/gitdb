@@ -3,7 +3,7 @@ package booking
 import (
 	"time"
 
-	db "github.com/fobilow/gitdb"
+	db "github.com/gogitdb/gitdb"
 )
 
 type BookingModel struct {
@@ -23,7 +23,7 @@ type BookingModel struct {
 	UserId       string
 	NextOfKin    string
 	Purpose      string
-	AutoId int64
+	AutoId       int64
 }
 
 func NewBookingModel() *BookingModel {

@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	db "github.com/fobilow/gitdb"
-	"github.com/fobilow/gitdb/example/booking"
+	"errors"
 	"log"
 	"os"
-	"errors"
+
+	db "github.com/gogitdb/gitdb"
+	"github.com/gogitdb/gitdb/example/booking"
 )
 
 var dbconn *db.Gitdb
@@ -16,18 +17,18 @@ var logToFile bool
 
 func init() {
 	cfg := &db.Config{
-		DbPath:         "./data",
-		OnlineRemote:   os.Getenv("GITDB_REPO"),
-		Factory:        make,
-		SyncInterval:   time.Second * 5,
-		EncryptionKey:  "put_your_encryption_key_here",
-		User: db.NewUser("dev", "dev@gitdb.io"),
-		GitDriver: db.GitDriverBinary,
+		DbPath:        "./data",
+		OnlineRemote:  os.Getenv("GITDB_REPO"),
+		Factory:       make,
+		SyncInterval:  time.Second * 5,
+		EncryptionKey: "put_your_encryption_key_here",
+		User:          db.NewUser("dev", "dev@gitdb.io"),
+		GitDriver:     db.GitDriverBinary,
 		//gitDriver: db.GitDriverGoGit,
 	}
 
 	if logToFile {
-		runLogFile, err := os.OpenFile("./db.log", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0666)
+		runLogFile, err := os.OpenFile("./db.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err == nil {
 			cfg.Logger = log.New(runLogFile, "GITDB: ", log.Ldate|log.Ltime|log.Lshortfile)
 		}
@@ -48,13 +49,12 @@ func testTransaction() {
 	t.Commit()
 }
 
-func updateRoom() error { println("updating room..."); return nil}
-func lockRoom() error { println("locking room"); return errors.New("cannot lock room")}
-func saveBooking() error { println("saving booking"); return nil}
-
+func updateRoom() error  { println("updating room..."); return nil }
+func lockRoom() error    { println("locking room"); return errors.New("cannot lock room") }
+func saveBooking() error { println("saving booking"); return nil }
 
 func testWrite() {
-	ticker := time.NewTicker(time.Second*4)
+	ticker := time.NewTicker(time.Second * 4)
 	for {
 		select {
 		case <-ticker.C:
@@ -108,7 +108,7 @@ func delete() {
 }
 
 func search() {
-	searchParam := &db.SearchParam{Index:"CustomerId",Value:"customer_2"}
+	searchParam := &db.SearchParam{Index: "CustomerId", Value: "customer_2"}
 	rows, err := dbconn.Search("Booking", []*db.SearchParam{searchParam}, db.SEARCH_MODE_EQUALS)
 	if err != nil {
 		fmt.Println(err.Error())

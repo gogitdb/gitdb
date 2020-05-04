@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bouggo/log"
-	"github.com/fobilow/gitdb/v2/internal/db"
+	"github.com/gogitdb/gitdb/v2/internal/db"
 )
 
 //table represents a tabular view

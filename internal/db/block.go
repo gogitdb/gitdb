@@ -11,7 +11,7 @@ import (
 	"sort"
 
 	"github.com/bouggo/log"
-	"github.com/fobilow/gitdb/v2/internal/digital"
+	"github.com/gogitdb/gitdb/v2/internal/digital"
 )
 
 //Block represents a block file

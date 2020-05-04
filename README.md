@@ -1,12 +1,12 @@
 GitDB
 =====
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/fobilow/gitdb?style=flat-square)](https://goreportcard.com/report/github.com/fobilow/gitdb)
-[![Coverage](https://codecov.io/gh/fobilow/gitdb/branch/develop/graph/badge.svg)](https://codecov.io/gh/fobilow/gitdb)
-[![Build Status Travis](https://img.shields.io/travis/fobilow/gitdb.svg?style=flat-square&&branch=master)](https://travis-ci.com/fobilow/gitdb)
-[![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/fobilow/gitdb)
-[![Releases](https://img.shields.io/github/release/fobilow/gitdb/all.svg?style=flat-square)](https://github.com/fobilow/gitdb/releases)
-[![LICENSE](https://img.shields.io/github/license/fobilow/gitdb.svg?style=flat-square)](https://github.com/fobilow/gitdb/blob/master/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gogitdb/gitdb?style=flat-square)](https://goreportcard.com/report/github.com/gogitdb/gitdb)
+[![Coverage](https://codecov.io/gh/gogitdb/gitdb/branch/develop/graph/badge.svg)](https://codecov.io/gh/gogitdb/gitdb)
+[![Build Status Travis](https://img.shields.io/travis/gogitdb/gitdb.svg?style=flat-square&&branch=master)](https://travis-ci.com/gogitdb/gitdb)
+[![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/gogitdb/gitdb)
+[![Releases](https://img.shields.io/github/release/gogitdb/gitdb/all.svg?style=flat-square)](https://github.com/gogitdb/gitdb/releases)
+[![LICENSE](https://img.shields.io/github/license/gogitdb/gitdb.svg?style=flat-square)](https://github.com/gogitdb/gitdb/blob/master/LICENSE)
 
 ## What is GitDB?
 
@@ -65,7 +65,7 @@ New minor versions may add additional features to the API.
 To start using GitDB, install Go and run `go get`:
 
 ```sh
-$ go get github.com/fobilow/gitdb/v2
+$ go get github.com/gogitdb/gitdb/v2
 ```
 
 
@@ -176,7 +176,7 @@ your `$GOBIN` path. -->
 To use GitDB as an embedded document store, import as:
 
 ```go
-import "github.com/fobilow/gitdb/v2"
+import "github.com/gogitdb/gitdb/v2"
 
 cfg := gitdb.NewConfig(path)
 db, err := gitdb.Open(cfg)
@@ -193,7 +193,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main() {
@@ -257,7 +257,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main(){
@@ -297,7 +297,7 @@ func main(){
 package main
 import (
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main(){
@@ -323,7 +323,7 @@ package main
 import (
   "fmt"
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main(){
@@ -356,7 +356,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main(){
@@ -381,7 +381,7 @@ package main
 import (
   "fmt"
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main(){
@@ -416,7 +416,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main() {
@@ -451,7 +451,7 @@ package main
 
 import (
   "log"
-  "github.com/fobilow/gitdb/v2"
+  "github.com/gogitdb/gitdb/v2"
 )
 
 func main(){

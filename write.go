@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/bouggo/log"
-	"github.com/fobilow/gitdb/v2/internal/crypto"
-	"github.com/fobilow/gitdb/v2/internal/db"
+	"github.com/gogitdb/gitdb/v2/internal/crypto"
+	"github.com/gogitdb/gitdb/v2/internal/db"
 )
 
 func (g *gitdb) Insert(mo Model) error {

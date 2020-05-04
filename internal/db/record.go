@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/bouggo/log"
-	"github.com/fobilow/gitdb/v2/internal/crypto"
+	"github.com/gogitdb/gitdb/v2/internal/crypto"
 	"github.com/valyala/fastjson"
 )
 

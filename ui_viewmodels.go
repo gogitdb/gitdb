@@ -1,6 +1,6 @@
 package gitdb
 
-import "github.com/fobilow/gitdb/v2/internal/db"
+import "github.com/gogitdb/gitdb/v2/internal/db"
 
 type baseViewModel struct {
 	Title    string

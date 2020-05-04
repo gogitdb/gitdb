@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fobilow/gitdb/v2"
+	"github.com/gogitdb/gitdb/v2"
 )
 
 func TestMigrate(t *testing.T) {

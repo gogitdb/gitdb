@@ -9,7 +9,7 @@ test:
 example:
 	cd example && rm -Rf data && go run *.go && cd -
 install:
-	go install github.com/fobilow/gitdb/v2/cmd/gitdb
+	go install github.com/gogitdb/gitdb/v2/cmd/gitdb
 release:
-	go install github.com/fobilow/gitdb/v2/cmd/gitdb
+	go install github.com/gogitdb/gitdb/v2/cmd/gitdb
 	go generate

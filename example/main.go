@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
-	db "github.com/fobilow/gitdb/v2"
-	"github.com/fobilow/gitdb/v2/example/booking"
+	db "github.com/gogitdb/gitdb/v2"
+	"github.com/gogitdb/gitdb/v2/example/booking"
 )
 
 var dbconn db.GitDb

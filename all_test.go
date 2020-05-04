@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/bouggo/log"
-	"github.com/fobilow/gitdb/v2"
+	"github.com/gogitdb/gitdb/v2"
 )
 
 var testDb gitdb.GitDb

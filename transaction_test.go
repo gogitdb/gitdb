@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/fobilow/gitdb/v2"
+	"github.com/gogitdb/gitdb/v2"
 )
 
 func TestTransaction(t *testing.T) {

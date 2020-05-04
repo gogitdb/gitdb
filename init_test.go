@@ -3,7 +3,7 @@ package gitdb_test
 import (
 	"testing"
 
-	"github.com/fobilow/gitdb/v2"
+	"github.com/gogitdb/gitdb/v2"
 )
 
 func TestConn(t *testing.T) {

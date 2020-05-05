@@ -46,6 +46,7 @@ type GitDb interface {
 	DeleteOrFail(id string) error
 	Lock(m Model) error
 	Unlock(m Model) error
+	Upload() *Upload
 	Migrate(from Model, to Model) error
 	GetMails() []*mail
 	StartTransaction(name string) Transaction

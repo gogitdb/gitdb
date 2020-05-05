@@ -11,5 +11,3 @@ require (
 	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d // indirect
 	howett.net/plist v0.0.0-20200225050739-77e249a2e2ba // indirect
 )
-
-replace github.com/bouggo/log => ../../bouggo/log

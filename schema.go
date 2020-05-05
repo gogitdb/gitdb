@@ -18,11 +18,17 @@ type Schema struct {
 	block   string
 	record  string
 	indexes map[string]interface{}
+
+	internal bool
 }
 
 //NewSchema constructs a *Schema
 func NewSchema(name, block, record string, indexes map[string]interface{}) *Schema {
-	return &Schema{name, block, record, indexes}
+	return &Schema{dataset: name, block: block, record: record, indexes: indexes}
+}
+
+func newSchema(name, block, record string, indexes map[string]interface{}) *Schema {
+	return &Schema{dataset: name, block: block, record: record, indexes: indexes, internal: true}
 }
 
 //name returns name of schema
@@ -46,7 +52,7 @@ func (a *Schema) Validate() error {
 		return errors.New("Invalid Schema Name")
 	}
 
-	if strings.ToLower(a.dataset) == "gitdb" {
+	if !a.internal && strings.Contains("gitdb,bucket,upload", strings.ToLower(a.dataset)) {
 		return fmt.Errorf("%s is a reserved Schema Name", a.dataset)
 	}
 
@@ -58,7 +64,7 @@ func (a *Schema) Validate() error {
 		return errors.New("Invalid Schema Record ID")
 	}
 
-	if _, ok := a.indexes["id"]; ok {
+	if _, ok := a.indexes["id"]; ok && !a.internal {
 		return fmt.Errorf("%s is a reserved index name", "id")
 	}
 

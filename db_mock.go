@@ -183,6 +183,11 @@ func (g *mockdb) Unlock(m Model) error {
 	return nil
 }
 
+func (g *mockdb) Upload() *Upload {
+	//todo
+	return nil
+}
+
 func (g *mockdb) GetMails() []*mail {
 	return []*mail{}
 }

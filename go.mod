@@ -3,7 +3,7 @@ module github.com/gogitdb/gitdb/v2
 go 1.14
 
 require (
-	github.com/bouggo/log v0.0.0
+	github.com/bouggo/log v0.0.0-20200409202957-d71e1d453ef7 // indirect
 	github.com/distatus/battery v0.10.0
 	github.com/gorilla/mux v1.7.4
 	github.com/valyala/fastjson v1.5.0

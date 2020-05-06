@@ -30,7 +30,7 @@ func (g *gitBinary) init() error {
 
 func (g *gitBinary) clone() error {
 
-	cmd := exec.Command("git", "clone", "", g.config.OnlineRemote, g.absDbPath)
+	cmd := exec.Command("git", "clone", "--depth", "10", g.config.OnlineRemote, g.absDbPath)
 	//log(fmt.Sprintf("%s", cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Info(string(out))

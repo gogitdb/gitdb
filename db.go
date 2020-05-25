@@ -57,6 +57,7 @@ type GitDb interface {
 
 type gitdb struct {
 	mu       sync.Mutex
+	indexMu  sync.Mutex
 	writeMu  sync.Mutex
 	commit   sync.WaitGroup
 	locked   chan bool

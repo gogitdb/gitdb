@@ -21,6 +21,9 @@ type gdbIndexValue struct {
 
 //TODO handle deletes
 func (g *gitdb) updateIndexes(dataBlock *db.Block) {
+	g.indexMu.Lock()
+	defer g.indexMu.Unlock()
+
 	g.indexUpdated = true
 	dataset := dataBlock.Dataset().Name()
 	indexPath := g.indexPath(dataset)
@@ -60,6 +63,9 @@ func (g *gitdb) updateIndexes(dataBlock *db.Block) {
 }
 
 func (g *gitdb) flushIndex() error {
+	g.indexMu.Lock()
+	defer g.indexMu.Unlock()
+
 	if g.indexUpdated {
 		log.Test("flushing index")
 		for indexFile, data := range g.indexCache {
@@ -108,9 +114,6 @@ func (g *gitdb) readIndex(indexFile string) gdbIndex {
 }
 
 func (g *gitdb) buildIndexSmart(changedFiles []string) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
 	for _, blockFile := range changedFiles {
 		log.Info("Building index for block: " + blockFile)
 		block := db.LoadBlock(filepath.Join(g.dbDir(), blockFile), g.config.EncryptionKey)

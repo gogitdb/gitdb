@@ -60,7 +60,7 @@ func TestMockInsertMany(t *testing.T) {
 func TestMockGet(t *testing.T) {
 	db := setupMock(t)
 
-	m := getTestMessage()
+	m := &Message{}
 
 	id := "Message/b0/1"
 	if err := db.Get(id, m); err == nil {
@@ -70,6 +70,10 @@ func TestMockGet(t *testing.T) {
 	id = "Message/b0/110"
 	if err := db.Get(id, m); err != nil {
 		t.Errorf("db.Get(%s) failed: %s", id, err)
+	}
+
+	if mId := gitdb.ID(m); mId != id {
+		t.Errorf("db.Get(%s) want: %s, got: %s", id, id, mId)
 	}
 }
 

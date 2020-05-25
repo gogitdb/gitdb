@@ -1,8 +1,10 @@
 package gitdb
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -72,10 +74,27 @@ func (g *mockdb) InsertMany(m []Model) error {
 	return nil
 }
 
-func (g *mockdb) Get(id string, m Model) error {
+func (g *mockdb) Get(id string, result Model) error {
+
+	if reflect.ValueOf(result).Kind() != reflect.Ptr || reflect.ValueOf(result).IsNil() {
+		return errors.New("Second argument to Get must be a non-nil pointer")
+	}
+
 	model, exists := g.data[id]
 	if exists {
-		m = model
+
+		resultType := reflect.ValueOf(result).Type()
+		modelType := reflect.ValueOf(model).Type()
+		if resultType != modelType {
+			return fmt.Errorf("Second argument to Get must be of type %v", modelType)
+		}
+
+		b, err := json.Marshal(model)
+		if err != nil {
+			return err
+		}
+		json.Unmarshal(b, result)
+
 		return nil
 	}
 

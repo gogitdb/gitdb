@@ -162,7 +162,8 @@ func extractPositions(b *db.Block) map[string][]int {
 		length := len(recordLine)
 		positions[record.ID()] = []int{offset, length}
 
-		offset = length + offset
+		//account for newline
+		offset += length + 1
 	}
 	return positions
 }

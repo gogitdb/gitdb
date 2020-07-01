@@ -153,7 +153,7 @@ func extractPositions(b *db.Block) map[string][]int {
 		recordStr = strings.Replace(recordStr, `"`, `\"`, -1)
 
 		//stop line just after the comma
-		recordLine := "\n\t" + `"` + record.ID() + `": "` + recordStr + `"`
+		recordLine := "\t" + `"` + record.ID() + `": "` + recordStr + `"`
 		//is not last line
 		if i < len(records)-1 {
 			recordLine += ","

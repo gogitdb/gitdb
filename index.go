@@ -146,32 +146,23 @@ func extractPositions(b *db.Block) map[string][]int {
 	//a block can contain records from multiple physical block files
 	//especially when *gitdb.dofetch is called so proceed with caution
 	var positions = map[string][]int{}
-	offset := 2
-	length := 0
+	offset := 3
 	for i, record := range records {
 		recordStr := record.Data()
 		recordStr = strings.Replace(recordStr, `'`, `\'`, -1)
 		recordStr = strings.Replace(recordStr, `"`, `\"`, -1)
 
-		isNotLastLine := i < len(records)-1
-
 		//stop line just after the comma
-		recordLine := "\t" + `"` + record.ID() + `": "` + recordStr + `"`
-		if isNotLastLine {
+		recordLine := "\n\t" + `"` + record.ID() + `": "` + recordStr + `"`
+		//is not last line
+		if i < len(records)-1 {
 			recordLine += ","
 		}
 
-		if i > 0 {
-			offset = length + offset
-		}
-
-		length = len(recordLine)
-		if isNotLastLine {
-			//account for \n
-			length++
-		}
-
+		length := len(recordLine)
 		positions[record.ID()] = []int{offset, length}
+
+		offset = length + offset
 	}
 	return positions
 }

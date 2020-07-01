@@ -152,15 +152,21 @@ func extractPositions(b *db.Block) map[string][]int {
 		recordStr := record.Data()
 		recordStr = strings.Replace(recordStr, `'`, `\'`, -1)
 		recordStr = strings.Replace(recordStr, `"`, `\"`, -1)
+
+		isNotLastLine := i < len(records)-1
+
 		//stop line just after the comma
-		recordLine := "\t" + `"` + record.ID() + `": "` + recordStr + `",`
+		recordLine := "\t" + `"` + record.ID() + `": "` + recordStr + `"`
+		if isNotLastLine {
+			recordLine += ","
+		}
 
 		if i > 0 {
 			offset = length + offset
 		}
 
 		length = len(recordLine)
-		if i < len(records)-1 {
+		if isNotLastLine {
 			//account for \n
 			length++
 		}

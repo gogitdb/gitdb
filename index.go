@@ -163,7 +163,8 @@ func extractPositions(b *db.Block) map[string][]int {
 				continue
 			}
 
-			recordID := strings.Trim(strings.TrimSpace(record[0]), `"`)
+			recordID := strings.TrimSpace(record[0])
+			recordID = recordID[1 : len(recordID)-1]
 			positions[recordID] = []int{offset, length}
 
 			//account for newline

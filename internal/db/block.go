@@ -101,6 +101,11 @@ func (b *Block) BadRecords() []string {
 	return b.badRecords
 }
 
+//Path returns path to block file
+func (b *Block) Path() string {
+	return b.path
+}
+
 //NewEmptyBlock should be used to store records from multiple blocks
 func NewEmptyBlock(key string) *EmptyBlock {
 	block := &EmptyBlock{}

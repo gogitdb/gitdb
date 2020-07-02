@@ -1,6 +1,8 @@
 package gitdb
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -139,31 +141,39 @@ func (g *gitdb) buildIndexFull() {
 
 //extractPositions returns the position of all records in a block
 //as they would appear in the physical block file
+//a block can contain records from multiple physical block files
+//especially when *gitdb.dofetch is called so proceed with caution
 func extractPositions(b *db.Block) map[string][]int {
-
-	records := b.Records()
-
-	//a block can contain records from multiple physical block files
-	//especially when *gitdb.dofetch is called so proceed with caution
 	var positions = map[string][]int{}
-	offset := 3
-	for i, record := range records {
-		recordStr := record.Data()
-		recordStr = strings.Replace(recordStr, `'`, `\'`, -1)
-		recordStr = strings.Replace(recordStr, `"`, `\"`, -1)
 
-		//stop line just after the comma
-		recordLine := "\t" + `"` + record.ID() + `": "` + recordStr + `"`
-		//is not last line
-		if i < len(records)-1 {
-			recordLine += ","
-		}
-
-		length := len(recordLine)
-		positions[record.ID()] = []int{offset, length}
-
-		//account for newline
-		offset += length + 1
+	data, err := json.MarshalIndent(b, "", "\t")
+	if err != nil {
+		log.Error(err.Error())
 	}
+
+	offset := 3
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.TrimSpace(line) != "{" && strings.TrimSpace(line) != "}" {
+			length := len(line)
+
+			record := strings.SplitN(line, ":", 2)
+			if len(record) != 2 {
+				continue
+			}
+
+			recordID := strings.Trim(strings.TrimSpace(record[0]), `"`)
+			positions[recordID] = []int{offset, length}
+
+			//account for newline
+			offset += length + 1
+		}
+	}
+
+	if len(positions) < 1 {
+		panic("no positions extracted from: " + b.Path())
+	}
+
 	return positions
 }

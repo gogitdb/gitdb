@@ -60,7 +60,7 @@ func (g *gitdb) startEventLoop() {
 					}
 					g.commit.Done()
 				default:
-					log.Info("No handler found for " + string(e.Type) + " event")
+					log.Test("No handler found for " + string(e.Type) + " event")
 				}
 			}
 		}

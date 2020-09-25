@@ -52,15 +52,15 @@ func (a *Schema) Validate() error {
 		return errors.New("Invalid Schema Name")
 	}
 
-	if !a.internal && strings.Contains("gitdb,bucket,upload", strings.ToLower(a.dataset)) {
+	if !a.internal && !a.validDatasetName(a.dataset){
 		return fmt.Errorf("%s is a reserved Schema Name", a.dataset)
 	}
 
-	if len(a.block) == 0 {
+	if !a.validName(a.block) {
 		return errors.New("Invalid Schema Block ID")
 	}
 
-	if len(a.record) == 0 {
+	if !a.validName(a.record) {
 		return errors.New("Invalid Schema Record ID")
 	}
 
@@ -69,6 +69,27 @@ func (a *Schema) Validate() error {
 	}
 
 	return nil
+}
+
+func (a *Schema) validDatasetName(name string) bool {
+	reservedName = []string{"gitdb", "bucket", "upload"}
+	lcname := strings.ToLower(name)
+	for _, rname := reservedName {
+		if lcname == rname {
+			return false
+		}
+	}
+
+	return a.validName(name)
+}
+
+func (a *Schema) validName(name string) bool {
+	if len(name) < 1 {
+		return false
+	}
+
+	allowedChars := `abcdefghijklmnopqrstuvwxyz0123456789_-.`
+	return strings.ContainsAny(strings.ToLower(name), allowedChars)
 }
 
 //Indexes returns the index map of a given Model

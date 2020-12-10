@@ -72,7 +72,7 @@ func (a *Schema) Validate() error {
 }
 
 func (a *Schema) validDatasetName(name string) bool {
-	reservedName = []string{"gitdb", "bucket", "upload"}
+	reservedName := []string{"gitdb", "bucket", "upload"}
 	lcname := strings.ToLower(name)
 	for _, rname := range reservedName {
 		if lcname == rname {

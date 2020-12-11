@@ -7,6 +7,7 @@ import (
 	"github.com/gogitdb/gitdb/v2"
 )
 
+//TODO write negative tests (e.g record not found)
 func TestGet(t *testing.T) {
 	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
 	defer teardown(t)

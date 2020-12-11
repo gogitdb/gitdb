@@ -52,7 +52,7 @@ func (a *Schema) Validate() error {
 		return errors.New("Invalid Schema Name")
 	}
 
-	if !a.internal && !a.validDatasetName(a.dataset){
+	if !a.internal && !a.validDatasetName(a.dataset) {
 		return fmt.Errorf("%s is a reserved Schema Name", a.dataset)
 	}
 
@@ -106,7 +106,7 @@ func ID(m Model) string {
 func ParseID(id string) (dataset string, block string, record string, err error) {
 	recordMeta := strings.Split(id, "/")
 	if len(recordMeta) != 3 {
-		err = errors.New("Invalid record id: " + id)
+		err = ErrInvalidRecordID
 	} else {
 		dataset = recordMeta[0]
 		block = recordMeta[1]

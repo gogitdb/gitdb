@@ -34,7 +34,7 @@ func (g *gitdb) doGet(id string) (*db.Record, error) {
 
 	blockFilePath := filepath.Join(g.dbDir(), dataset, block+".json")
 	if _, err := os.Stat(blockFilePath); err != nil {
-		return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
+		return nil, ErrNoRecords
 	}
 
 	//we used to to a doGetByIndex here but it doesn't work properly
@@ -114,8 +114,12 @@ func (g *gitdb) doFetch(dataset string, dataBlock *db.EmptyBlock) error {
 	//events <- newReadEvent("...", fullPath)
 	log.Info("Fetching records from - " + fullPath)
 	files, err := ioutil.ReadDir(fullPath)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return err
+	}
+
+	if os.IsNotExist(err) {
+		return ErrNoRecords
 	}
 
 	var fileName string

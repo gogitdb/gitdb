@@ -3,7 +3,7 @@ package db
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"github.com/gogitdb/gitdb/v2/internal/errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -188,7 +188,7 @@ func (b *Block) Get(key string) (*Record, error) {
 		return b.records[key], nil
 	}
 
-	return nil, errors.New("key does not exist")
+	return nil, errors.ErrRecordNotFound
 }
 
 //Delete a record by key from a Block
@@ -198,7 +198,7 @@ func (b *Block) Delete(key string) error {
 		return nil
 	}
 
-	return errors.New("key does not exist")
+	return errors.ErrRecordNotFound
 }
 
 //Len returns length of block

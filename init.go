@@ -51,7 +51,7 @@ func Open(config *Config) (GitDb, error) {
 	//if boot() returned an error do not start event loop
 	if !conn.loopStarted {
 		conn.startEventLoop()
-		conn.startSyncClock()
+		//conn.startSyncClock()
 		if cfg.EnableUI {
 			conn.startUI()
 		}

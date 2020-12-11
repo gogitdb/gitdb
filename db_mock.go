@@ -93,9 +93,7 @@ func (g *mockdb) Get(id string, result Model) error {
 		if err != nil {
 			return err
 		}
-		json.Unmarshal(b, result)
-
-		return nil
+		return json.Unmarshal(b, result)
 	}
 
 	dataset, _, _, _ := ParseID(id)
@@ -257,4 +255,8 @@ func (g *mockdb) configure(cfg Config) {
 		cfg.ConnectionName = defaultConnectionName
 	}
 	g.config = cfg
+}
+
+func (g *mockdb) Sync() error {
+	return nil
 }

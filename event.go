@@ -6,7 +6,6 @@ import (
 
 	"github.com/bouggo/log"
 	"github.com/distatus/battery"
-	"github.com/gogitdb/gitdb/v2/internal/db"
 )
 
 type eventType string
@@ -71,11 +70,6 @@ func (g *gitdb) startEventLoop() {
 func (g *gitdb) startSyncClock() {
 
 	go func(g *gitdb) {
-		if len(g.config.OnlineRemote) <= 0 {
-			log.Info("Syncing disabled: online remote is not set")
-			return
-		}
-
 		log.Test(fmt.Sprintf("starting sync clock @ interval %s", g.config.SyncInterval))
 		ticker := time.NewTicker(g.config.SyncInterval)
 		for {
@@ -85,25 +79,9 @@ func (g *gitdb) startSyncClock() {
 				return
 			case <-ticker.C:
 				g.writeMu.Lock()
-				//if client PC has at least 20% battery life
-				if !hasSufficientBatteryPower(20) {
-					log.Info("Syncing disabled: insufficient battery power")
-					return
+				if err := g.Sync(); err != nil {
+					log.Error(err.Error())
 				}
-
-				log.Info("Syncing database...")
-				changedFiles := g.gitChangedFiles()
-				err1 := g.gitPull()
-				err2 := g.gitPush()
-				if err1 != nil || err2 != nil {
-					log.Info("Database sync failed")
-				}
-
-				//reset loaded blocks
-				g.loadedBlocks = map[string]*db.Block{}
-
-				g.buildIndexSmart(changedFiles)
-				g.writeMu.Unlock()
 			}
 		}
 	}(g)

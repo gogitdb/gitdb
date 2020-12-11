@@ -53,6 +53,7 @@ type GitDb interface {
 	GetLastCommitTime() (time.Time, error)
 	SetUser(user *User) error
 	Config() Config
+	Sync() error
 }
 
 type gitdb struct {
@@ -112,7 +113,6 @@ func (g *gitdb) Close() error {
 	}
 
 	//send shutdown event to event loop and sync clock
-	g.shutdown <- true
 	g.shutdown <- true
 	g.waitForCommit()
 

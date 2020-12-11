@@ -31,7 +31,5 @@ func (g *gitdb) Sync() error {
 	g.loadedBlocks = map[string]*db.Block{}
 
 	g.buildIndexSmart(changedFiles)
-	g.writeMu.Unlock()
-
 	return nil
 }

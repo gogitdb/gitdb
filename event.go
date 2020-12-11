@@ -82,6 +82,7 @@ func (g *gitdb) startSyncClock() {
 				if err := g.Sync(); err != nil {
 					log.Error(err.Error())
 				}
+				g.writeMu.Unlock()
 			}
 		}
 	}(g)

@@ -72,7 +72,7 @@ type gitdb struct {
 	loopStarted  bool
 	closed       bool
 
-	indexCache   gdbIndexCache
+	indexCache   gdbSimpleIndexCache
 	loadedBlocks map[string]*db.Block
 
 	mails []*mail
@@ -80,7 +80,7 @@ type gitdb struct {
 
 func newConnection() *gitdb {
 	//autocommit defaults to true
-	db := &gitdb{autoCommit: true, indexCache: make(gdbIndexCache)}
+	db := &gitdb{autoCommit: true, indexCache: make(gdbSimpleIndexCache)}
 	//initialize channels
 	db.events = make(chan *dbEvent, 1)
 	db.locked = make(chan bool, 1)
@@ -156,7 +156,7 @@ func (g *gitdb) Migrate(from Model, to Model) error {
 	}*/
 
 	block := db.NewEmptyBlock(g.config.EncryptionKey)
-	if err := g.dofetch(from.GetSchema().name(), block); err != nil {
+	if err := g.doFetch(from.GetSchema().name(), block); err != nil {
 		return err
 	}
 

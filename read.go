@@ -25,7 +25,7 @@ func (g *gitdb) loadBlock(blockFile string) (*db.Block, error) {
 	return g.loadedBlocks[blockFile], nil
 }
 
-func (g *gitdb) doget(id string) (*db.Record, error) {
+func (g *gitdb) doGet(id string) (*db.Record, error) {
 
 	dataset, block, _, err := ParseID(id)
 	if err != nil {
@@ -37,36 +37,47 @@ func (g *gitdb) doget(id string) (*db.Record, error) {
 		return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
 	}
 
-	//read id index
-	indexFile := filepath.Join(g.indexDir(), dataset, "id.json")
-	if _, ok := g.indexCache[indexFile]; !ok {
-		g.buildIndexTargeted(dataset)
+	//we used to to a doGetByIndex here but it doesn't work properly
+	//TODO revisit doGetByIndex
+	dataBlock := db.NewEmptyBlock(g.config.EncryptionKey)
+	if err := dataBlock.Hydrate(blockFilePath); err != nil {
+		return nil, err
 	}
 
-	iv, ok := g.indexCache[indexFile][id]
-	if ok {
-		dataBlock := db.NewEmptyBlock(g.config.EncryptionKey)
-		err = dataBlock.HydrateByPositions(blockFilePath, []int{iv.Offset, iv.Len})
-		if err != nil {
-			log.Error(err.Error())
-			return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
-		}
-
-		record, err := dataBlock.Get(id)
-		if err != nil {
-			log.Error(err.Error())
-			return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
-		}
-
-		return record, nil
-	}
-
-	return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
+	return dataBlock.Get(id)
 }
+
+//func (g *gitdb) doGetByIndex(id, dataset string) (*db.Record, error) {
+//	//read id index
+//	indexFile := filepath.Join(g.indexDir(), dataset, "id.json")
+//	if _, ok := g.indexCache[indexFile]; !ok {
+//		g.buildIndexTargeted(dataset)
+//	}
+//
+//	iv, ok := g.indexCache[indexFile][id]
+//	if ok {
+//		dataBlock := db.NewEmptyBlock(g.config.EncryptionKey)
+//		err = dataBlock.HydrateByPositions(blockFilePath, []int{iv.Offset, iv.Len})
+//		if err != nil {
+//			log.Error(err.Error())
+//			return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
+//		}
+//
+//		record, err := dataBlock.Get(id)
+//		if err != nil {
+//			log.Error(err.Error())
+//			return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
+//		}
+//
+//		return record, nil
+//	}
+//
+//	return nil, fmt.Errorf("Record %s not found in %s", id, dataset)
+//}
 
 //Get hydrates a model with specified id into result Model
 func (g *gitdb) Get(id string, result Model) error {
-	record, err := g.doget(id)
+	record, err := g.doGet(id)
 	if err != nil {
 		return err
 	}
@@ -77,7 +88,7 @@ func (g *gitdb) Get(id string, result Model) error {
 }
 
 func (g *gitdb) Exists(id string) error {
-	_, err := g.doget(id)
+	_, err := g.doGet(id)
 	if err == nil {
 		g.events <- newReadEvent("...", id)
 	}
@@ -88,7 +99,7 @@ func (g *gitdb) Exists(id string) error {
 func (g *gitdb) Fetch(dataset string) ([]*db.Record, error) {
 
 	dataBlock := db.NewEmptyBlock(g.config.EncryptionKey)
-	err := g.dofetch(dataset, dataBlock)
+	err := g.doFetch(dataset, dataBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +108,7 @@ func (g *gitdb) Fetch(dataset string) ([]*db.Record, error) {
 	return dataBlock.Records(), nil
 }
 
-func (g *gitdb) dofetch(dataset string, dataBlock *db.EmptyBlock) error {
+func (g *gitdb) doFetch(dataset string, dataBlock *db.EmptyBlock) error {
 
 	fullPath := filepath.Join(g.dbDir(), dataset)
 	//events <- newReadEvent("...", fullPath)
@@ -124,7 +135,10 @@ func (g *gitdb) dofetch(dataset string, dataBlock *db.EmptyBlock) error {
 func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode SearchMode) ([]*db.Record, error) {
 
 	//searchBlocks return the position of the record in the block
-	searchBlocks := map[string][][]int{}
+	//searchBlocks := map[string][][]int{} //index based
+	var searchBlocks []string
+	matchingRecords := map[string]string{}
+
 	for _, searchParam := range searchParams {
 		indexFile := filepath.Join(g.indexDir(), dataset, searchParam.Index+".json")
 		if _, ok := g.indexCache[indexFile]; !ok {
@@ -136,7 +150,7 @@ func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode S
 		queryValue := strings.ToLower(searchParam.Value)
 		for recordID, iv := range g.indexCache[indexFile] {
 			addResult := false
-			dbValue := strings.ToLower(iv.Value.(string))
+			dbValue := strings.ToLower(iv.(string))
 			switch searchMode {
 			case SearchEquals:
 				addResult = dbValue == queryValue
@@ -149,25 +163,34 @@ func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode S
 			}
 
 			if addResult {
-				_, block, _, err := ParseID(recordID)
+				dataset, block, _, err := ParseID(recordID)
 				if err != nil {
 					return nil, err
 				}
 
-				searchBlocks[block] = append(searchBlocks[block], []int{iv.Offset, iv.Len})
+				matchingRecords[recordID] = recordID
+				searchBlocks = append(searchBlocks, g.blockFilePath(dataset, block))
 			}
 		}
-
 	}
 
 	resultBlock := db.NewEmptyBlock(g.config.EncryptionKey)
-	for block, pos := range searchBlocks {
-		blockFile := filepath.Join(g.dbDir(), dataset, block+".json")
-		err := resultBlock.HydrateByPositions(blockFile, pos...)
-		if err != nil {
-			return nil, err
+	//TODO revisit index based search
+	//for block, pos := range searchBlocks {
+	//	blockFile := filepath.Join(g.dbDir(), dataset, block+".json")
+	//	err := resultBlock.HydrateByPositions(blockFile, pos...)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+
+	for _, block := range searchBlocks {
+		if err := resultBlock.Hydrate(block); err != nil {
+			log.Error(err.Error())
+			continue
 		}
 	}
 
+	resultBlock.Filter(matchingRecords)
 	return resultBlock.Records(), nil
 }

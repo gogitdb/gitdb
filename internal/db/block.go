@@ -219,3 +219,14 @@ func (b *Block) Records() []*Record {
 
 	return records
 }
+
+func (b *Block) Filter(recordIDs map[string]string) {
+	records := make(map[string]*Record, len(recordIDs))
+	for recordID, value := range b.records {
+		if _, ok := recordIDs[recordID]; ok {
+			records[recordID] = value
+		}
+
+	}
+	b.records = records
+}

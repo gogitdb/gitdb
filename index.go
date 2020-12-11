@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 
 type gdbIndex map[string]gdbIndexValue
 type gdbIndexCache map[string]gdbIndex
+type gdbSimpleIndex map[string]interface{}         //recordID => value
+type gdbSimpleIndexCache map[string]gdbSimpleIndex //index => (recordID => value)
 type gdbIndexValue struct {
 	Offset int         `json:"o"`
 	Len    int         `json:"l"`
@@ -29,9 +32,10 @@ func (g *gitdb) updateIndexes(dataBlock *db.Block) {
 	g.indexUpdated = true
 	dataset := dataBlock.Dataset().Name()
 	indexPath := g.indexPath(dataset)
+
 	log.Info("updating in-memory index")
 	//get line position of each record in the block
-	p := extractPositions(dataBlock)
+	//p := extractPositions(dataBlock)
 
 	var model Model
 	var indexes map[string]interface{}
@@ -40,7 +44,9 @@ func (g *gitdb) updateIndexes(dataBlock *db.Block) {
 			if model == nil {
 				model = g.config.Factory(dataset)
 			}
-			record.Hydrate(model)
+			if err := record.Hydrate(model); err != nil {
+				log.Error(fmt.Sprintf("record.Hydrate failed: %s %s", record.ID(), err))
+			}
 			indexes = model.GetSchema().indexes
 		} else {
 			indexes = record.Indexes()
@@ -55,11 +61,12 @@ func (g *gitdb) updateIndexes(dataBlock *db.Block) {
 			if _, ok := g.indexCache[indexFile]; !ok {
 				g.indexCache[indexFile] = g.readIndex(indexFile)
 			}
-			g.indexCache[indexFile][recordID] = gdbIndexValue{
-				Offset: p[recordID][0],
-				Len:    p[recordID][1],
-				Value:  value,
-			}
+			//g.indexCache[indexFile][recordID] = gdbIndexValue{
+			//	Offset: p[recordID][0],
+			//	Len:    p[recordID][1],
+			//	Value:  value,
+			//}
+			g.indexCache[indexFile][recordID] = value
 		}
 	}
 }
@@ -100,8 +107,8 @@ func (g *gitdb) flushIndex() error {
 	return nil
 }
 
-func (g *gitdb) readIndex(indexFile string) gdbIndex {
-	rMap := make(gdbIndex)
+func (g *gitdb) readIndex(indexFile string) gdbSimpleIndex {
+	rMap := make(gdbSimpleIndex)
 	if _, err := os.Stat(indexFile); err == nil {
 		data, err := ioutil.ReadFile(indexFile)
 		if err == nil {
@@ -142,7 +149,7 @@ func (g *gitdb) buildIndexFull() {
 //extractPositions returns the position of all records in a block
 //as they would appear in the physical block file
 //a block can contain records from multiple physical block files
-//especially when *gitdb.dofetch is called so proceed with caution
+//especially when *gitdb.doFetch is called so proceed with caution
 func extractPositions(b *db.Block) map[string][]int {
 	var positions = map[string][]int{}
 

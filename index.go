@@ -33,7 +33,7 @@ func (g *gitdb) updateIndexes(dataBlock *db.Block) {
 	dataset := dataBlock.Dataset().Name()
 	indexPath := g.indexPath(dataset)
 
-	log.Info("updating in-memory index")
+	log.Info("updating in-memory index: " + dataset)
 	//get line position of each record in the block
 	//p := extractPositions(dataBlock)
 

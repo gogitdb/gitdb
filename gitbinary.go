@@ -141,6 +141,13 @@ func (g *gitBinary) undo() error {
 		return err
 	}
 
+	cmd = exec.Command("git", "-C", g.absDbPath, "clean", "fd")
+	//log(utils.CmdToString(cmd))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		log.Error(string(out))
+		return err
+	}
+
 	log.Info("changes reverted")
 	return nil
 }

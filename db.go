@@ -1,6 +1,7 @@
 package gitdb
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -98,6 +99,10 @@ func (g *gitdb) Config() Config {
 }
 
 func (g *gitdb) Close() error {
+
+	if g == nil {
+		return errors.New("gitdb is nil")
+	}
 
 	g.mu.Lock()
 	defer g.mu.Unlock()

@@ -140,7 +140,7 @@ func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode S
 
 	//searchBlocks return the position of the record in the block
 	//searchBlocks := map[string][][]int{} //index based
-	var searchBlocks []string
+	searchBlocks := map[string]bool{}
 	matchingRecords := map[string]string{}
 
 	for _, searchParam := range searchParams {
@@ -173,7 +173,7 @@ func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode S
 				}
 
 				matchingRecords[recordID] = recordID
-				searchBlocks = append(searchBlocks, g.blockFilePath(dataset, block))
+				searchBlocks[g.blockFilePath(dataset, block)] = true
 			}
 		}
 	}
@@ -188,7 +188,7 @@ func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode S
 	//	}
 	//}
 
-	for _, block := range searchBlocks {
+	for block := range searchBlocks {
 		if err := resultBlock.Hydrate(block); err != nil {
 			log.Error(err.Error())
 			continue

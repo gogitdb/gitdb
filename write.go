@@ -20,7 +20,7 @@ func (g *gitdb) Insert(mo Model) error {
 	}
 
 	if err := m.Validate(); err != nil {
-		return fmt.Errorf("Model is not valid: %s", err)
+		return err
 	}
 
 	if err := m.GetSchema().Validate(); err != nil {

@@ -81,8 +81,7 @@ func (g *gitdb) flushIndex() error {
 
 			indexPath := filepath.Dir(indexFile)
 			if _, err := os.Stat(indexPath); err != nil {
-				err = os.MkdirAll(indexPath, 0755)
-				if err != nil {
+				if err := os.MkdirAll(indexPath, 0755); err != nil {
 					log.Error("Failed to write to index: " + indexFile)
 					return err
 				}
@@ -95,8 +94,7 @@ func (g *gitdb) flushIndex() error {
 				return err
 			}
 
-			err = ioutil.WriteFile(indexFile, indexBytes, 0744)
-			if err != nil {
+			if err := ioutil.WriteFile(indexFile, indexBytes, 0744); err != nil {
 				log.Error("Failed to write to index: " + indexFile)
 				return err
 			}

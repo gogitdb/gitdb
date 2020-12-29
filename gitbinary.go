@@ -33,8 +33,9 @@ func (g *gitBinary) clone() error {
 	cmd := exec.Command("git", "clone", "--depth", "10", g.config.OnlineRemote, g.absDbPath)
 	//log(fmt.Sprintf("%s", cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Info(string(out))
-		return errors.New(string(out))
+		sout := string(out)
+		log.Info(sout)
+		return errors.New(sout)
 	}
 
 	return nil
@@ -59,7 +60,6 @@ func (g *gitBinary) addRemote() error {
 		cmd := exec.Command("git", "-C", g.absDbPath, "remote", "rm", "origin")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			log.Info(string(out))
-			//return err
 		}
 	}
 
@@ -67,8 +67,9 @@ func (g *gitBinary) addRemote() error {
 		cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)
 		//log(utils.CmdToString(cmd))
 		if out, err := cmd.CombinedOutput(); err != nil {
-			log.Info(string(out))
-			return err
+			sout := string(out)
+			log.Info(sout)
+			return errors.New(sout)
 		}
 	}
 

@@ -1,8 +1,10 @@
 package gitdb
 
 import (
+	"fmt"
 	"github.com/bouggo/log"
 	"github.com/gogitdb/gitdb/v2/internal/db"
+	"time"
 )
 
 func (g *gitdb) Sync() error {
@@ -32,4 +34,25 @@ func (g *gitdb) Sync() error {
 
 	g.buildIndexSmart(changedFiles)
 	return nil
+}
+
+func (g *gitdb) startSyncClock() {
+
+	go func(g *gitdb) {
+		log.Test(fmt.Sprintf("starting sync clock @ interval %s", g.config.SyncInterval))
+		ticker := time.NewTicker(g.config.SyncInterval)
+		for {
+			select {
+			case <-g.shutdown:
+				log.Test("shutting down sync clock")
+				return
+			case <-ticker.C:
+				g.writeMu.Lock()
+				if err := g.Sync(); err != nil {
+					log.Error(err.Error())
+				}
+				g.writeMu.Unlock()
+			}
+		}
+	}(g)
 }

@@ -2,8 +2,6 @@ package gitdb
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/bouggo/log"
 	"github.com/distatus/battery"
 )
@@ -65,27 +63,6 @@ func (g *gitdb) startEventLoop() {
 		}
 	}(g)
 
-}
-
-func (g *gitdb) startSyncClock() {
-
-	go func(g *gitdb) {
-		log.Test(fmt.Sprintf("starting sync clock @ interval %s", g.config.SyncInterval))
-		ticker := time.NewTicker(g.config.SyncInterval)
-		for {
-			select {
-			case <-g.shutdown:
-				log.Test("shutting down sync clock")
-				return
-			case <-ticker.C:
-				g.writeMu.Lock()
-				if err := g.Sync(); err != nil {
-					log.Error(err.Error())
-				}
-				g.writeMu.Unlock()
-			}
-		}
-	}(g)
 }
 
 func hasSufficientBatteryPower(threshold float64) bool {

@@ -100,13 +100,15 @@ func (g *gitdb) boot() error {
 	log.Info("Booting up db using " + g.gitDriver.name() + " driver")
 
 	//create .ssh dir
-	err := g.generateSSHKeyPair()
-	if err != nil {
+	if err := g.generateSSHKeyPair(); err != nil {
 		return err
 	}
 
 	//force git to only use generated ssh key and not fallback to ssh_config or ssh-agent
-	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -F none -i '%s' -o IdentitiesOnly=yes -o StrictHostKeyChecking=no", g.privateKeyFilePath()))
+	sshCmd := fmt.Sprintf("ssh -F none -i '%s' -o IdentitiesOnly=yes -o StrictHostKeyChecking=no", g.privateKeyFilePath())
+	if err := os.Setenv("GIT_SSH_COMMAND", sshCmd); err != nil {
+		return err
+	}
 
 	// if .db directory does not exist, create it and attempt
 	// to do a git clone from remote
@@ -116,23 +118,20 @@ func (g *gitdb) boot() error {
 		log.Info("database not initialized")
 
 		//create db directory
-		err = os.MkdirAll(dataDir, 0755)
-		if err != nil {
+		if err := os.MkdirAll(dataDir, 0755); err != nil {
 			return err
 		}
 
 		if len(g.config.OnlineRemote) > 0 {
-			err = g.gitClone()
-			if err != nil {
+			if err := g.gitClone(); err != nil {
 				return err
 			}
-			err = g.gitAddRemote()
-			if err != nil {
+
+			if err := g.gitAddRemote(); err != nil {
 				return err
 			}
 		} else {
-			err = g.gitInit()
-			if err != nil {
+			if err := g.gitInit(); err != nil {
 				return err
 			}
 		}
@@ -144,8 +143,7 @@ func (g *gitdb) boot() error {
 		//if remote dir does not exist add remotes
 		remotesPath := filepath.Join(dataDir, ".git", "refs", "remotes", "online")
 		if _, err := os.Stat(remotesPath); err != nil {
-			err = g.gitAddRemote()
-			if err != nil {
+			if err := g.gitAddRemote(); err != nil {
 				return err
 			}
 		}

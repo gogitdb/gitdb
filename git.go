@@ -53,13 +53,17 @@ func (g *gitdb) gitClone() error {
 	err := g.gitDriver.clone()
 	if err != nil {
 		//TODO if err is authentication related generate key pair
-		//TODO inform users to ask admin to add their public key to repo
+		if err := os.RemoveAll(g.dbDir()); err != nil {
+			return err
+		}
+
 		if strings.Contains(err.Error(), "denied") {
 			fb, err := ioutil.ReadFile(g.publicKeyFilePath())
 			if err != nil {
 				return err
 			}
 
+			//inform users to ask admin to add their public key to repo
 			notification := "Contact your database admin to add your public key to git server\n"
 			notification += "Public key: " + fmt.Sprintf("%s", fb)
 
@@ -67,9 +71,8 @@ func (g *gitdb) gitClone() error {
 			log.Test(notification)
 
 			g.sendMail(newMail("Database Setup Error", notification))
+			return nil
 		}
-
-		os.RemoveAll(g.dbDir())
 		return err
 	}
 

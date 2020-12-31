@@ -9,4 +9,5 @@ var (
 	ErrDbSyncFailed    = errors.ErrDbSyncFailed
 	ErrLowBattery      = errors.ErrLowBattery
 	ErrNoOnlineRemote  = errors.ErrNoOnlineRemote
+	ErrAccessDenied    = errors.ErrAccessDenied
 )

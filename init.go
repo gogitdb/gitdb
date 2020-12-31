@@ -3,6 +3,7 @@ package gitdb
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -45,6 +46,22 @@ func Open(config *Config) (GitDb, error) {
 	log.Info(logMsg)
 
 	if err != nil {
+		if err == ErrAccessDenied {
+			fb, err := ioutil.ReadFile(conn.publicKeyFilePath())
+			if err != nil {
+				return nil, err
+			}
+
+			//inform users to ask admin to add their public key to repo
+			notification := "Contact your database admin to add your public key to git server\n"
+			notification += "Public key: " + fmt.Sprintf("%s", fb)
+
+			log.Info(notification)
+			log.Test(notification)
+
+			conn.sendMail(newMail("Database Setup Error", notification))
+		}
+
 		return nil, err
 	}
 

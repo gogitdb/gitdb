@@ -17,4 +17,5 @@ var (
 	ErrDbSyncFailed    = errors.New("gitDB: Database sync failed")
 	ErrLowBattery      = errors.New("gitDB: Insufficient battery power. Syncing disabled")
 	ErrNoOnlineRemote  = errors.New("gitDB: Online remote is not set. Syncing disabled")
+	ErrAccessDenied    = errors.New("gitDB: Access was denied to online repository")
 )

@@ -2,8 +2,6 @@ package gitdb
 
 import (
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -58,20 +56,7 @@ func (g *gitdb) gitClone() error {
 		}
 
 		if strings.Contains(err.Error(), "denied") {
-			fb, err := ioutil.ReadFile(g.publicKeyFilePath())
-			if err != nil {
-				return err
-			}
-
-			//inform users to ask admin to add their public key to repo
-			notification := "Contact your database admin to add your public key to git server\n"
-			notification += "Public key: " + fmt.Sprintf("%s", fb)
-
-			log.Info(notification)
-			log.Test(notification)
-
-			g.sendMail(newMail("Database Setup Error", notification))
-			return nil
+			return ErrAccessDenied
 		}
 		return err
 	}

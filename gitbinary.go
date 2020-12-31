@@ -31,11 +31,8 @@ func (g *gitBinary) init() error {
 func (g *gitBinary) clone() error {
 
 	cmd := exec.Command("git", "clone", "--depth", "10", g.config.OnlineRemote, g.absDbPath)
-	//log(fmt.Sprintf("%s", cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		sout := string(out)
-		log.Info(sout)
-		return errors.New(sout)
+		return errors.New(string(out))
 	}
 
 	return nil
@@ -67,9 +64,7 @@ func (g *gitBinary) addRemote() error {
 		cmd = exec.Command("git", "-C", g.absDbPath, "remote", "add", "online", g.config.OnlineRemote)
 		//log(utils.CmdToString(cmd))
 		if out, err := cmd.CombinedOutput(); err != nil {
-			sout := string(out)
-			log.Info(sout)
-			return errors.New(sout)
+			return errors.New(string(out))
 		}
 	}
 
@@ -80,10 +75,9 @@ func (g *gitBinary) pull() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "pull", "online", "master")
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Error("Failed to pull data from online remote.")
 		log.Error(string(out))
 
-		return err
+		return errors.New("failed to pull data from online remote")
 	}
 
 	return nil
@@ -93,9 +87,8 @@ func (g *gitBinary) push() error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "push", "online", "master")
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Error("Failed to push data to online remotes.")
 		log.Error(string(out))
-		return err
+		return errors.New("failed to push data to online remotes")
 	}
 
 	return nil
@@ -105,7 +98,7 @@ func (g *gitBinary) commit(filePath string, msg string, user *User) error {
 	cmd := exec.Command("git", "-C", g.absDbPath, "config", "user.email", user.Email)
 	//log(utils.CmdToString(cmd))
 	if out, err := cmd.CombinedOutput(); err != nil {
-		println(string(out))
+		log.Error(string(out))
 		return err
 	}
 

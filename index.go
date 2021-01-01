@@ -132,8 +132,7 @@ func (g *gitdb) buildIndexSmart(changedFiles []string) {
 func (g *gitdb) buildIndexTargeted(target string) {
 	ds := db.LoadDataset(filepath.Join(g.dbDir(), target), g.config.EncryptionKey)
 	for _, block := range ds.Blocks() {
-		b, _ := json.Marshal(block)
-		log.Info("build index for block: " + string(b))
+		log.Info("build index for block: " + block.Path() + ", " + block.Dataset().Name() + "," + block.Dataset().Path())
 		g.updateIndexes(block)
 	}
 }

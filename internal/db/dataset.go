@@ -149,7 +149,7 @@ func (d *Dataset) BadRecords() []string {
 	return d.badRecords
 }
 
-//LastModifiedDate returns the last modifidation time of a DataSet
+//LastModifiedDate returns the last modification time of a DataSet
 func (d *Dataset) LastModifiedDate() string {
 	return d.lastModified.Format("02 Jan 2006 15:04:05")
 }

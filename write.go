@@ -118,6 +118,8 @@ func (g *gitdb) writeBlock(blockFile string, block *db.Block) error {
 		return fmtErr
 	}
 
+	//update cache
+	g.loadedBlocks[blockFile] = block
 	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 
@@ -163,8 +165,6 @@ func (g *gitdb) delByID(id string, dataset string, blockFile string, failIfNotFo
 		if failIfNotFound {
 			return errors.New("Could not delete [" + id + "]: record does not exist")
 		}
-		//update cache
-		g.loadedBlocks[blockFile] = dataBlock
 		return nil
 	}
 

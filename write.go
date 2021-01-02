@@ -163,6 +163,8 @@ func (g *gitdb) delByID(id string, dataset string, blockFile string, failIfNotFo
 		if failIfNotFound {
 			return errors.New("Could not delete [" + id + "]: record does not exist")
 		}
+		//update cache
+		g.loadedBlocks[blockFile] = dataBlock
 		return nil
 	}
 

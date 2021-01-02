@@ -119,7 +119,9 @@ func (g *gitdb) writeBlock(blockFile string, block *db.Block) error {
 	}
 
 	//update cache
-	g.loadedBlocks[blockFile] = block
+	if g.loadedBlocks != nil {
+		g.loadedBlocks[blockFile] = block
+	}
 	return ioutil.WriteFile(blockFile, blockBytes, 0744)
 }
 

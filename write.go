@@ -27,7 +27,7 @@ func (g *gitdb) Insert(mo Model) error {
 		return err
 	}
 
-	return g.write(m)
+	return g.insert(m)
 }
 
 func (g *gitdb) InsertMany(models []Model) error {
@@ -44,7 +44,7 @@ func (g *gitdb) InsertMany(models []Model) error {
 	return tx.Commit()
 }
 
-func (g *gitdb) write(m Model) error {
+func (g *gitdb) insert(m Model) error {
 
 	if _, err := os.Stat(g.fullPath(m)); err != nil {
 		err := os.MkdirAll(g.fullPath(m), 0755)

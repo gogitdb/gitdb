@@ -71,9 +71,9 @@ func (g *gitdb) insert(m Model) error {
 	mID := ID(m)
 
 	//construct a commit message
-	commitMsg := "Inserting " + mID + " into " + schema.blockID()
+	commitMsg := "Inserting " + mID
 	if _, err := dataBlock.Get(mID); err == nil {
-		commitMsg = "Updating " + mID + " in " + schema.blockID()
+		commitMsg = "Updating " + mID
 	}
 
 	newRecordStr := string(newRecordBytes)
@@ -146,7 +146,7 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 	if err == nil {
 		log.Test("sending delete event to loop")
 		g.commit.Add(1)
-		g.events <- newDeleteEvent("Deleting "+id+" in "+blockFilePath, blockFilePath, g.autoCommit)
+		g.events <- newDeleteEvent(fmt.Sprintf("Deleting %s", id), blockFilePath, g.autoCommit)
 		g.waitForCommit()
 	}
 

@@ -126,14 +126,14 @@ func (g *gitdb) writeBlock(blockFile string, block *db.Block) error {
 }
 
 func (g *gitdb) Delete(id string) error {
-	return g.dodelete(id, false)
+	return g.doDelete(id, false)
 }
 
 func (g *gitdb) DeleteOrFail(id string) error {
-	return g.dodelete(id, true)
+	return g.doDelete(id, true)
 }
 
-func (g *gitdb) dodelete(id string, failNotFound bool) error {
+func (g *gitdb) doDelete(id string, failNotFound bool) error {
 
 	dataset, block, _, err := ParseID(id)
 	if err != nil {
@@ -141,7 +141,7 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 	}
 
 	blockFilePath := g.blockFilePath(dataset, block)
-	err = g.delByID(id, dataset, blockFilePath, failNotFound)
+	err = g.delByID(id, blockFilePath, failNotFound)
 
 	if err == nil {
 		log.Test("sending delete event to loop")
@@ -153,7 +153,7 @@ func (g *gitdb) dodelete(id string, failNotFound bool) error {
 	return err
 }
 
-func (g *gitdb) delByID(id string, dataset string, blockFile string, failIfNotFound bool) error {
+func (g *gitdb) delByID(id string, blockFile string, failIfNotFound bool) error {
 
 	if _, err := os.Stat(blockFile); err != nil {
 		if failIfNotFound {

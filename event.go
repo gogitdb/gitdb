@@ -67,7 +67,7 @@ func (g *gitdb) startEventLoop() {
 
 func hasSufficientBatteryPower(threshold float64) bool {
 	batt, err := battery.Get(0)
-	if err != nil {
+	if err != nil || batt.State == battery.Charging {
 		//device is probably running on direct power
 		return true
 	}

@@ -269,7 +269,7 @@ func main(){
   defer db.Close()
 
   //populate model
-  account := &BankAccount()
+  account := &BankAccount{}
   account.AccountNo = "0123456789"
   account.AccountType = "Savings"
   account.Currency = "GBP"

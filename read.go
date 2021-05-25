@@ -96,11 +96,23 @@ func (g *gitdb) Exists(id string) error {
 	return err
 }
 
-func (g *gitdb) Fetch(dataset string) ([]*db.Record, error) {
-
+func (g *gitdb) Fetch(dataset string, blocks ...string) ([]*db.Record, error) {
 	dataBlock := db.NewEmptyBlock(g.config.EncryptionKey)
-	err := g.doFetch(dataset, dataBlock)
-	if err != nil {
+
+	if len(blocks) > 0 {
+		fullPath := filepath.Join(g.dbDir(), dataset)
+		for _, block := range blocks {
+			blockFile := filepath.Join(fullPath, block+".json")
+			log.Test("Fetching BLOCK records from - " + blockFile)
+			if err := dataBlock.Hydrate(blockFile); err != nil {
+				return nil, err
+			}
+		}
+
+		return dataBlock.Records(), nil
+	}
+
+	if err := g.doFetch(dataset, dataBlock); err != nil {
 		return nil, err
 	}
 
@@ -126,8 +138,7 @@ func (g *gitdb) doFetch(dataset string, dataBlock *db.EmptyBlock) error {
 	for _, file := range files {
 		fileName = filepath.Join(fullPath, file.Name())
 		if filepath.Ext(fileName) == ".json" {
-			err := dataBlock.Hydrate(fileName)
-			if err != nil {
+			if err := dataBlock.Hydrate(fileName); err != nil {
 				return err
 			}
 		}

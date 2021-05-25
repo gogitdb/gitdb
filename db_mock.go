@@ -110,16 +110,17 @@ func (g *mockdb) Exists(id string) error {
 	return nil
 }
 
-func (g *mockdb) Fetch(dataset string) ([]*db.Record, error) {
-	result := []*db.Record{}
+func (g *mockdb) Fetch(dataset string, blocks ...string) ([]*db.Record, error) {
+	var result []*db.Record
+	blockStream := "|" + strings.Join(blocks, "|") + "|"
 	for id, model := range g.data {
-		ds, _, _, err := ParseID(id)
+		ds, b, _, err := ParseID(id)
 		if err != nil {
 			log.Error(err.Error())
 			continue
 		}
 
-		if ds == dataset {
+		if ds == dataset && strings.Contains(blockStream, "|"+b+"|") {
 			result = append(result, db.ConvertModel(ID(model), model))
 		}
 	}

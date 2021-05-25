@@ -41,7 +41,7 @@ type GitDb interface {
 	InsertMany(m []Model) error
 	Get(id string, m Model) error
 	Exists(id string) error
-	Fetch(dataset string) ([]*db.Record, error)
+	Fetch(dataset string, block ...string) ([]*db.Record, error)
 	Search(dataDir string, searchParams []*SearchParam, searchMode SearchMode) ([]*db.Record, error)
 	Delete(id string) error
 	DeleteOrFail(id string) error

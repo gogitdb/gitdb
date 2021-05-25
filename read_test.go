@@ -1,6 +1,8 @@
 package gitdb_test
 
 import (
+	"fmt"
+	"github.com/gogitdb/gitdb/v2/internal/db"
 	"testing"
 
 	"github.com/bouggo/log"
@@ -74,6 +76,23 @@ func TestFetch(t *testing.T) {
 	}
 }
 
+func TestFetchBlock(t *testing.T) {
+	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
+	defer teardown(t)
+
+	dataset := "Message"
+	messages, err := testDb.Fetch(dataset, "b0")
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	want := 10
+	got := len(messages)
+	if got != want {
+		t.Errorf("Want: %d, Got: %d", want, got)
+	}
+}
+
 //TODO test correctness of search results
 func TestSearch(t *testing.T) {
 	teardown := setup(t, getReadTestConfig(gitdb.RecVersion))
@@ -115,5 +134,12 @@ func BenchmarkGet(b *testing.B) {
 	for i := 0; i <= b.N; i++ {
 		testDb.Get("Message/b0/1", m)
 		log.Test(m.Body)
+	}
+}
+
+func TestX(t *testing.T) {
+	var result []*db.Record
+	for _, r := range result {
+		fmt.Println(r)
 	}
 }

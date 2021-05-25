@@ -106,6 +106,21 @@ func TestMockFetch(t *testing.T) {
 	}
 }
 
+func TestMockFetchBlock(t *testing.T) {
+	db := setupMock(t)
+
+	dataset := "Message"
+	records, err := db.Fetch(dataset, "b0")
+	if err != nil {
+		t.Errorf("db.Fetch(%s) failed: %s", dataset, err)
+	}
+
+	want := 10
+	if got := len(records); got != want {
+		t.Errorf("db.Fetch(%s) failed: want %d, got %d", dataset, want, got)
+	}
+}
+
 func TestMockSearch(t *testing.T) {
 	db := setupMock(t)
 

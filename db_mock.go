@@ -120,8 +120,14 @@ func (g *mockdb) Fetch(dataset string, blocks ...string) ([]*db.Record, error) {
 			continue
 		}
 
-		if ds == dataset && strings.Contains(blockStream, "|"+b+"|") {
-			result = append(result, db.ConvertModel(ID(model), model))
+		if len(blocks) > 0 {
+			if ds == dataset && strings.Contains(blockStream, "|"+b+"|") {
+				result = append(result, db.ConvertModel(ID(model), model))
+			}
+		} else {
+			if ds == dataset {
+				result = append(result, db.ConvertModel(ID(model), model))
+			}
 		}
 	}
 

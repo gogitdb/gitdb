@@ -309,9 +309,8 @@ func main(){
   defer db.Close()
 
   //model to passed to Get to store result 
-  var account BankAccount()
-  err = db.Get("Accounts/202003/0123456789", &account)
-  if err != nil {
+  var account BankAccount
+  if err := db.Get("Accounts/202003/0123456789", &account); err != nil {
     log.Println(err)
   }
 }
@@ -350,6 +349,42 @@ func main(){
 }
 
 ```
+
+### Fetching all records from specific block in a dataset
+```go
+package main
+
+import (
+  "fmt"
+  "log"
+  "github.com/gogitdb/gitdb/v2"
+)
+
+func main(){
+  cfg := gitdb.NewConfig("/tmp/data")
+  db, err := gitdb.Open(cfg)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer db.Close()
+
+  records, err := db.Fetch("Accounts", "b0", "b1")
+  if err != nil {
+    log.Print(err)
+    return
+  }
+
+  var accounts []*BankAccount
+  for _, r := range records {
+    b := &BankAccount{}
+    r.Hydrate(b)
+    accounts = append(accounts, b)
+    log.Print(fmt.Sprintf("%s-%s", gitdb.ID(b), b.AccountNo))
+  }
+}
+
+```
+
 ### Deleting a record
 ```go
 package main
@@ -367,8 +402,7 @@ func main(){
   }
   defer db.Close()
 
-  err := db.Delete("Accounts/202003/0123456789")
-  if err != nil {
+  if err := db.Delete("Accounts/202003/0123456789"); err != nil {
     log.Print(err)
   }
 }
@@ -464,7 +498,7 @@ func main(){
   defer db.Close()
 
   //populate model
-  account := &BankAccount()
+  account := &BankAccount{}
   account.AccountNo = "0123456789"
   account.AccountType = "Savings"
   account.Currency = "GBP"
@@ -477,7 +511,7 @@ func main(){
   }
 
   //Get will automatically decrypt account
-  var account BankAccount()
+  var account BankAccount
   err = db.Get("Accounts/202003/0123456789", &account)
   if err != nil {
     log.Println(err)

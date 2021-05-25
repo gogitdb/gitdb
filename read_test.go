@@ -1,8 +1,6 @@
 package gitdb_test
 
 import (
-	"fmt"
-	"github.com/gogitdb/gitdb/v2/internal/db"
 	"testing"
 
 	"github.com/bouggo/log"
@@ -134,12 +132,5 @@ func BenchmarkGet(b *testing.B) {
 	for i := 0; i <= b.N; i++ {
 		testDb.Get("Message/b0/1", m)
 		log.Test(m.Body)
-	}
-}
-
-func TestX(t *testing.T) {
-	var result []*db.Record
-	for _, r := range result {
-		fmt.Println(r)
 	}
 }

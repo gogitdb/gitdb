@@ -3,7 +3,6 @@ package gitdb
 import (
 	"fmt"
 	"github.com/bouggo/log"
-	"github.com/gogitdb/gitdb/v2/internal/db"
 	"time"
 )
 
@@ -30,7 +29,7 @@ func (g *gitdb) Sync() error {
 	}
 
 	//reset loaded blocks
-	g.loadedBlocks = map[string]*db.Block{}
+	g.loadedBlocks = nil
 
 	g.buildIndexSmart(changedFiles)
 	return nil

@@ -141,7 +141,9 @@ func (g *gitdb) buildIndexFull() {
 	for _, ds := range datasets {
 		g.buildIndexTargeted(ds.Name())
 	}
-	g.flushIndex()
+	if err := g.flushIndex(); err != nil {
+		log.Error("gitDB: flushIndex failed: " + err.Error())
+	}
 }
 
 //extractPositions returns the position of all records in a block

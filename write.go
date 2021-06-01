@@ -13,14 +13,14 @@ import (
 )
 
 func (g *gitdb) Insert(mo Model) error {
-
 	m := wrap(mo)
-	if err := m.BeforeInsert(); err != nil {
-		return fmt.Errorf("Model.BeforeInsert failed: %s", err)
-	}
 
 	if err := m.Validate(); err != nil {
 		return err
+	}
+
+	if err := m.BeforeInsert(); err != nil {
+		return fmt.Errorf("Model.BeforeInsert failed: %s", err)
 	}
 
 	if err := m.GetSchema().Validate(); err != nil {

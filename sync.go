@@ -7,6 +7,8 @@ import (
 )
 
 func (g *gitdb) Sync() error {
+	g.syncMu.Lock()
+	defer g.syncMu.Unlock()
 
 	if len(g.config.OnlineRemote) <= 0 {
 		return ErrNoOnlineRemote

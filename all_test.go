@@ -53,6 +53,8 @@ func setup(t testing.TB, cfg *gitdb.Config) func(t testing.TB) {
 		fakeOnlineRepo(t)
 	}
 
+	//if DbPath is pointing to existing test data, create a fake .git folder
+	//so that it passes the git repo check on db.boot
 	if strings.HasPrefix(cfg.DbPath, "./testdata") {
 		if err := os.MkdirAll(filepath.Join(cfg.DbPath, "data", ".git"), 0755); err != nil {
 			t.Errorf("fake .git failed: %s", err.Error())

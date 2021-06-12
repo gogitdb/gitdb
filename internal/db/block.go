@@ -107,22 +107,25 @@ func (b *Block) Path() string {
 
 //NewEmptyBlock should be used to store records from multiple blocks
 func NewEmptyBlock(key string) *EmptyBlock {
-	block := &EmptyBlock{}
-	block.key = key
-	block.records = map[string]*Record{}
-	block.badRecords = []string{}
-	return block
+	return &EmptyBlock{Block{
+		key:        key,
+		records:    map[string]*Record{},
+		badRecords: []string{},
+	}}
 }
 
 //LoadBlock loads a block at a particular path
 func LoadBlock(blockFilePath, key string) *Block {
-	block := &Block{path: blockFilePath}
-	block.key = key
-	block.records = map[string]*Record{}
-	block.badRecords = []string{}
-	//TODO figure out a neat way to inject key
-	block.dataset = &Dataset{path: filepath.Dir(block.path), key: key}
-	if err := block.loadBlock(); err != nil {
+	block := &Block{
+		path:       blockFilePath,
+		key:        key,
+		records:    map[string]*Record{},
+		badRecords: []string{},
+		//TODO figure out a neat way to inject key
+		dataset: &Dataset{path: filepath.Dir(blockFilePath), key: key},
+	}
+
+	if err := block.load(); err != nil {
 		log.Error(err.Error())
 		block.dataset.badBlocks = append(block.dataset.badBlocks, blockFilePath)
 	}
@@ -156,7 +159,7 @@ func (b *Block) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (b *Block) loadBlock() error {
+func (b *Block) load() error {
 	blockFile := filepath.Join(b.path)
 	log.Info("Reading block: " + blockFile)
 	data, err := ioutil.ReadFile(blockFile)

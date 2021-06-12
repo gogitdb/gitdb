@@ -10,4 +10,5 @@ var (
 	ErrLowBattery      = errors.ErrLowBattery
 	ErrNoOnlineRemote  = errors.ErrNoOnlineRemote
 	ErrAccessDenied    = errors.ErrAccessDenied
+	ErrInvalidDataset  = errors.ErrInvalidDataset
 )

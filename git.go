@@ -113,8 +113,8 @@ func (g *gitdb) gitLastCommitTime() (time.Time, error) {
 	}
 
 	timeString := string(out)
-	if len(timeString) >= 19 {
-		return time.Parse("2006-01-02 15:04:05", timeString[:19])
+	if len(timeString) >= 25 {
+		return time.Parse("2006-01-02 15:04:05 -0700", timeString[:25])
 	}
 
 	return t, errors.New("no commit history in repo")

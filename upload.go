@@ -54,6 +54,8 @@ func (u *UploadModel) Validate() error {
 	return nil
 }
 
+func (U *UploadModel) ShouldEncrypt() bool { return false }
+
 //Upload provides API for managing file uploads
 type Upload struct {
 	db    *gitdb

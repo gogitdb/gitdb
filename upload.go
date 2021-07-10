@@ -10,6 +10,24 @@ import (
 	"strings"
 )
 
+const uploadDataset = "Bucket"
+
+var validExtensions = map[string]bool{
+	".html": true,
+	".pdf":  true,
+	".doc":  true,
+	".xlsx": true,
+	".csv":  true,
+	".jpg":  true,
+	".gif":  true,
+	".png":  true,
+	".svg":  true,
+	".json": true,
+	".yaml": true,
+	".yml":  true,
+	".md":   true,
+}
+
 //UploadModel represents a file upload
 type UploadModel struct {
 	Bucket     string
@@ -17,17 +35,15 @@ type UploadModel struct {
 	Path       string
 	UploadedBy string
 	TimeStampedModel
-	db *gitdb
 }
 
 //GetSchema implements Model.GetSchema
 func (u *UploadModel) GetSchema() *Schema {
-	name := "Upload"
 	return newSchema(
-		name,
+		uploadDataset,
 		// AutoBlock(u.db.dbDir(), name, BlockByCount, 1000),
-		"b0",
-		u.Bucket+"-"+u.File,
+		u.Bucket,
+		u.File,
 		make(map[string]interface{}),
 	)
 }
@@ -38,17 +54,6 @@ func (u *UploadModel) Validate() error {
 	return nil
 }
 
-//IsLockable informs GitDb if a Model support locking
-func (u *UploadModel) IsLockable() bool { return false }
-
-//GetLockFileNames informs GitDb of files a Models using for locking
-func (u *UploadModel) GetLockFileNames() []string { return nil }
-
-//ShouldEncrypt informs GitDb if a Model support encryption
-func (u *UploadModel) ShouldEncrypt() bool { return false }
-
-const uploadDataset = "Bucket"
-
 //Upload provides API for managing file uploads
 type Upload struct {
 	db    *gitdb
@@ -56,19 +61,28 @@ type Upload struct {
 }
 
 //Get returns an upload by id
-func (u *Upload) Get(id string) error {
-	return nil
+func (u *Upload) Get(id string, result *UploadModel) error {
+	return u.db.Get(id, result)
 }
 
 //Delete an upload by id
 func (u *Upload) Delete(id string) error {
-	return nil
+	var data UploadModel
+	if err := u.Get(id, &data); err != nil {
+		return err
+	}
+
+	err := u.db.Delete(id)
+	if err == nil {
+		err = os.Remove(data.Path)
+	}
+
+	return err
 }
 
 //New uploads specified file into bucket
 func (u *Upload) New(bucket, file string) error {
-	id := "Uploads/b0/" + bucket + file
-	err := u.db.Exists(id)
+	err := u.db.Exists(u.id(bucket, file))
 	if err == nil {
 		return errors.New("file already exists")
 	}
@@ -78,8 +92,7 @@ func (u *Upload) New(bucket, file string) error {
 
 //Replace overrides a specified file in bucket
 func (u *Upload) Replace(bucket, file string) error {
-	id := "Uploads/b0/" + bucket + file
-	err := u.db.Exists(id)
+	err := u.db.Exists(u.id(bucket, file))
 	if err != nil {
 		return err
 	}
@@ -87,53 +100,61 @@ func (u *Upload) Replace(bucket, file string) error {
 	return u.upload(bucket, file)
 }
 
-func (u *Upload) upload(bucket, file string) error {
-	src, err2 := os.Open(file)
-	if err2 != nil {
-		return err2
-	}
+func (u *Upload) id(bucket, file string) string {
+	return uploadDataset + "/" + bucket + "/" + u.cleanFileName(file)
+}
 
-	valid := map[string]bool{
-		".pdf":  true,
-		".doc":  true,
-		".xlsx": true,
-		".jpg":  true,
-		".gif":  true,
-		".png":  true,
-		".json": true,
-		".yaml": true,
-		".yml":  true,
-		".md":   true,
+func (u *Upload) cleanFileName(filename string) string {
+	//todo a better func to clean up filenames
+	filename = strings.ReplaceAll(path.Clean(filename), "/", "-")
+	filename = strings.ReplaceAll(filename, " ", "-")
+	return filename
+}
+
+func (u *Upload) upload(bucket, file string) error {
+	var src *os.File
+	var dst *os.File
+	var err error
+
+	if src, err = os.Open(file); err != nil {
+		return err
 	}
 
 	ext := filepath.Ext(file)
-	if _, ok := valid[ext]; !ok {
+	if _, ok := validExtensions[ext]; !ok {
 		return fmt.Errorf("%s files are not allowed", ext)
 	}
 
-	//todo a better func to clean up filenames
-	filename := strings.Replace(file, "/", "-", -1)
-	filename = strings.Replace(filename, " ", "-", -1)
-
+	filename := u.cleanFileName(file)
 	uploadPath := filepath.Join(u.db.dbDir(), uploadDataset, bucket, filename)
 	fmt.Println(uploadPath)
-	os.MkdirAll(path.Dir(uploadPath), os.ModePerm)
-	dst, err3 := os.Create(uploadPath)
-	if err3 != nil {
-		return err3
+	if err = os.MkdirAll(path.Dir(uploadPath), os.ModePerm); err != nil {
+		return err
 	}
-	if _, err := io.Copy(dst, src); err != nil {
+
+	if dst, err = os.Create(uploadPath); err != nil {
+		return err
+	}
+	if _, err = io.Copy(dst, src); err != nil {
 		return err
 	}
 
 	//neutralise file
-	dst.Chmod(0400)
+	if err = dst.Chmod(0640); err != nil {
+		return err
+	}
 
 	//Uploads/b0/bucket-file.jpg
-	m := &UploadModel{Bucket: bucket, File: file, Path: uploadPath, db: u.db}
+	m := &UploadModel{
+		Bucket:     bucket,
+		File:       filename,
+		Path:       uploadPath,
+		UploadedBy: u.db.config.User.String(),
+	}
 	return u.db.Insert(m)
 }
 
 func (g *gitdb) Upload() *Upload {
+	g.RegisterModel(uploadDataset, &UploadModel{})
 	return &Upload{db: g}
 }

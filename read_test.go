@@ -105,12 +105,12 @@ func TestSearch(t *testing.T) {
 	results, err := testDb.Search("Message", []*gitdb.SearchParam{sp}, gitdb.SearchEquals)
 	if err != nil {
 		t.Errorf("search failed with error - %s", err)
+		return
 	}
 
 	if len(results) != count {
 		t.Errorf("search result count wrong. want: %d, got: %d", count, len(results))
 	}
-
 }
 
 func BenchmarkFetch(b *testing.B) {

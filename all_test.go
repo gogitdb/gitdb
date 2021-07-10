@@ -49,7 +49,7 @@ func setup(t testing.TB, cfg *gitdb.Config) func(t testing.TB) {
 		cfg = getConfig()
 	}
 
-	if flagFakeRemote && len(cfg.OnlineRemote) > 0 {
+	if flagFakeRemote && !strings.HasPrefix(cfg.OnlineRemote, "git@") {
 		fakeOnlineRepo(t)
 	}
 

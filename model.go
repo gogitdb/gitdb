@@ -9,14 +9,15 @@ type Model interface {
 	GetSchema() *Schema
 	//Validate validates a Model
 	Validate() error
-	//IsLockable informs GitDb if a Model support locking
-	IsLockable() bool
-	//GetLockFileNames informs GitDb of files a Models using for locking
-	GetLockFileNames() []string
 	//ShouldEncrypt informs GitDb if a Model support encryption
 	ShouldEncrypt() bool
 	//BeforeInsert is called by gitdb before insert
 	BeforeInsert() error
+}
+
+type LockableModel interface {
+	//GetLockFileNames informs GitDb of files a Models using for locking
+	GetLockFileNames() []string
 }
 
 //TimeStampedModel provides time stamp fields
@@ -38,7 +39,6 @@ func (m *TimeStampedModel) BeforeInsert() error {
 
 type model struct {
 	Version string
-	Indexes map[string]interface{}
 	Data    Model
 }
 
@@ -56,14 +56,9 @@ func (m *model) GetSchema() *Schema {
 func (m *model) Validate() error {
 	return m.Data.Validate()
 }
-func (m *model) IsLockable() bool {
-	return m.Data.IsLockable()
-}
+
 func (m *model) ShouldEncrypt() bool {
 	return m.Data.ShouldEncrypt()
-}
-func (m *model) GetLockFileNames() []string {
-	return m.Data.GetLockFileNames()
 }
 
 func (m *model) BeforeInsert() error {

@@ -180,11 +180,11 @@ func (g *mockdb) DeleteOrFail(id string) error {
 
 func (g *mockdb) Lock(m Model) error {
 
-	if !m.IsLockable() {
+	if _, ok := m.(LockableModel); !ok {
 		return errors.New("Model is not lockable")
 	}
 
-	for _, l := range m.GetLockFileNames() {
+	for _, l := range m.(LockableModel).GetLockFileNames() {
 		key := m.GetSchema().dataset + "." + l
 		if _, ok := g.locks[l]; !ok {
 			g.locks[key] = true
@@ -196,11 +196,11 @@ func (g *mockdb) Lock(m Model) error {
 }
 
 func (g *mockdb) Unlock(m Model) error {
-	if !m.IsLockable() {
+	if _, ok := m.(LockableModel); !ok {
 		return errors.New("Model is not lockable")
 	}
 
-	for _, l := range m.GetLockFileNames() {
+	for _, l := range m.(LockableModel).GetLockFileNames() {
 		key := m.GetSchema().dataset + "." + l
 		delete(g.locks, key)
 	}

@@ -13,7 +13,7 @@ import (
 func (g *gitdb) Lock(mo Model) error {
 
 	m := wrap(mo)
-	if !m.IsLockable() {
+	if _, ok := mo.(LockableModel); !ok {
 		return errors.New("Model is not lockable")
 	}
 
@@ -27,7 +27,7 @@ func (g *gitdb) Lock(mo Model) error {
 		}
 	}
 
-	lockFiles := m.GetLockFileNames()
+	lockFiles := mo.(LockableModel).GetLockFileNames()
 	for _, file := range lockFiles {
 		lockFile := filepath.Join(fullPath, file+".lock")
 		g.events <- newWriteBeforeEvent("...", lockFile)
@@ -63,13 +63,13 @@ func (g *gitdb) Lock(mo Model) error {
 func (g *gitdb) Unlock(mo Model) error {
 
 	m := wrap(mo)
-	if !m.IsLockable() {
+	if _, ok := mo.(LockableModel); !ok {
 		return errors.New("Model is not lockable")
 	}
 
 	fullPath := g.lockDir(m)
 
-	lockFiles := m.GetLockFileNames()
+	lockFiles := mo.(LockableModel).GetLockFileNames()
 	for _, file := range lockFiles {
 		lockFile := filepath.Join(fullPath, file+".lock")
 

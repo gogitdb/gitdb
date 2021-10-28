@@ -32,8 +32,7 @@ func (g *gitdb) Insert(mo Model) error {
 
 func (g *gitdb) InsertMany(models []Model) error {
 	tx := g.StartTransaction("InsertMany")
-	var model Model
-	for _, model = range models {
+	for _, model := range models {
 		//create a new variable to pass to function to avoid
 		//passing pointer which will end up inserting the same
 		//model multiple times

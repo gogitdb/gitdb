@@ -12,10 +12,9 @@ import (
 
 //Record represents a model stored in gitdb
 type Record struct {
-	id    string
-	data  string
-	index map[string]interface{}
-	key   string
+	id   string
+	data string
+	key  string
 
 	p         fastjson.Parser
 	decrypted bool
@@ -23,7 +22,7 @@ type Record struct {
 
 //newRecord constructs a Record
 func newRecord(id, data string) *Record {
-	return &Record{id: id, data: data, index: map[string]interface{}{}}
+	return &Record{id: id, data: data}
 }
 
 //ID returns record id
@@ -58,15 +57,7 @@ func (r *Record) Hydrate(model interface{}) error {
 		buf = bytes.Trim(buf, "\x00")
 
 		// fmt.Printf("%s\n", oh)
-		if err := json.Unmarshal(buf, model); err != nil {
-			return err
-		}
-
-		obj = v.GetObject("Indexes")
-		buf = make([]byte, obj.Len())
-		buf = obj.MarshalTo(buf)
-		buf = bytes.Trim(buf, "\x00")
-		return json.Unmarshal(buf, &r.index)
+		return json.Unmarshal(buf, model)
 	default:
 		return fmt.Errorf("Unable to hydrate version : %s", version)
 	}
@@ -81,13 +72,6 @@ func (r *Record) decrypt(key string) {
 		}
 		r.decrypted = true
 	}
-}
-
-//Indexes returns v2 indexes for GitDB
-func (r *Record) Indexes() map[string]interface{} {
-	var m map[string]interface{}
-	r.Hydrate(&m)
-	return r.index
 }
 
 //JSON returns data decrypted and indented

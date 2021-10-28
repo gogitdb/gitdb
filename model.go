@@ -63,6 +63,25 @@ func (m *model) ShouldEncrypt() bool {
 
 func (m *model) BeforeInsert() error {
 	err := m.Data.BeforeInsert()
-	m.Indexes = m.GetSchema().indexes
 	return err
+}
+
+func (g *gitdb) RegisterModel(dataset string, m Model) bool {
+	if g.registry == nil {
+		g.registry = make(map[string]Model)
+	}
+	g.registry[dataset] = m
+	return true
+}
+
+func (g *gitdb) isRegistered(dataset string) bool {
+	if _, ok := g.registry[dataset]; ok {
+		return true
+	}
+
+	if g.config.Factory != nil && g.config.Factory(dataset) != nil {
+		return true
+	}
+
+	return false
 }

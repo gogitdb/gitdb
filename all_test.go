@@ -64,6 +64,9 @@ func setup(t testing.TB, cfg *gitdb.Config) func(t testing.TB) {
 	testDb = getDbConn(t, cfg)
 	messageId = 0
 
+	testDb.RegisterModel("Message", &Message{})
+	testDb.RegisterModel("MessageV2", &MessageV2{})
+
 	return teardown
 }
 

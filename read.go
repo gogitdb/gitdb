@@ -32,6 +32,10 @@ func (g *gitdb) doGet(id string) (*db.Record, error) {
 		return nil, err
 	}
 
+	if !g.isRegistered(dataset) {
+		return nil, ErrInvalidDataset
+	}
+
 	blockFilePath := filepath.Join(g.dbDir(), dataset, block+".json")
 	if _, err := os.Stat(blockFilePath); err != nil {
 		return nil, ErrNoRecords
@@ -97,6 +101,10 @@ func (g *gitdb) Exists(id string) error {
 }
 
 func (g *gitdb) Fetch(dataset string, blocks ...string) ([]*db.Record, error) {
+	if !g.isRegistered(dataset) {
+		return nil, ErrInvalidDataset
+	}
+
 	dataBlock := db.NewEmptyBlock(g.config.EncryptionKey)
 
 	if len(blocks) > 0 {
@@ -148,6 +156,9 @@ func (g *gitdb) doFetch(dataset string, dataBlock *db.EmptyBlock) error {
 }
 
 func (g *gitdb) Search(dataset string, searchParams []*SearchParam, searchMode SearchMode) ([]*db.Record, error) {
+	if !g.isRegistered(dataset) {
+		return nil, ErrInvalidDataset
+	}
 
 	//searchBlocks return the position of the record in the block
 	//searchBlocks := map[string][][]int{} //index based

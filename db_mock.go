@@ -267,3 +267,7 @@ func (g *mockdb) configure(cfg Config) {
 func (g *mockdb) Sync() error {
 	return nil
 }
+
+func (g *mockdb) RegisterModel(dataset string, m Model) bool {
+	return true
+}

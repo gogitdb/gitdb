@@ -37,20 +37,24 @@ func (g *gitdb) updateIndexes(dataBlock *db.Block) {
 	//get line position of each record in the block
 	//p := extractPositions(dataBlock)
 
-	var model Model
+	model := g.registry[dataset]
+	if model == nil {
+		if g.config.Factory != nil {
+			model = g.config.Factory(dataset)
+		}
+	}
+
+	if model == nil {
+		log.Error(fmt.Sprintf("model not found in registry or factory: %s", dataset))
+		return
+	}
+
 	var indexes map[string]interface{}
 	for _, record := range dataBlock.Records() {
-		if record.Version() == "v1" && g.config.Factory != nil {
-			if model == nil {
-				model = g.config.Factory(dataset)
-			}
-			if err := record.Hydrate(model); err != nil {
-				log.Error(fmt.Sprintf("record.Hydrate failed: %s %s", record.ID(), err))
-			}
-			indexes = model.GetSchema().indexes
-		} else {
-			indexes = record.Indexes()
+		if err := record.Hydrate(model); err != nil {
+			log.Error(fmt.Sprintf("record.Hydrate failed: %s %s", record.ID(), err))
 		}
+		indexes = model.GetSchema().indexes
 
 		//append index for id
 		recordID := record.ID()

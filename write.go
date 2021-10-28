@@ -45,6 +45,9 @@ func (g *gitdb) InsertMany(models []Model) error {
 }
 
 func (g *gitdb) insert(m Model) error {
+	if !g.isRegistered(m.GetSchema().dataset) {
+		return ErrInvalidDataset
+	}
 
 	if _, err := os.Stat(g.fullPath(m)); err != nil {
 		err := os.MkdirAll(g.fullPath(m), 0755)

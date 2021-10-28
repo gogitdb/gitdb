@@ -55,6 +55,7 @@ type GitDb interface {
 	SetUser(user *User) error
 	Config() Config
 	Sync() error
+	RegisterModel(dataset string, m Model) bool
 }
 
 type gitdb struct {
@@ -78,7 +79,8 @@ type gitdb struct {
 	indexCache   gdbSimpleIndexCache
 	loadedBlocks map[string]*db.Block
 
-	mails []*mail
+	mails    []*mail
+	registry map[string]Model
 }
 
 func newConnection() *gitdb {
@@ -100,7 +102,6 @@ func (g *gitdb) Config() Config {
 }
 
 func (g *gitdb) Close() error {
-
 	if g == nil {
 		return errors.New("gitdb is nil")
 	}
@@ -125,7 +126,7 @@ func (g *gitdb) Close() error {
 	//remove cached connection
 	delete(conns, g.config.ConnectionName)
 	g.closed = true
-
+	log.Info("closed gitdb conn")
 	return nil
 }
 

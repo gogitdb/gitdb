@@ -23,11 +23,11 @@ func (g *gitdb) Sync() error {
 	changedFiles := g.gitChangedFiles()
 	if err := g.gitPull(); err != nil {
 		log.Error(err.Error())
-		return ErrDbSyncFailed
+		return ErrDBSyncFailed
 	}
 	if err := g.gitPush(); err != nil {
 		log.Error(err.Error())
-		return ErrDbSyncFailed
+		return ErrDBSyncFailed
 	}
 
 	//reset loaded blocks

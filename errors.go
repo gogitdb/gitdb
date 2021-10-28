@@ -6,7 +6,7 @@ var (
 	ErrNoRecords       = errors.ErrNoRecords
 	ErrRecordNotFound  = errors.ErrRecordNotFound
 	ErrInvalidRecordID = errors.ErrInvalidRecordID
-	ErrDbSyncFailed    = errors.ErrDbSyncFailed
+	ErrDBSyncFailed    = errors.ErrDBSyncFailed
 	ErrLowBattery      = errors.ErrLowBattery
 	ErrNoOnlineRemote  = errors.ErrNoOnlineRemote
 	ErrAccessDenied    = errors.ErrAccessDenied

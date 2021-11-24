@@ -35,9 +35,31 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
+func TestNewConfigWithLocalDriver(t *testing.T) {
+	cfg := gitdb.NewConfigWithLocalDriver(dbPath)
+	db, err := gitdb.Open(cfg)
+	if err != nil {
+		t.Errorf("gitdb.Open failed: %s", err)
+	}
+
+	if reflect.DeepEqual(db.Config(), cfg) {
+		t.Errorf("Config does not match. want: %v, got: %v", cfg, db.Config())
+	}
+}
+
 func TestConfigValidate(t *testing.T) {
 	cfg := &gitdb.Config{}
 	if err := cfg.Validate(); err == nil {
 		t.Errorf("cfg.Validate should fail if DbPath is %s", cfg.DbPath)
+	}
+}
+
+func TestGetLastCommitTime(t *testing.T) {
+	teardown := setup(t, nil)
+	defer teardown(t)
+
+	_, err := testDb.GetLastCommitTime()
+	if err == nil {
+		t.Errorf("dbConn.GetLastCommitTime() returned error - %s", err)
 	}
 }

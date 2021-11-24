@@ -8,7 +8,7 @@ import (
 
 type operation func() error
 
-//Transaction represents a db transaction
+// Transaction represents a db transaction
 type Transaction interface {
 	Commit() error
 	AddOperation(o operation)
@@ -25,7 +25,7 @@ func (t *transaction) Commit() error {
 	for _, o := range t.operations {
 		if err := o(); err != nil {
 			log.Info("Reverting transaction: " + err.Error())
-			err2 := t.db.gitUndo()
+			err2 := t.db.driver.undo()
 			t.db.autoCommit = true
 			if err2 != nil {
 				err = fmt.Errorf("%s - %s", err.Error(), err2.Error())

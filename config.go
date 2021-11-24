@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//Config represents configuration options for GitDB
+// Config represents configuration options for GitDB
 type Config struct {
 	ConnectionName string
 	DbPath         string
@@ -16,8 +16,9 @@ type Config struct {
 	Factory        func(string) Model
 	EnableUI       bool
 	UIPort         int
-	//Mock is a hook for testing apps. If true will return a Mock DB connection
-	Mock bool
+	// Mock is a hook for testing apps. If true will return a Mock DB connection
+	Mock   bool
+	Driver dbDriver
 }
 
 const defaultConnectionName = "default"
@@ -26,7 +27,7 @@ const defaultUserName = "ghost"
 const defaultUserEmail = "ghost@gitdb.local"
 const defaultUIPort = 4120
 
-//NewConfig constructs a *Config
+// NewConfig constructs a *Config
 func NewConfig(dbPath string) *Config {
 	return &Config{
 		DbPath:         dbPath,
@@ -34,12 +35,25 @@ func NewConfig(dbPath string) *Config {
 		User:           NewUser(defaultUserName, defaultUserEmail),
 		ConnectionName: defaultConnectionName,
 		UIPort:         defaultUIPort,
+		Driver:         &gitDriver{driver: &gitBinaryDriver{}},
 	}
 }
 
-//Validate returns an error is *Config.DbPath is not set
+// NewConfigWithLocalDriver constructs a *Config
+func NewConfigWithLocalDriver(dbPath string) *Config {
+	return &Config{
+		DbPath:         dbPath,
+		SyncInterval:   defaultSyncInterval,
+		User:           NewUser(defaultUserName, defaultUserEmail),
+		ConnectionName: defaultConnectionName,
+		UIPort:         defaultUIPort,
+		Driver:         &localDriver{},
+	}
+}
+
+// Validate returns an error is *Config.DbPath is not set
 func (c *Config) Validate() error {
-	if len(c.DbPath) <= 0 {
+	if len(c.DbPath) == 0 {
 		return errors.New("Config.DbPath must be set")
 	}
 

@@ -52,7 +52,9 @@ func (g *gitdb) startEventLoop() {
 				switch e.Type {
 				case w, d:
 					if e.Commit {
-						g.gitCommit(e.Dataset, e.Description, g.config.User)
+						if err := g.driver.commit(e.Dataset, e.Description, g.config.User); err != nil {
+							log.Error(err.Error())
+						}
 						log.Test("handled write event for " + e.Description)
 					}
 					g.commit.Done()

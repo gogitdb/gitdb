@@ -10,27 +10,23 @@ func (g *gitdb) Sync() error {
 	g.syncMu.Lock()
 	defer g.syncMu.Unlock()
 
-	if len(g.config.OnlineRemote) <= 0 {
+	if len(g.config.OnlineRemote) == 0 {
 		return ErrNoOnlineRemote
 	}
 
-	//if client PC has at least 20% battery life
+	// if client PC has at least 20% battery life
 	if !hasSufficientBatteryPower(20) {
 		return ErrLowBattery
 	}
 
 	log.Info("Syncing database...")
-	changedFiles := g.gitChangedFiles()
-	if err := g.gitPull(); err != nil {
-		log.Error(err.Error())
-		return ErrDBSyncFailed
-	}
-	if err := g.gitPush(); err != nil {
+	changedFiles := g.driver.changedFiles()
+	if err := g.driver.sync(); err != nil {
 		log.Error(err.Error())
 		return ErrDBSyncFailed
 	}
 
-	//reset loaded blocks
+	// reset loaded blocks
 	g.loadedBlocks = nil
 
 	g.buildIndexSmart(changedFiles)
@@ -38,7 +34,6 @@ func (g *gitdb) Sync() error {
 }
 
 func (g *gitdb) startSyncClock() {
-
 	go func(g *gitdb) {
 		log.Test(fmt.Sprintf("starting sync clock @ interval %s", g.config.SyncInterval))
 		ticker := time.NewTicker(g.config.SyncInterval)

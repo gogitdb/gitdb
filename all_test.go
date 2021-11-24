@@ -55,8 +55,8 @@ func setup(t testing.TB, cfg *gitdb.Config) func(t testing.TB) {
 
 	//if DbPath is pointing to existing test data, create a fake .git folder
 	//so that it passes the git repo check on db.boot
-	if strings.HasPrefix(cfg.DbPath, "./testdata") {
-		if err := os.MkdirAll(filepath.Join(cfg.DbPath, "data", ".git"), 0755); err != nil {
+	if strings.HasPrefix(cfg.DBPath, "./testdata") {
+		if err := os.MkdirAll(filepath.Join(cfg.DBPath, "data", ".git"), 0755); err != nil {
 			t.Errorf("fake .git failed: %s", err.Error())
 		}
 	}
@@ -97,6 +97,7 @@ func getDbConn(t testing.TB, cfg *gitdb.Config) gitdb.GitDb {
 	conn, err := gitdb.Open(cfg)
 	if err != nil {
 		t.Errorf("getDbConn failed: %s", err)
+		return nil
 	}
 	log.Test("test db connection opened")
 	conn.SetUser(gitdb.NewUser("Tester", "tester@io"))
@@ -218,7 +219,7 @@ func (m *MessageV2) GetLockFileNames() []string { return []string{} }
 //count the number of records in fetched block
 func countRecords(dataset string) int {
 
-	datasetPath := getConfig().DbPath + "/data/" + dataset + "/"
+	datasetPath := getConfig().DBPath + "/data/" + dataset + "/"
 
 	cmd := exec.Command("/bin/bash", "-c", "grep "+dataset+" "+datasetPath+"*.json | wc -l | awk '{print $1}'")
 	b, err := cmd.CombinedOutput()
@@ -261,7 +262,7 @@ func insert(m gitdb.Model, benchmark bool) error {
 			return err
 		}
 		cfg := getConfig()
-		blockFile := filepath.Join(cfg.DbPath, "data", dataset, block+".json")
+		blockFile := filepath.Join(cfg.DBPath, "data", dataset, block+".json")
 		if _, err := os.Stat(blockFile); err != nil {
 			//return err
 			return errors.New("insert test stat failed - " + blockFile)

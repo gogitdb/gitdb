@@ -62,7 +62,7 @@ func (d *gitDriver) setup(db *gitdb) error {
 		}
 	} else if _, err := os.Stat(dotGitDir); err != nil {
 		log.Info(err.Error())
-		return errors.New(db.config.DbPath + " is not a git repository")
+		return errors.New(db.config.DBPath + " is not a git repository")
 	} else if len(db.config.OnlineRemote) > 0 { // TODO Review this properly
 		// if remote is configured i.e stat .gitDriver/refs/remotes/online
 		// if remote dir does not exist add remotes

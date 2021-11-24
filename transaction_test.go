@@ -10,7 +10,7 @@ import (
 func TestTransaction(t *testing.T) {
 	//intentionally crafted to increase converage on *gitdb.configure
 	cfg := &gitdb.Config{
-		DbPath: dbPath,
+		DBPath: dbPath,
 	}
 	teardown := setup(t, cfg)
 	defer teardown(t)

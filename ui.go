@@ -92,7 +92,7 @@ func (u *router) configure(cfg Config) *mux.Router {
 	//refresh dataset after 1 minute
 	router.Use(func(h http.Handler) http.Handler {
 		if u.refreshAt.IsZero() || u.refreshAt.Before(time.Now()) {
-			u.datasets = db.LoadDatasets(filepath.Join(cfg.DbPath, "data"), cfg.EncryptionKey)
+			u.datasets = db.LoadDatasets(filepath.Join(cfg.DBPath, "data"), cfg.EncryptionKey)
 			u.refreshAt = time.Now().Add(time.Second * 10)
 		}
 

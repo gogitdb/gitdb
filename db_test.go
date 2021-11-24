@@ -50,7 +50,7 @@ func TestNewConfigWithLocalDriver(t *testing.T) {
 func TestConfigValidate(t *testing.T) {
 	cfg := &gitdb.Config{}
 	if err := cfg.Validate(); err == nil {
-		t.Errorf("cfg.Validate should fail if DbPath is %s", cfg.DbPath)
+		t.Errorf("cfg.Validate should fail if DbPath is %s", cfg.DBPath)
 	}
 }
 

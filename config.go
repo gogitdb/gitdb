@@ -8,7 +8,7 @@ import (
 // Config represents configuration options for GitDB
 type Config struct {
 	ConnectionName string
-	DbPath         string
+	DBPath         string
 	OnlineRemote   string
 	EncryptionKey  string
 	SyncInterval   time.Duration
@@ -30,7 +30,7 @@ const defaultUIPort = 4120
 // NewConfig constructs a *Config
 func NewConfig(dbPath string) *Config {
 	return &Config{
-		DbPath:         dbPath,
+		DBPath:         dbPath,
 		SyncInterval:   defaultSyncInterval,
 		User:           NewUser(defaultUserName, defaultUserEmail),
 		ConnectionName: defaultConnectionName,
@@ -42,7 +42,7 @@ func NewConfig(dbPath string) *Config {
 // NewConfigWithLocalDriver constructs a *Config
 func NewConfigWithLocalDriver(dbPath string) *Config {
 	return &Config{
-		DbPath:         dbPath,
+		DBPath:         dbPath,
 		SyncInterval:   defaultSyncInterval,
 		User:           NewUser(defaultUserName, defaultUserEmail),
 		ConnectionName: defaultConnectionName,
@@ -51,9 +51,9 @@ func NewConfigWithLocalDriver(dbPath string) *Config {
 	}
 }
 
-// Validate returns an error is *Config.DbPath is not set
+// Validate returns an error is *Config.DBPath is not set
 func (c *Config) Validate() error {
-	if len(c.DbPath) == 0 {
+	if len(c.DBPath) == 0 {
 		return errors.New("Config.DbPath must be set")
 	}
 

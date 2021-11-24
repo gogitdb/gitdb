@@ -9,7 +9,7 @@ import (
 func TestSync(t *testing.T) {
 	t.Skip()
 	cfg := getConfig()
-	cfg.DbPath = "/tmp/voguedb"
+	cfg.DBPath = "/tmp/voguedb"
 	cfg.OnlineRemote = "git@bitbucket.org:voguehotel/db-dev.git"
 	cfg.EncryptionKey = ""
 	cfg.SyncInterval = 0 //disables sync clock

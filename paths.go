@@ -5,7 +5,7 @@ import (
 )
 
 func (g *gitdb) absDbPath() string {
-	absDbPath, err := filepath.Abs(g.config.DbPath)
+	absDbPath, err := filepath.Abs(g.config.DBPath)
 	if err != nil {
 		panic(err)
 	}

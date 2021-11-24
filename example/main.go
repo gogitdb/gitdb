@@ -17,7 +17,7 @@ var logToFile bool
 
 func init() {
 	cfg := &db.Config{
-		DbPath:        "./data",
+		DBPath:        "./data",
 		OnlineRemote:  os.Getenv("GITDB_REPO"),
 		SyncInterval:  time.Second * 5,
 		EncryptionKey: "XVlBzgbaiCMRAjWwhTHctcuAxhxKQFDa", //this has to be 32 bytes to select AES-256

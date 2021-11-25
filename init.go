@@ -51,7 +51,7 @@ func Open(config *Config) (GitDb, error) {
 			}
 
 			// inform users to ask admin to add their public key to repo
-			resolution := "Contact your database admin to add your public key to gitDriver server\n"
+			resolution := "Contact your database admin to add your public key to git server\n"
 			resolution += "Public key: " + fmt.Sprintf("%s", fb)
 
 			return nil, ErrorWithResolution(err, resolution)

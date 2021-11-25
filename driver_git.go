@@ -21,7 +21,7 @@ func (d *gitDriver) name() string {
 }
 
 // if .db directory does not exist, create it and attempt
-// to do a gitDriver clone from remote
+// to do a git clone from remote
 func (d *gitDriver) setup(db *gitdb) error {
 	d.absDBPath = db.dbDir()
 	if err := d.driver.setup(db); err != nil {
@@ -33,7 +33,7 @@ func (d *gitDriver) setup(db *gitdb) error {
 		return err
 	}
 
-	// force gitDriver to only use generated ssh key and not fallback to ssh_config or ssh-agent
+	// force git to only use generated ssh key and not fallback to ssh_config or ssh-agent
 	sshCmd := fmt.Sprintf("ssh -F none -i '%s' -o IdentitiesOnly=yes -o StrictHostKeyChecking=no", db.privateKeyFilePath())
 	if err := os.Setenv("GIT_SSH_COMMAND", sshCmd); err != nil {
 		return err
@@ -64,7 +64,7 @@ func (d *gitDriver) setup(db *gitdb) error {
 		log.Info(err.Error())
 		return errors.New(db.config.DBPath + " is not a git repository")
 	} else if len(db.config.OnlineRemote) > 0 { // TODO Review this properly
-		// if remote is configured i.e stat .gitDriver/refs/remotes/online
+		// if remote is configured i.e stat .git/refs/remotes/online
 		// if remote dir does not exist add remotes
 		remotesPath := filepath.Join(dataDir, ".git", "refs", "remotes", "online")
 		if _, err := os.Stat(remotesPath); err != nil {

@@ -167,14 +167,14 @@ func (d *gitBinaryDriver) changedFiles() []string {
 	var files []string
 	if len(d.config.OnlineRemote) > 0 {
 		log.Test("getting list of changed files...")
-		// gitDriver fetch
+		// git fetch
 		cmd := exec.Command("git", "-C", d.absDBPath, "fetch", "online", "master")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			log.Error(string(out))
 			return files
 		}
 
-		// gitDriver diff --name-only ..online/master
+		// git diff --name-only ..online/master
 		cmd = exec.Command("git", "-C", d.absDBPath, "diff", "--name-only", "..online/master")
 		out, err := cmd.CombinedOutput()
 		if err != nil {

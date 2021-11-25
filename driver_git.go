@@ -81,21 +81,19 @@ func (d *gitDriver) setup(db *gitdb) error {
 // very first time. In this case we must clone the online repo
 func (d *gitDriver) init() error {
 	// we take this very seriously
-	err := d.driver.init()
-	if err != nil {
+	if err := d.driver.init(); err != nil {
 		if err := os.RemoveAll(d.absDBPath); err != nil {
 			return err
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (d *gitDriver) clone() error {
 	// we take this very seriously
 	log.Info("cloning down database...")
-	err := d.driver.clone()
-	if err != nil {
+	if err := d.driver.clone(); err != nil {
 		// TODO if err is authentication related generate key pair
 		if err := os.RemoveAll(d.absDBPath); err != nil {
 			return err
@@ -112,8 +110,7 @@ func (d *gitDriver) clone() error {
 
 func (d *gitDriver) addRemote() error {
 	// we take this very seriously
-	err := d.driver.addRemote()
-	if err != nil {
+	if err := d.driver.addRemote(); err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
 			if err := os.RemoveAll(d.absDBPath); err != nil { // TODO is this necessary?
 				return err
@@ -132,13 +129,12 @@ func (d *gitDriver) sync() error {
 func (d *gitDriver) commit(filePath string, msg string, user *User) error {
 	mu.Lock()
 	defer mu.Unlock()
-	err := d.driver.commit(filePath, msg, user)
-	if err != nil {
+	if err := d.driver.commit(filePath, msg, user); err != nil {
 		// todo: update to return this error but for now at least log it
 		log.Error(err.Error())
 	}
 
-	return err
+	return nil
 }
 
 func (d *gitDriver) undo() error {

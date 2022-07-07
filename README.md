@@ -541,7 +541,7 @@ interested in how databases work.
 
 The best places to start are the main entry points into GitDB:
 
-- `Open()` - Initializes the reference to the database. It's responsible for
+- [`Open()`](https://github.com/gogitdb/gitdb/blob/a8088f138b072edd64021591e34adf878f2d0bd5/init.go#L17) - Initializes the reference to the database. It's responsible for
   creating the database if it doesn't exist and pulling down existing database
   if an online remote is specified.
 
